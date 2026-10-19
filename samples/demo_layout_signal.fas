@@ -1,0 +1,51 @@
+// ===============================================================
+// DEMOSTRACIÓN: SEÑALES REACTIVAS Y LAYOUT DECLARATIVO
+// PhasorLang v1.0 - Zero-Allocation & Dirty-Rect Redraw
+// ===============================================================
+
+// 1. Declaración de señales reactivas en memoria contigua
+signal contador = 10
+signal velocidad = 25
+
+// 2. Pantalla principal con layout declarativo automático
+screen main {
+    cls(0x0A0E17)
+
+    // Contenedor vertical principal con padding y gap automáticos
+    col(x: 30, y: 30, gap: 16, padding: 20) {
+        text("PHASOR DASHBOARD REACTIVO", 18, 0x58A6FF)
+        text("Estado Fasorial en Memoria Plana", 12, 0x8B949E)
+
+        // Fila contenedora para métricas de señales
+        row(gap: 20) {
+            col(gap: 4) {
+                text("VALOR SEÑAL:", 12, 0x8B949E)
+                text(bind(contador), 32, 0x3FB950)
+            }
+            col(gap: 4) {
+                text("VELOCIDAD (Hz):", 12, 0x8B949E)
+                text(bind(velocidad), 32, 0x79C0FF)
+            }
+        }
+
+        // Fila de botones de acción interactiva
+        row(gap: 15) {
+            btn("Incrementar (+1)", inc_signal, 0x238636)
+            btn("Decrementar (-1)", dec_signal, 0xDA3633)
+            btn("Acelerar (+5)", boost_speed, 0x1F6FEB)
+        }
+    }
+}
+
+// 3. Subrutinas y mutaciones reactivas en O(1)
+action inc_signal {
+    contador = contador + 1
+}
+
+action dec_signal {
+    contador = contador - 1
+}
+
+action boost_speed {
+    velocidad = velocidad + 5
+}

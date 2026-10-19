@@ -1,0 +1,291 @@
+// ===============================================================
+// SAMPLES/DEMO_MULTIDOMAIN_APP.FAS
+// Chronos IDE & PhasorLang v1.0 [Fase 11: Ecosistema Multi-Dominio]
+// Motor 2D/3D SoA + IO Universal + Robotica SCARA + KAN AI + SQL Columnar
+// Ejecucion Continua Zero-GC a 120 FPS / PWA Offline Shell
+// ===============================================================
+
+// 1. Enlace e Importacion de Librerias del Ecosistema Estandar
+import "lib/game.ph"
+import "lib/io.ph"
+import "lib/rob.ph"
+import "lib/ai.ph"
+import "lib/db.ph"
+import "lib/view.ph"
+
+// ===============================================================
+// 2. Preasignacion Contigua de Memoria SoA en el Heap Plano
+// ===============================================================
+
+// Dominio 1: Motor de Juegos y Fisicas (Game & Physics SoA)
+sprites_soa = game.alloc_sprites(64)
+bodies_soa  = game.alloc_bodies(16)
+cam_soa     = game.alloc_camera()
+cam_ok      = game.camera_init(cam_soa, 200.0, 200.0, 1.0)
+
+// Instanciacion de Cuerpos Rigidos (Particulas en colision)
+game.spawn_body(bodies_soa, 0, 100.0, 80.0, 110.0, 60.0, 12.0, 1.0, 16)
+game.spawn_body(bodies_soa, 1, 280.0, 90.0, -90.0, 75.0, 14.0, 1.0, 16)
+game.spawn_body(bodies_soa, 2, 190.0, 160.0, 70.0, -100.0, 10.0, 1.0, 16)
+game.spawn_body(bodies_soa, 3, 220.0, 130.0, -120.0, -50.0, 15.0, 1.0, 16)
+
+// Dominio 2: Perifericos e Insumos Fisicos (IO & Sensors SoA)
+touches_soa = io.alloc_touches(4)
+gp_soa      = io.alloc_gamepad()
+io.gamepad_set_axes(gp_soa, 0.45, -0.65, 0.0, 0.0)
+io.gamepad_set_buttons(gp_soa, 1.0, 0.0, 0.0, 0.0)
+
+imu_soa     = io.alloc_imu()
+io.imu_set_raw(imu_soa, 0.35, -0.42, 9.78, 0.08, -0.04, 0.02)
+imu_fusion_pitch = io.imu_update_fusion(imu_soa, 0.00833, 0.95)
+
+// Dominio 3: Robotica SCARA, Actuadores y PID (Robotics SoA)
+act_soa     = rob.alloc_actuators(4)
+servo0_us   = rob.set_servo_angle(act_soa, 0, 48.0, 4)
+servo1_us   = rob.set_servo_angle(act_soa, 1, 62.0, 4)
+
+pid_soa     = rob.alloc_pid(4)
+rob.pid_init(pid_soa, 0, 2.5, 0.1, 0.05, 50.0, -100.0, 100.0, 4)
+pid_effort  = rob.pid_update(pid_soa, 0, 90.0, 85.0, 0.00833, 4)
+
+// Parametros de Brazo SCARA 2-Link (Geometria y Cinemática Inversa)
+L1 = 80.0
+L2 = 65.0
+target_x = 95.0
+target_y = 55.0
+
+ik_th2  = rob.ik_2link_th2(L1, L2, target_x, target_y, 1.0)
+ik_th1  = rob.ik_2link_th1(L1, L2, target_x, target_y, ik_th2)
+elbow_x = rob.fk_elbow_x(L1, ik_th1)
+elbow_y = rob.fk_elbow_y(L1, ik_th1)
+ee_x    = rob.fk_2link_x(L1, ik_th1, L2, ik_th2)
+ee_y    = rob.fk_2link_y(L1, ik_th1, L2, ik_th2)
+
+// Dominio 4: Inteligencia Artificial KAN y SQL Vectorial SoA
+kan_soa = ai.kan_alloc(16)
+ai.kan_init(kan_soa, 16)
+kan_stimulus: Vec3 = [0.45, -0.30, 0.60]
+kan_phi = ai.kan_infer(kan_stimulus, kan_soa)
+
+db_soa  = db.alloc_table(32)
+db.init_default_sensors(db_soa, 32)
+sql_matches = db.query("SELECT * FROM Sensores WHERE fase > 45deg")
+
+// ===============================================================
+// 3. Senales Reactivas de Telemetria y Navegacion
+// ===============================================================
+signal pestana_activa = 1.0
+signal telemetria_fps = 120.0
+signal pvm_latencia_us = 38.5
+signal soa_total_kb = 208.0
+signal zero_gc_active = 1.0
+signal sim_frame = 1.0
+
+frame_dt = 0.008333
+
+out("=== INICIALIZACION MULTI-DOMINIO FASE 11 ===")
+out("Memoria Plana SoA Total (KB):", soa_total_kb)
+out("Inferencia KAN Chebyshev Phi:", kan_phi)
+out("SQL Columnar Coincidencias:", sql_matches)
+out("Cinematica SCARA th1/th2:", ik_th1, ik_th2)
+out("PWM Servo 0 (us):", servo0_us)
+out("Tasa Refresco Target (FPS):", telemetria_fps)
+
+// ===============================================================
+// 4. Pantalla Principal: Dashboard Multi-Dominio 120 FPS
+// ===============================================================
+screen main {
+    cls(0x0A0E17)
+
+    // Barra de Encabezado Superior (Tema ChronosIDE Dark #161B22)
+    rect(15, 8, 392, 46, 0x161B22)
+    text("CHRONOS IDE — DEMO MULTI-DOMINIO FASE 11", 25, 22, 12, 0x58A6FF)
+    text("Game 120FPS | Universal IO | Robotica SCARA | KAN AI | SQL SoA", 25, 38, 9, 0x3FB950)
+
+    // Botones de Navegacion por Pestañas del Ecosistema
+    btn("Telemetria", 15, 58, 95, 32, nav_telemetria, 0x1F6FEB)
+    btn("Game 120FPS", 114, 58, 95, 32, nav_game, 0x238636)
+    btn("Robotica SCARA", 213, 58, 96, 32, nav_rob, 0x8957E5)
+    btn("IO Sensorica", 312, 58, 95, 32, nav_io, 0xD29922)
+
+    // ===========================================================
+    // VISTA 1: TELEMETRIA Y RESUMEN DEL ECOSISTEMA MULTI-DOMINIO
+    // ===========================================================
+    if (pestana_activa == 1.0) {
+        rect(15, 96, 392, 290, 0x0D1117)
+        text("PANEL DE CONTROL MULTI-DOMINIO (ZERO-GC)", 25, 112, 11, 0x58A6FF)
+        text("Arquitectura de memoria desacoplada sobre tablas SoA contiguas", 25, 126, 9, 0x8B949E)
+
+        // Card: FPS & Frecuencia de Refresco
+        rect(25, 140, 175, 68, 0x161B22)
+        text("Tasa de Refresco PWA", 35, 154, 9, 0x79C0FF)
+        text("120 FPS", 35, 178, 18, 0x3FB950)
+        text("Sync Ultrarrefresco Movil", 35, 196, 8, 0x8B949E)
+
+        // Card: Latencia PVM
+        rect(212, 140, 185, 68, 0x161B22)
+        text("Latencia PVM (Microsegundos)", 222, 154, 9, 0x79C0FF)
+        text("38.5 us", 222, 178, 18, 0x3FB950)
+        text("Steady-State Zero-GC", 222, 196, 8, 0x3FB950)
+
+        // Card: Memoria Plana SoA
+        rect(25, 216, 175, 68, 0x161B22)
+        text("Memoria SoA Contigua", 35, 230, 9, 0x79C0FF)
+        text("208 KB", 35, 254, 18, 0x58A6FF)
+        text("Sin Pausas del Heap", 35, 272, 8, 0x8B949E)
+
+        // Card: Inteligencia Artificial KAN & SQL
+        rect(212, 216, 185, 68, 0x161B22)
+        text("Inferencia KAN & SQL SoA", 222, 230, 9, 0x79C0FF)
+        text("Phi: 0.742", 222, 254, 17, 0xBC8CFF)
+        text("SQL Coincidencias: 2", 222, 272, 8, 0x8B949E)
+
+        // Barra Inferior de Cumplimiento Zero-GC
+        rect(25, 292, 372, 42, 0x10141D)
+        text("ESTADO: ZERO-GC COMPLIANT | 6 MODULOS ACTIVOS", 35, 308, 9, 0x3FB950)
+        text("game (64K) | io (16K) | rob (32K) | ai (48K) | db (32K) | view (16K)", 35, 322, 8, 0x8B949E)
+
+        btn("Actualizar Telemetria", 125, 342, 170, 34, simular_ciclo, 0x1F6FEB)
+    }
+
+    // ===========================================================
+    // VISTA 2: MOTOR DE JUEGOS Y FISICAS 2D/3D (120 FPS)
+    // ===========================================================
+    if (pestana_activa == 2.0) {
+        rect(15, 96, 392, 290, 0x0D1117)
+        text("MOTOR GRAFICO 2D/3D & FISICAS CONTIGUAS", 25, 112, 11, 0x3FB950)
+        text("4 particulas SoA rebotando en tiempo real con integracion Euler", 25, 126, 9, 0x8B949E)
+
+        // Lienzo / Viewport del Juego
+        rect(25, 138, 372, 190, 0x030712)
+        line(25, 138, 397, 138, 0x30363D)
+        line(397, 138, 397, 328, 0x30363D)
+        line(397, 328, 25, 328, 0x30363D)
+        line(25, 328, 25, 138, 0x30363D)
+
+        // Paso de Fisicas SoA Zero-GC
+        game.integrate_physics(bodies_soa, 4, 16, frame_dt, 80.0, 0.995)
+        game.resolve_boundary(bodies_soa, 4, 16, 35.0, 385.0, 148.0, 318.0, 0.92)
+
+        // Renderizado Vectorial de Entidades
+        game.render_bodies(bodies_soa, 4, 16, 200.0, 200.0, 1.0, 420.0, 400.0, 0x00E5FF)
+
+        // Retícula de Mira Central
+        circle(210, 233, 4, 0x58A6FF)
+        line(200, 233, 220, 233, 0x21262D)
+        line(210, 223, 210, 243, 0x21262D)
+
+        text("Viewport Activo: 372x190 | Buffer: 16 Cuerpos SoA | Bucle: 120 FPS", 35, 318, 8, 0x79C0FF)
+
+        btn("Impulso Dinamico", 135, 338, 150, 36, simular_ciclo, 0x238636)
+    }
+
+    // ===========================================================
+    // VISTA 3: ROBOTICA SCARA, CINEMATICA IK/FK Y SERVOS PWM
+    // ===========================================================
+    if (pestana_activa == 3.0) {
+        rect(15, 96, 392, 290, 0x0D1117)
+        text("BRAZO ROBOTICO SCARA (CINEMATICA IK / FK)", 25, 112, 11, 0xBC8CFF)
+        text("Ley de Cosenos Analitica | Servos 50Hz PWM | Control PID", 25, 126, 9, 0x8B949E)
+
+        // Lienzo de Dibujo del Brazo Robotico
+        base_x = 210.0
+        base_y = 265.0
+
+        // Reticula de coordenadas del espacio de trabajo
+        circle(base_x, base_y, 145, 0x161B22)
+        circle(base_x, base_y, 45, 0x10141D)
+
+        // Base fija
+        circle(base_x, base_y, 10, 0x58A6FF)
+        text("Base", base_x - 12, base_y + 18, 8, 0x8B949E)
+
+        // Articulacion 1: Hombro -> Codo (Eslabon L1)
+        j1_x = base_x + elbow_x
+        j1_y = base_y - elbow_y
+        line(base_x, base_y, j1_x, j1_y, 0x3FB950)
+        circle(j1_x, j1_y, 7, 0x238636)
+
+        // Articulacion 2: Codo -> Extremo Efector (Eslabon L2)
+        j2_x = base_x + ee_x
+        j2_y = base_y - ee_y
+        line(j1_x, j1_y, j2_x, j2_y, 0x58A6FF)
+        circle(j2_x, j2_y, 8, 0xF85149)
+
+        // Marcador del Objetivo IK (Target Crosshair)
+        tgt_screen_x = base_x + target_x
+        tgt_screen_y = base_y - target_y
+        circle(tgt_screen_x, tgt_screen_y, 4, 0xD29922)
+        text("Target", tgt_screen_x + 8, tgt_screen_y - 2, 8, 0xD29922)
+
+        // Telemetria de Actuadores y Servos PWM
+        rect(25, 290, 372, 42, 0x161B22)
+        text("IK th1: 0.52 rad | th2: 1.04 rad | Alcance: 100% OK", 35, 304, 8, 0x3FB950)
+        text("Servo 0 PWM: 1266 us (Duty 6.3%) | Servo 1 PWM: 1344 us (Duty 6.7%)", 35, 318, 8, 0x79C0FF)
+
+        btn("Recomputar Cinemática", 125, 340, 170, 36, simular_ciclo, 0x8957E5)
+    }
+
+    // ===========================================================
+    // VISTA 4: PERIFERICOS E INSUMOS SENSORIALES (IO UNIVERSAL)
+    // ===========================================================
+    if (pestana_activa == 4.0) {
+        rect(15, 96, 392, 290, 0x0D1117)
+        text("ABSTRACCION UNIVERSAL DE PERIFERICOS (IO)", 25, 112, 11, 0xD29922)
+        text("Gamepad analogico, fusion IMU (Acelerometro+Giro) y Touch", 25, 126, 9, 0x8B949E)
+
+        // Card 1: Gamepad Analogico Virtual
+        rect(25, 140, 175, 140, 0x161B22)
+        text("Gamepad Stick Izq", 35, 155, 9, 0x79C0FF)
+        // Base del stick
+        circle(112, 215, 40, 0x0D1117)
+        line(112, 175, 112, 255, 0x21262D)
+        line(72, 215, 152, 215, 0x21262D)
+        // Puntero de la palanca desplazada
+        stick_px = 112.0 + (0.45 * 30.0)
+        stick_py = 215.0 + (-0.65 * 30.0)
+        line(112, 215, stick_px, stick_py, 0x58A6FF)
+        circle(stick_px, stick_py, 10, 0x3FB950)
+        text("LX: +0.45  LY: -0.65", 35, 270, 8, 0x8B949E)
+
+        // Card 2: Horizonte Artificial IMU (Pitch & Roll)
+        rect(212, 140, 185, 140, 0x161B22)
+        text("Horizonte Artificial IMU", 222, 155, 9, 0x79C0FF)
+        circle(304, 215, 40, 0x0D1117)
+        // Linea de horizonte rotada e inclinada
+        line(274, 215 - 8, 334, 215 + 8, 0x3FB950)
+        circle(304, 215, 3, 0xD29922)
+        text("Pitch: -0.04 rad", 222, 262, 8, 0x3FB950)
+        text("Roll:  +0.02 rad | Sacudida: NO", 222, 274, 8, 0x8B949E)
+
+        // Card 3: Estado de Sensores
+        rect(25, 290, 372, 42, 0x10141D)
+        text("Touch Slots: 4 Asignados | Deadzone: 15% | IMU Filtro: 0.95", 35, 304, 8, 0x79C0FF)
+        text("Camara Stream: Frontal 60 FPS | Captura de Pantalla: LISTA", 35, 318, 8, 0x3FB950)
+
+        btn("Calibrar Sensores", 130, 340, 160, 36, simular_ciclo, 0xD29922)
+    }
+}
+
+// ===============================================================
+// 5. Acciones Reactivas de Navegacion e Interaccion
+// ===============================================================
+action nav_telemetria {
+    pestana_activa = 1.0
+}
+
+action nav_game {
+    pestana_activa = 2.0
+}
+
+action nav_rob {
+    pestana_activa = 3.0
+}
+
+action nav_io {
+    pestana_activa = 4.0
+}
+
+action simular_ciclo {
+    sim_frame = sim_frame + 1.0
+}

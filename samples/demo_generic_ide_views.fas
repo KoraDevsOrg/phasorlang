@@ -1,0 +1,102 @@
+// ===============================================================
+// DEMO_GENERIC_IDE_VIEWS.FAS
+// Demostracion de Instanciacion Nativa y Simultanea de Visores
+// PhasorLang v1.0 [Self-Hosting Etapa 3 & Decoupled Architecture]
+// Carta de Smith + Grafico de Lissajous + Plano Cartesiano
+// 100% Zero-Allocation, Invocados Directamente desde Codigo de Usuario
+// ===============================================================
+
+// 1. Enlace e Importacion Modular de la Libreria Grafica
+import "lib/view.ph"
+
+// 2. Senales Reactivas de Control e Integracion Fasorial
+signal t = 0.0
+signal gamma_re = 0.35
+signal gamma_im = 0.45
+signal ch1_x = 0.707
+signal ch2_y = 0.500
+signal onda_v = 0.650
+signal ciclo = 1.0
+
+// ===============================================================
+// 3. Pantalla Principal: Composicion Modular de Visores
+// ===============================================================
+screen main {
+    cls(0x0A0E17)
+
+    // Encabezado del Dashboard
+    text("PHASOR VISUAL COMPONENT LIBRARY", 20, 20, 15, 0x58A6FF)
+    text("Instanciacion Simultanea Nativa: Smith + Lissajous + Cartesiano", 20, 38, 10, 0x8B949E)
+
+    // -----------------------------------------------------------
+    // VISOR 1: Carta de Smith (Cuadrante Superior Izquierdo)
+    // Invocado nativamente via smith_chart(cx, cy, r, gr, gi)
+    // -----------------------------------------------------------
+    smith_chart(110, 135, 65, gamma_re, gamma_im)
+
+    // -----------------------------------------------------------
+    // VISOR 2: Osciloscopio de Lissajous (Cuadrante Superior Derecho)
+    // Invocado nativamente via lissajous_scope(x, y, w, h, ch1, ch2)
+    // -----------------------------------------------------------
+    lissajous_scope(215, 68, 190, 142, ch1_x, ch2_y)
+
+    // -----------------------------------------------------------
+    // VISOR 3: Plano Cartesiano Temporal (Franja Inferior)
+    // Invocado nativamente via cartesian_plane(x, y, w, h, t, onda_v)
+    // -----------------------------------------------------------
+    cartesian_plane(20, 225, 385, 130, t, onda_v)
+
+    // -----------------------------------------------------------
+    // Panel de Control e Interaccion Reactiva (Botones)
+    // -----------------------------------------------------------
+    btn("Rotar Fase (+15 deg)", 20, 370, 185, 40, rotar_fase, 0x1F6FEB)
+    btn("Modular Impedancia", 220, 370, 185, 40, modular_z, 0x238636)
+    btn("Avanzar Tiempo (+dt)", 20, 418, 185, 40, avanzar_t, 0xD29922)
+    btn("Reset Estado", 220, 418, 185, 40, reset_demo, 0xDA3633)
+
+    // Metricas de Telemetria del Motor
+    text("90+ FPS Zero-GC | SoA Contiguous Memory | AOT WebAssembly", 25, 472, 10, 0x8B949E)
+}
+
+// ===============================================================
+// 4. Subrutinas y Mutaciones Reactivas de Alta Velocidad (O(1))
+// ===============================================================
+
+// Rotacion fasorial en cuadratura para el visor de Lissajous (15 grados)
+// cos(15) ~ 0.9659, sin(15) ~ 0.2588
+action rotar_fase {
+    nx = (ch1_x * 0.9659) - (ch2_y * 0.2588)
+    ny = (ch1_x * 0.2588) + (ch2_y * 0.9659)
+    ch1_x = nx
+    ch2_y = ny
+}
+
+// Modulacion del coeficiente de reflexion en la Carta de Smith
+action modular_z {
+    gamma_re = gamma_re + 0.08
+    if (gamma_re > 0.65) {
+        gamma_re = -0.30
+    }
+    gamma_im = gamma_im - 0.06
+    if (gamma_im < -0.55) {
+        gamma_im = 0.50
+    }
+}
+
+// Integracion temporal para la funcion de onda en el plano cartesiano
+action avanzar_t {
+    t = t + 0.20
+    onda_v = sin(t * 3.0)
+    ciclo = ciclo + 1.0
+}
+
+// Restauracion de estado fasorial inicial
+action reset_demo {
+    t = 0.0
+    gamma_re = 0.35
+    gamma_im = 0.45
+    ch1_x = 0.707
+    ch2_y = 0.500
+    onda_v = 0.650
+    ciclo = 1.0
+}

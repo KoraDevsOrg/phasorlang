@@ -1,0 +1,166 @@
+// ===============================================================
+// SAMPLES/DEMO_SUITE_TEST.FAS
+// Chronos IDE & PhasorLang v1.0 [Fase 12: Consolidacion Multiplataforma]
+// Suite Maestra de Pruebas Unitarias e Integracion Zero-GC
+// Cobertura de Aserciones Matematicas, SIMD, SoA, Game, IO, Rob, AI, DB, View
+// ===============================================================
+
+// 1. Enlace e Importacion del Ecosistema Completo de Librerias
+import "lib/test.ph"
+import "lib/game.ph"
+import "lib/io.ph"
+import "lib/rob.ph"
+import "lib/ai.ph"
+import "lib/db.ph"
+import "lib/view.ph"
+
+out("=== INICIANDO MASTER TEST SUITE (PHASORLANG ZERO-GC) ===")
+test.init()
+
+// ===============================================================
+// BLOQUE 1: Aritmetica Escalar, Fasores y SIMD Vectorial 3D
+// ===============================================================
+out("--- Test Grupo 1: Aritmetica, Fasores y SIMD 3D ---")
+
+test.assert_eq(12.0 * 5.0, 60.0, "Multiplicacion escalar basica")
+test.assert_eq(100.0 - 45.0, 55.0, "Resta escalar basica")
+test.assert_near(sin(1.5707963), 1.0, 0.0001, "Seno de pi/2 es 1.0")
+test.assert_near(cos(0.0), 1.0, 0.0001, "Coseno de 0 es 1.0")
+test.assert_near(sqrt(144.0), 12.0, 0.0001, "Raiz cuadrada exacta de 144")
+
+// Operaciones Vectoriales SIMD Vec3
+v1: Vec3 = [10.0, 20.0, 30.0]
+v2: Vec3 = [5.0, 10.0, 15.0]
+
+vSum = v1 + v2
+vExpectedSum: Vec3 = [15.0, 30.0, 45.0]
+test.assert_simd_eq(vSum, vExpectedSum, "Suma SIMD Vec3: v1 + v2")
+
+vSub = v1 - v2
+vExpectedSub: Vec3 = [5.0, 10.0, 15.0]
+test.assert_simd_eq(vSub, vExpectedSub, "Resta SIMD Vec3: v1 - v2")
+
+vScale = v2 * 2.0
+test.assert_simd_eq(vScale, v1, "Escalamiento SIMD Vec3: v2 * 2.0 == v1")
+
+vDot = dot(v1, v2)
+test.assert_eq(vDot, 700.0, "Producto punto SIMD Vec3: 10*5 + 20*10 + 30*15 = 700")
+
+// ===============================================================
+// BLOQUE 2: Motor de Videojuegos y Fisicas SoA ('lib/game.ph')
+// ===============================================================
+out("--- Test Grupo 2: Motor de Videojuegos y Fisicas SoA ---")
+
+sprites = game.alloc_sprites(16)
+game.push_sprite(sprites, 0, 120.0, 240.0, 1.0, 32.0, 32.0, 0.0, 0.0, 0x58A6FF, 16)
+game.push_sprite(sprites, 1, 300.0, 180.0, 2.0, 64.0, 64.0, 1.0, 1.0, 0x39D353, 16)
+
+test.assert_soa_eq(sprites, 0, 0, 16, 120.0, "Sprite 0 Posicion X en SoA")
+test.assert_soa_eq(sprites, 1, 0, 16, 240.0, "Sprite 0 Posicion Y en SoA")
+test.assert_soa_eq(sprites, 3, 0, 16, 32.0,  "Sprite 0 Ancho W en SoA")
+test.assert_soa_eq(sprites, 0, 1, 16, 300.0, "Sprite 1 Posicion X en SoA")
+
+bodies = game.alloc_bodies(8)
+game.spawn_body(bodies, 0, 50.0, 80.0, 20.0, -10.0, 12.0, 1.0, 8)
+test.assert_soa_eq(bodies, 0, 0, 8, 50.0, "Cuerpo Rigido 0 Posicion X Inicial")
+test.assert_soa_eq(bodies, 2, 0, 8, 20.0, "Cuerpo Rigido 0 Velocidad VX Inicial")
+
+// Integracion de Euler contigua sobre el cuerpo 0 (dt = 0.1) -> x = 50 + 20*0.1 = 52.0
+game.integrate_physics(bodies, 1, 8, 0.1, 0.0, 1.0)
+test.assert_soa_near(bodies, 0, 0, 8, 52.0, 0.001, "Integracion SoA Fisica X = 52.0")
+
+// ===============================================================
+// BLOQUE 3: IO Universal, Gamepad y Fusion Sensorial IMU ('lib/io.ph')
+// ===============================================================
+out("--- Test Grupo 3: IO Universal y Fusion IMU ---")
+
+gp = io.alloc_gamepad()
+io.gamepad_set_axes(gp, 0.85, -0.45, 0.10, -0.20)
+io.gamepad_set_buttons(gp, 1.0, 0.0, 1.0, 0.0)
+
+test.assert_near(io.gamepad_axis_lx(gp), 0.8235, 0.001, "Gamepad Eje Stick LX con Deadzone")
+test.assert_near(io.gamepad_axis_ly(gp), -0.3529, 0.001, "Gamepad Eje Stick LY con Deadzone")
+test.assert_eq(io.gamepad_btn_a(gp), 1.0, "Gamepad Boton A presionado")
+test.assert_eq(io.gamepad_btn_b(gp), 0.0, "Gamepad Boton B liberado")
+
+imu = io.alloc_imu()
+io.imu_set_raw(imu, 0.0, 9.81, 0.0, 0.05, 0.0, 0.0)
+test.assert_soa_eq(imu, 1, 0, 4, 9.81, "Acelerometro Eje Y (Gravedad 9.81 m/s^2)")
+
+pitch = io.imu_update_fusion(imu, 0.01, 0.98)
+test.assert_near(pitch, 0.0, 0.2, "Filtro Complementario IMU Pitch cerca de 0 rad")
+
+// ===============================================================
+// BLOQUE 4: Robotica SCARA, Actuadores y Control PID ('lib/rob.ph')
+// ===============================================================
+out("--- Test Grupo 4: Robotica SCARA, Servos y Control PID ---")
+
+actuators = rob.alloc_actuators(4)
+pulse0 = rob.set_servo_angle(actuators, 0, 90.0, 4)
+test.assert_near(pulse0, 1500.0, 1.0, "Servo 0 a 90 grados genera pulso de 1500 us")
+
+pid = rob.alloc_pid(4)
+rob.pid_init(pid, 0, 2.0, 0.5, 0.1, 50.0, -100.0, 100.0, 4)
+effort = rob.pid_update(pid, 0, 100.0, 80.0, 0.01, 4)
+test.assert_true(effort > 0.0, "Controlador PID genera esfuerzo corrector positivo ante error")
+
+// Cinematica Inversa SCARA 2-Link (L1=100, L2=100, objetivo en (100, 100))
+L1 = 100.0
+L2 = 100.0
+ik_th2 = rob.ik_2link_th2(L1, L2, 100.0, 100.0, 1.0)
+test.assert_near(abs(ik_th2), 1.57079, 0.05, "Cinematica Inversa Junta 2 Angulo Cuadratura")
+
+// ===============================================================
+// BLOQUE 5: Red Neuronal KAN Espectral Chebyshev ('lib/ai.ph')
+// ===============================================================
+out("--- Test Grupo 5: Red Neuronal KAN Espectral ---")
+
+kan_weights = ai.kan_alloc(4)
+ai.kan_init(kan_weights, 4)
+
+test.assert_soa_near(kan_weights, 1, 0, 4, 0.82, 0.001, "Sinapsis KAN 0 Coeficiente Grado 1")
+test.assert_soa_near(kan_weights, 2, 0, 4, -0.18, 0.001, "Sinapsis KAN 0 Coeficiente Grado 2")
+
+t1_val = ai.chebyshev(1.0, 0.6)
+test.assert_eq(t1_val, 0.6, "Polinomio Chebyshev T1(0.6) = 0.6")
+
+t2_val = ai.chebyshev(2.0, 0.6)
+// T2(x) = 2*x^2 - 1 = 2*(0.36) - 1 = 0.72 - 1 = -0.28
+test.assert_near(t2_val, -0.28, 0.0001, "Polinomio Chebyshev T2(0.6) = -0.28")
+
+t3_val = ai.chebyshev(3.0, 0.5)
+// T3(x) = 4*x^3 - 3*x = 4*(0.125) - 3*(0.5) = 0.5 - 1.5 = -1.0
+test.assert_near(t3_val, -1.0, 0.0001, "Polinomio Chebyshev T3(0.5) = -1.0")
+
+// ===============================================================
+// BLOQUE 6: Base de Datos Columnar SQL ('lib/db.ph')
+// ===============================================================
+out("--- Test Grupo 6: Base de Datos Columnar SoA ---")
+
+db_tab = db.alloc_table(8)
+db.insert_sensor(db_tab, 0, 101.0, 0.52359, 2.5, 60.0, 0.7, 0.3, 0.1, 8)
+db.insert_sensor(db_tab, 1, 102.0, 1.04719, 3.0, 60.0, 0.2, 0.8, 0.4, 8)
+
+test.assert_soa_eq(db_tab, 0, 0, 8, 101.0, "Sensor 0 Columna ID = 101.0")
+test.assert_soa_near(db_tab, 1, 0, 8, 0.52359, 0.0001, "Sensor 0 Columna Fase = 30 deg rad")
+test.assert_soa_eq(db_tab, 2, 0, 8, 2.5,   "Sensor 0 Columna Magnitud = 2.5")
+test.assert_soa_eq(db_tab, 0, 1, 8, 102.0, "Sensor 1 Columna ID = 102.0")
+
+// ===============================================================
+// BLOQUE 7: Componentes Visuales y Graficos Declarativos ('lib/view.ph')
+// ===============================================================
+out("--- Test Grupo 7: Componentes Visuales y Carta de Smith ---")
+
+smith_ret = smith_chart(150.0, 150.0, 80.0, 0.25, -0.35)
+test.assert_eq(smith_ret, 1.0, "Render procedural Carta de Smith S11 exitoso")
+
+liss_ret = lissajous_scope(10.0, 10.0, 200.0, 150.0, 1.0, 1.0)
+test.assert_eq(liss_ret, 1.0, "Render procedural Osciloscopio Lissajous exitoso")
+
+// ===============================================================
+// BLOQUE 8: Evaluacion y Consolidacion del Reporte
+// ===============================================================
+total_fallos = test.report()
+test.assert_eq(total_fallos, 0.0, "La totalidad de las aserciones pasaron sin ningun error")
+
+out("=== MASTER TEST SUITE COMPLETADA CON EXITO (ZERO-GC) ===")

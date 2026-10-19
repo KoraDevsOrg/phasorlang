@@ -1,0 +1,30 @@
+import "lib/test.ph"
+
+test.init()
+
+MAX_SUB_SCREENS = 32
+sub_screens_soa = alloc_soa(12, MAX_SUB_SCREENS)
+
+set_soa(sub_screens_soa, 0, 0.0, MAX_SUB_SCREENS, 0.0)
+set_soa(sub_screens_soa, 1, 0.0, MAX_SUB_SCREENS, 100.0)
+set_soa(sub_screens_soa, 2, 0.0, MAX_SUB_SCREENS, 80.0)
+set_soa(sub_screens_soa, 3, 0.0, MAX_SUB_SCREENS, 360.0)
+set_soa(sub_screens_soa, 4, 0.0, MAX_SUB_SCREENS, 500.0)
+set_soa(sub_screens_soa, 5, 0.0, MAX_SUB_SCREENS, 1.0)
+set_soa(sub_screens_soa, 8, 0.0, MAX_SUB_SCREENS, 0.0)
+set_soa(sub_screens_soa, 9, 0.0, MAX_SUB_SCREENS, 0.0)
+set_soa(sub_screens_soa, 10, 0.0, MAX_SUB_SCREENS, 600.0)
+set_soa(sub_screens_soa, 11, 0.0, MAX_SUB_SCREENS, 1200.0)
+
+// Wrap test
+avail_w = 340.0
+font_s = 12.0
+char_w = font_s * 0.6
+cpl = avail_w / char_w
+out("Chars per line:", cpl)
+
+text_len = 150.0
+lines = text_len / cpl
+out("Lines needed:", lines)
+
+test.assert_eq(cpl, 47.22222222222222, "Wrap chars per line")

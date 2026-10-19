@@ -1,0 +1,20 @@
+{
+  "name": "MiJuegoPhasor",
+  "short_name": "MiJuegoPhasor",
+  "description": "Aplicación PhasorLang Zero-GC a 120 FPS",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#161b22",
+  "categories": ["utilities", "developer", "graphics", "education"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%23161b22%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22180%22%20fill%3D%22none%22%20stroke%3D%22%2358a6ff%22%20stroke-width%3D%2224%22%2F%3E%3Cpath%20d%3D%22M180%20160%20L360%20256%20L180%20352%20Z%22%20fill%3D%22%233fb950%22%2F%3E%3C%2Fsvg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+x_1 = 10.0
+x_2 = 25.0
+L1 = x_2 - x_1
+L2 = x_2 ^ 2
+out("Resultado L1:")
+out(L1)
+out("Resultado L2:")
+out(L2)

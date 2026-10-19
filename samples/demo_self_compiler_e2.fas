@@ -1,0 +1,188 @@
+// ===============================================================
+// DEMO_SELF_COMPILER_E2.FAS — Validación de Auto-Compilación Etapa 2
+// Compilación Vectorial JIT en Tiempo Real, Emisión SoA & Ejecución PVM
+// ===============================================================
+
+// 1. Constantes de Opcodes PVM (PhasorDefs 0x60 a 0x75)
+OP_NOP          = 0.0
+OP_LOAD_K       = 1.0
+OP_MOV          = 2.0
+OP_ADD          = 16.0
+OP_SUB          = 17.0
+OP_MUL          = 18.0
+OP_DIV          = 19.0
+OP_OUT          = 48.0
+OP_SIGNAL_SET   = 88.0
+OP_VEC3_LOAD    = 96.0  // 0x60
+OP_VEC3_ADD     = 97.0  // 0x61
+OP_VEC3_SUB     = 98.0  // 0x62
+OP_VEC3_SCALE   = 99.0  // 0x63
+OP_VEC3_DOT     = 100.0 // 0x64
+OP_VEC3_NORM    = 103.0 // 0x67
+OP_SOA_STEP     = 115.0 // 0x73
+OP_EXEC_SOA     = 117.0 // 0x75
+OP_HALT         = 255.0 // 0xFF
+
+// 2. Reserva de Buffers Contiguos SoA (Zero-GC)
+MAX_AST_NODES    = 1024
+MAX_INSTRUCTIONS = 1024
+
+flat_ast        = alloc_soa(4, MAX_AST_NODES)
+bytecode_stream = alloc_soa(4, MAX_INSTRUCTIONS)
+
+pc_ptr = 0.0
+ast_node_count = 0.0
+
+// 3. Emisor de Bytecode Binario de 3 Operandos (Zero-Allocation SoA)
+emit_instruction(stream, op, r_dest, r_src1, r_src2) = {
+    set_soa(stream, 0, pc_ptr, MAX_INSTRUCTIONS, op)
+    set_soa(stream, 1, pc_ptr, MAX_INSTRUCTIONS, r_dest)
+    set_soa(stream, 2, pc_ptr, MAX_INSTRUCTIONS, r_src1)
+    set_soa(stream, 3, pc_ptr, MAX_INSTRUCTIONS, r_src2)
+    pc_ptr = pc_ptr + 1.0
+    pc_ptr
+}
+
+// 4. Transformador Flat AST -> Bytecode Stream '.pbc'
+compile_ast_to_bytecode(ast_buf, stream) = {
+    ast_idx = 0.0
+    while (ast_idx < ast_node_count) {
+        node_op    = get_soa(ast_buf, 0, ast_idx, MAX_AST_NODES)
+        node_left  = get_soa(ast_buf, 1, ast_idx, MAX_AST_NODES)
+        node_right = get_soa(ast_buf, 2, ast_idx, MAX_AST_NODES)
+        node_meta  = get_soa(ast_buf, 3, ast_idx, MAX_AST_NODES)
+
+        // Asignación / Movimiento
+        if (node_op == 2.0) {
+            emit_instruction(stream, OP_MOV, node_left, node_right, 0.0)
+        }
+        // Carga Vectorial SIMD Vec3
+        if (node_op == 96.0) {
+            emit_instruction(stream, OP_VEC3_LOAD, node_left, node_right, node_meta)
+        }
+        // Suma Vectorial Vec3 (OP_VEC3_ADD = 97.0 / 0x61)
+        if (node_op == 97.0) {
+            emit_instruction(stream, OP_VEC3_ADD, node_left, node_right, node_meta)
+        }
+        // Resta Vectorial Vec3 (OP_VEC3_SUB = 98.0 / 0x62)
+        if (node_op == 98.0) {
+            emit_instruction(stream, OP_VEC3_SUB, node_left, node_right, node_meta)
+        }
+        // Escalamiento Vectorial Vec3 (OP_VEC3_SCALE = 99.0 / 0x63)
+        if (node_op == 99.0) {
+            emit_instruction(stream, OP_VEC3_SCALE, node_left, node_right, node_meta)
+        }
+        // Producto Punto SIMD (OP_VEC3_DOT = 100.0 / 0x64)
+        if (node_op == 100.0) {
+            emit_instruction(stream, OP_VEC3_DOT, node_left, node_right, node_meta)
+        }
+        // Normalización Vectorial (OP_VEC3_NORM = 103.0 / 0x67)
+        if (node_op == 103.0) {
+            emit_instruction(stream, OP_VEC3_NORM, node_left, node_right, 0.0)
+        }
+        // Flujo Reactivo de Señales (OP_SIGNAL_SET = 88.0 / 0x58)
+        if (node_op == 88.0) {
+            emit_instruction(stream, OP_SIGNAL_SET, node_left, node_right, 0.0)
+        }
+        // Integración SIMD SoA (OP_SOA_STEP = 115.0 / 0x73)
+        if (node_op == 115.0) {
+            emit_instruction(stream, OP_SOA_STEP, node_left, node_right, node_meta)
+        }
+        // Salida a Consola / Telemetría (OP_OUT = 48.0 / 0x30)
+        if (node_op == 48.0) {
+            emit_instruction(stream, OP_OUT, node_left, node_right, 0.0)
+        }
+
+        ast_idx = ast_idx + 1.0
+    }
+    emit_instruction(stream, OP_HALT, 0.0, 0.0, 0.0)
+    pc_ptr
+}
+
+// 5. Configuración del Flat AST de Entrada
+// Expresión analizada por el Compilador:
+//   vA: Vec3 = [12.0, 16.0, 0.0]  (Reg 1)
+//   vB: Vec3 = [4.0,  8.0, 0.0]   (Reg 2)
+//   vSum: Vec3 = vA + vB          (Reg 3) -> [16.0, 24.0, 0.0]
+//   dotAB = vA . vB               (Reg 4) -> 176.0
+//   vNorm: Vec3 = norm(vA)        (Reg 5) -> [0.6, 0.8, 0.0]
+//   out(vSum)
+//   out(dotAB)
+//   out(vNorm)
+
+// Nodo 0: OP_VEC3_LOAD -> Reg 1 [12.0, 16.0]
+set_soa(flat_ast, 0, 0, MAX_AST_NODES, 96.0)
+set_soa(flat_ast, 1, 0, MAX_AST_NODES, 1.0)
+set_soa(flat_ast, 2, 0, MAX_AST_NODES, 12.0)
+set_soa(flat_ast, 3, 0, MAX_AST_NODES, 16.0)
+
+// Nodo 1: OP_VEC3_LOAD -> Reg 2 [4.0, 8.0]
+set_soa(flat_ast, 0, 1, MAX_AST_NODES, 96.0)
+set_soa(flat_ast, 1, 1, MAX_AST_NODES, 2.0)
+set_soa(flat_ast, 2, 1, MAX_AST_NODES, 4.0)
+set_soa(flat_ast, 3, 1, MAX_AST_NODES, 8.0)
+
+// Nodo 2: OP_VEC3_ADD -> Reg 3 = Reg 1 + Reg 2
+set_soa(flat_ast, 0, 2, MAX_AST_NODES, 97.0)
+set_soa(flat_ast, 1, 2, MAX_AST_NODES, 3.0)
+set_soa(flat_ast, 2, 2, MAX_AST_NODES, 1.0)
+set_soa(flat_ast, 3, 2, MAX_AST_NODES, 2.0)
+
+// Nodo 3: OP_VEC3_DOT -> Reg 4 = Reg 1 . Reg 2
+set_soa(flat_ast, 0, 3, MAX_AST_NODES, 100.0)
+set_soa(flat_ast, 1, 3, MAX_AST_NODES, 4.0)
+set_soa(flat_ast, 2, 3, MAX_AST_NODES, 1.0)
+set_soa(flat_ast, 3, 3, MAX_AST_NODES, 2.0)
+
+// Nodo 4: OP_VEC3_NORM -> Reg 5 = norm(Reg 1)
+set_soa(flat_ast, 0, 4, MAX_AST_NODES, 103.0)
+set_soa(flat_ast, 1, 4, MAX_AST_NODES, 5.0)
+set_soa(flat_ast, 2, 4, MAX_AST_NODES, 1.0)
+set_soa(flat_ast, 3, 4, MAX_AST_NODES, 0.0)
+
+// Nodo 5: OP_OUT(Reg 3)
+set_soa(flat_ast, 0, 5, MAX_AST_NODES, 48.0)
+set_soa(flat_ast, 1, 5, MAX_AST_NODES, 0.0)
+set_soa(flat_ast, 2, 5, MAX_AST_NODES, 3.0)
+set_soa(flat_ast, 3, 5, MAX_AST_NODES, 0.0)
+
+// Nodo 6: OP_OUT(Reg 4)
+set_soa(flat_ast, 0, 6, MAX_AST_NODES, 48.0)
+set_soa(flat_ast, 1, 6, MAX_AST_NODES, 0.0)
+set_soa(flat_ast, 2, 6, MAX_AST_NODES, 4.0)
+set_soa(flat_ast, 3, 6, MAX_AST_NODES, 0.0)
+
+// Nodo 7: OP_OUT(Reg 5)
+set_soa(flat_ast, 0, 7, MAX_AST_NODES, 48.0)
+set_soa(flat_ast, 1, 7, MAX_AST_NODES, 0.0)
+set_soa(flat_ast, 2, 7, MAX_AST_NODES, 5.0)
+set_soa(flat_ast, 3, 7, MAX_AST_NODES, 0.0)
+
+ast_node_count = 8.0
+
+// 6. Ejecución del Compilador Self-Hosted
+instrucciones_emitidas = compile_ast_to_bytecode(flat_ast, bytecode_stream)
+
+// 7. Inspección de Opcodes Binarios en Memoria SoA
+op0 = get_soa(bytecode_stream, 0, 0, MAX_INSTRUCTIONS)
+op1 = get_soa(bytecode_stream, 0, 1, MAX_INSTRUCTIONS)
+op2 = get_soa(bytecode_stream, 0, 2, MAX_INSTRUCTIONS)
+op3 = get_soa(bytecode_stream, 0, 3, MAX_INSTRUCTIONS)
+op4 = get_soa(bytecode_stream, 0, 4, MAX_INSTRUCTIONS)
+
+out("=== [JIT Self-Compiler Stage 2] Ejecucion en PhasorVM ===")
+// 8. Despacho Directo en PhasorVM
+exec_soa_bytecode(bytecode_stream, instrucciones_emitidas, MAX_INSTRUCTIONS)
+
+out("=== Metricas de Compilacion & Verificacion de Bytecode ===")
+out("Nodos AST Procesados:", ast_node_count)
+out("Instrucciones Binarias Emitidas:", instrucciones_emitidas)
+out("Opcode 0 (VEC3_LOAD):", op0)
+out("Opcode 1 (VEC3_LOAD):", op1)
+out("Opcode 2 (VEC3_ADD) :", op2)
+out("Opcode 3 (VEC3_DOT) :", op3)
+out("Opcode 4 (VEC3_NORM):", op4)
+
+diag_vec: Vec3 = [ast_node_count, instrucciones_emitidas, 1024.0]
+out("Vector de Diagnostico SIMD:", diag_vec)
+out("=== Validacion Etapa 2 Completada con Exito ===")

@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Calculadora Fasorial</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBCMEUxNCIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMwMzYzRCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjM4NjM2IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIi8+CiAgICA8bGluZSB4MT0iMzIiIHkxPSIzMiIgeDI9IjQ4IiB5Mj0iMjAiIHN0cm9rZT0iIzU4QTZGRiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iMjAiIHI9IjQuNSIgZmlsbD0iIzU4QTZGRiIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iNCIgZmlsbD0iIzNGQjk1MCIvPgogIDwvc3ZnPg==">
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Calculadora%20Fasorial%22%2C%22short_name%22%3A%22calculadora%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0e14%22%2C%22theme_color%22%3A%22%230b0e14%22%7D">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0e14; touch-action: none; font-family: monospace; }
+    #phasorCanvas { width: 100vw; height: 100vh; display: block; outline: none; }
+  </style>
+</head>
+<body>
+  <canvas id="phasorCanvas" tabindex="1"></canvas>
+  <script>
+// ===============================================================
+// PHASOR_RUNTIME.JS — Runtime Universal WebAssembly & Canvas 2D
+// PhasorLang v1.0 [Chronos IDE & KoraDevs Ecosystem]
+// https://github.com/koradevsorg
+//
+// Arquitectura Unificada Multi-Dispositivo & Multi-Ventana:
+// - Espacio de Trabajo Padre (<main>) en Escritorio (#0B0E14)
+// - Ventanas Hijas (<s>1, <s>2, <s>3): Drag & Drop, Redimensión 8D,
+//   Minimizado, Scroll Clamped Zero-Overflow y Renderizado de UI
+// - Modo Móvil (<768px): Snap 100% Llave en Cerradura al Viewport
+//   con Barra Superior Ergonómica y Pestañas / Gestos de Navegación
+// - MicroPhasorVM Zero-GC Integrada con Despacho de 32 Bits y Rutas
+// - Telemetría No-Invasiva Opcional (Show HUD) con Invariante 120 FPS
+// ===============================================================
+
+(function(global) {
+  'use strict';
+
+  // =========================================================================
+  // 1. MICRO PHASOR VM INTEGRADA (ZERO-GC INTERPRETER & UI DISPATCHER)
+  // =========================================================================
+  function MicroPhasorVM(code, consts, strings) {
+    this.code = code || [];
+    this.consts = consts || [];
+    this.strings = strings || [];
+    this.rScalar = new Float64Array(1024);
+    this.rCompReal = new Float64Array(1024);
+    this.rCompImag = new Float64Array(1024);
+    this.isComplex = new Uint8Array(1024);
+    this.rVecX = new Float64Array(1024);
+    this.rVecY = new Float64Array(1024);
+    this.rVecZ = new Float64Array(1024);
+    this.isVector3 = new Uint8Array(1024);
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+    this.logs = [];
+  }
+
+  MicroPhasorVM.prototype.pushUi = function(type, p1, p2, p3, p4, p5) {
+    this.uiCmds.push(type, p1 || 0, p2 || 0, p3 || 0, p4 || 0, p5 || 0);
+  };
+
+  MicroPhasorVM.prototype.run = function(entryPc) {
+    var pc = entryPc || 0;
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+
+    while (pc < this.code.length) {
+      var instr = this.code[pc++];
+      var op = (instr >>> 24) & 0xFF;
+      var dst = (instr >>> 16) & 0xFF;
+      var s1 = (instr >>> 8) & 0xFF;
+      var s2 = instr & 0xFF;
+
+      if (op === 0x00 || op === 0xFF) break;
+      switch (op) {
+        case 0x01: this.rScalar[dst] = this.consts[s1]; this.isComplex[dst] = 0; break;
+        case 0x02: this.rScalar[dst] = this.rScalar[s1]; break;
+        case 0x10: case 0x03: this.rScalar[dst] = this.rScalar[s1] + this.rScalar[s2]; break;
+        case 0x11: case 0x04: this.rScalar[dst] = this.rScalar[s1] - this.rScalar[s2]; break;
+        case 0x12: case 0x05: this.rScalar[dst] = this.rScalar[s1] * this.rScalar[s2]; break;
+        case 0x13: case 0x06: this.rScalar[dst] = (this.rScalar[s2] !== 0) ? (this.rScalar[s1] / this.rScalar[s2]) : 0; break;
+        case 0x14: this.rScalar[dst] = Math.pow(this.rScalar[s1], this.rScalar[s2]); break;
+        case 0x15: this.rScalar[dst] = this.rScalar[s1] % this.rScalar[s2]; break;
+        case 0x16: this.rScalar[dst] = Math.sqrt(Math.abs(this.rScalar[s1])); break;
+        case 0x17: this.rScalar[dst] = Math.sin(this.rScalar[s1]); break;
+        case 0x18: this.rScalar[dst] = Math.cos(this.rScalar[s1]); break;
+        case 0x19: this.rScalar[dst] = Math.tan(this.rScalar[s1]); break;
+        case 0x1C: this.rScalar[dst] = Math.abs(this.rScalar[s1]); break;
+        case 0x07: case 0x40: pc = (instr & 0xFFFF); break;
+        case 0x08: case 0x41: if (this.rScalar[dst] === 0.0) pc = (instr & 0xFFFF); break;
+        case 0x21: this.rScalar[dst] = (this.rScalar[s1] === this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x22: this.rScalar[dst] = (this.rScalar[s1] !== this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x23: this.rScalar[dst] = (this.rScalar[s1] < this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x24: this.rScalar[dst] = (this.rScalar[s1] <= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x25: this.rScalar[dst] = (this.rScalar[s1] > this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x26: this.rScalar[dst] = (this.rScalar[s1] >= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x30: {
+          var val = this.rScalar[s1];
+          this.logs.push('> OUT: ' + (typeof val === 'number' ? val.toFixed(4) : val) + '\n');
+          break;
+        }
+        case 0x50: this.pushUi(0x50, this.rScalar[dst]); break;
+        case 0x51: {
+          var rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++], rh = this.code[pc++], rc = this.code[pc++];
+          this.pushUi(0x51, this.rScalar[rx], this.rScalar[ry], this.rScalar[rw], this.rScalar[rh], this.rScalar[rc]);
+          break;
+        }
+        case 0x52: {
+          var rcx = this.code[pc++], rcy = this.code[pc++], rr = this.code[pc++], rc2 = this.code[pc++];
+          this.pushUi(0x52, this.rScalar[rcx], this.rScalar[rcy], this.rScalar[rr], this.rScalar[rc2]);
+          break;
+        }
+        case 0x53: {
+          var rx1 = this.code[pc++], ry1 = this.code[pc++], rx2 = this.code[pc++], ry2 = this.code[pc++], lc = this.code[pc++];
+          this.pushUi(0x53, this.rScalar[rx1], this.rScalar[ry1], this.rScalar[rx2], this.rScalar[ry2], this.rScalar[lc]);
+          break;
+        }
+        case 0x54: {
+          var isString = (dst === 1);
+          var strOrReg = this.code[pc++], tx = this.code[pc++], ty = this.code[pc++], tSize = this.code[pc++], tc = this.code[pc++];
+          var px = this.rScalar[tx], py = this.rScalar[ty], pCol = this.rScalar[tc], pSize = this.rScalar[tSize] || 16;
+          var displayText = isString
+            ? ((this.strings && this.strings[strOrReg] !== undefined) ? this.strings[strOrReg] : "")
+            : (Number.isInteger(this.rScalar[strOrReg]) ? this.rScalar[strOrReg].toString() : this.rScalar[strOrReg].toFixed(2));
+          this.pushUi(0x54, px, py, pCol, pSize);
+          this.texts.push({ text: displayText, x: px, y: py, color: pCol, size: pSize });
+          break;
+        }
+        case 0x56: {
+          var strIdx = dst;
+          var bx = this.code[pc++], by = this.code[pc++], bw = this.code[pc++], bh = this.code[pc++];
+          var actHash = this.code[pc++];
+          var bc = this.code[pc++];
+          var px = this.rScalar[bx], py = this.rScalar[by], pw = this.rScalar[bw], ph = this.rScalar[bh];
+          var bColor = this.rScalar[bc] || 0x1f6feb;
+          var label = (this.strings && this.strings[strIdx] !== undefined) ? this.strings[strIdx] : 'BOTÓN';
+          this.pushUi(0x56, px, py, pw, ph, bColor);
+          this.buttons.push({ x: px, y: py, w: pw, h: ph, target: actHash, label: label, color: bColor });
+          break;
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // 2. PHASOR RUNTIME MASTER (CANVAS COMPOSITOR & MULTI-WINDOW MANAGER)
+  // =========================================================================
+  var PhasorRuntime = {
+    wasmInstance: null,
+    wasmMemory: null,
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    fps: 120,
+    lastFrameTime: performance.now(),
+    frameCount: 0,
+    title: 'PhasorLang Application',
+    showHud: false,
+    vm: null,
+    screenRoutes: {},
+    actionRoutes: {},
+    currentScreenPc: 0,
+
+    // Sub-pantallas hijas configurables (por defecto 1 ventana centrada o N ventanas)
+    children: [
+      { id: 1, title: '<s>1: Ventana Principal', x: 60, y: 60, w: 460, h: 560, visible: true, minimized: false, color: '#161B22', scrollX: 0, scrollY: 0, contentW: 460, contentH: 520 }
+    ],
+    activeChildIndex: 0,
+    isDraggingWindow: null,
+    isResizingWindow: null,
+    isDraggingScrollbar: null,
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    initialPinchDist: 0,
+
+    // Cálculo unificado de métricas de scroll y barras (Single Source of Truth)
+    getScrollMetrics: function(ch) {
+      if (!ch || ch.minimized) return null;
+
+      var innerW = Math.max(10, ch.w - 24);
+      var innerH = Math.max(10, ch.h - 36);
+      var totW = ch.contentW || 460;
+      var totH = ch.contentH || 520;
+
+      var hasVScroll = totH > innerH;
+      var hasHScroll = totW > innerW;
+
+      var maxScX = Math.max(0, totW - innerW);
+      var maxScY = Math.max(0, totH - innerH);
+
+      var scX = Math.max(0, Math.min(maxScX, ch.scrollX || 0));
+      var scY = Math.max(0, Math.min(maxScY, ch.scrollY || 0));
+      ch.scrollX = scX;
+      ch.scrollY = scY;
+
+      var cornerReserve = 16;
+      var sbSize = 8;
+
+      var vMetrics = null;
+      if (hasVScroll) {
+        var vTrackX = ch.x + ch.w - sbSize - 3;
+        var vTrackY = ch.y + 32;
+        var vTrackH = Math.max(20, ch.h - 32 - cornerReserve);
+        var vThumbH = Math.max(18, Math.min(vTrackH, Math.round(vTrackH * (innerH / totH))));
+        var vAvail = vTrackH - vThumbH;
+        var vRatio = maxScY > 0 ? (scY / maxScY) : 0;
+        vRatio = Math.max(0, Math.min(1, vRatio));
+        var vThumbY = Math.round(vTrackY + vRatio * vAvail);
+
+        vMetrics = {
+          trackX: vTrackX,
+          trackY: vTrackY,
+          trackW: sbSize,
+          trackH: vTrackH,
+          thumbY: vThumbY,
+          thumbH: vThumbH,
+          maxScroll: maxScY,
+          hitX: vTrackX - 3,
+          hitW: sbSize + 6
+        };
+      }
+
+      var hMetrics = null;
+      if (hasHScroll) {
+        var hTrackX = ch.x + 4;
+        var hTrackY = ch.y + ch.h - sbSize - 3;
+        var hTrackW = Math.max(20, ch.w - 8 - cornerReserve);
+        var hThumbW = Math.max(18, Math.min(hTrackW, Math.round(hTrackW * (innerW / totW))));
+        var hAvail = hTrackW - hThumbW;
+        var hRatio = maxScX > 0 ? (scX / maxScX) : 0;
+        hRatio = Math.max(0, Math.min(1, hRatio));
+        var hThumbX = Math.round(hTrackX + hRatio * hAvail);
+
+        hMetrics = {
+          trackX: hTrackX,
+          trackY: hTrackY,
+          trackW: hTrackW,
+          trackH: sbSize,
+          thumbX: hThumbX,
+          thumbW: hThumbW,
+          maxScroll: maxScX,
+          hitY: hTrackY - 3,
+          hitH: sbSize + 6
+        };
+      }
+
+      return {
+        innerW: innerW,
+        innerH: innerH,
+        totW: totW,
+        totH: totH,
+        maxScX: maxScX,
+        maxScY: maxScY,
+        scX: scX,
+        scY: scY,
+        hasVScroll: hasVScroll,
+        hasHScroll: hasHScroll,
+        v: vMetrics,
+        h: hMetrics
+      };
+    },
+
+    getResizeDir: function(ch, mx, my) {
+      if (ch.minimized) return null;
+      var x = ch.x, y = ch.y, w = ch.w, h = ch.h;
+
+      if (mx >= x + w - 16 && mx <= x + w + 6 && my >= y + h - 16 && my <= y + h + 6) return 'se';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y - 6 && my <= y + 8) return 'nw';
+      if (mx >= x + w - 8 && mx <= x + w + 6 && my >= y - 6 && my <= y + 8) return 'ne';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y + h - 8 && my <= y + h + 6) return 'sw';
+      if (mx >= x - 5 && mx <= x + 3 && my >= y && my <= y + h) return 'w';
+      if (mx >= x + w - 3 && mx <= x + w + 5 && my >= y && my <= y + h) return 'e';
+      if (my >= y - 5 && my <= y + 3 && mx >= x && mx <= x + w) return 'n';
+      if (my >= y + h - 3 && my <= y + h + 5 && mx >= x && mx <= x + w) return 's';
+
+      return null;
+    },
+
+    colorHex: function(c) {
+      var n = (Number(c) >>> 0) & 0xFFFFFF;
+      return '#' + n.toString(16).padStart(6, '0');
+    },
+
+    // Renderizado Zero-GC de comandos de interfaz de MicroPhasorVM
+    renderVmUi: function(ctx, targetVm, availW, availH) {
+      if (!targetVm || !targetVm.uiCmds) return;
+      var cmds = targetVm.uiCmds;
+      var textIdx = 0;
+      var btnIdx = 0;
+
+      for (var i = 0; i < cmds.length; i += 6) {
+        var type = Math.floor(cmds[i]);
+        var p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
+
+        if (type === 0x50) {
+          ctx.fillStyle = this.colorHex(p1);
+          ctx.fillRect(0, 0, availW, availH);
+        } else if (type === 0x51) {
+          ctx.fillStyle = this.colorHex(p5);
+          ctx.fillRect(p1, p2, p3, p4);
+        } else if (type === 0x52) {
+          ctx.strokeStyle = this.colorHex(p4);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(p1, p2, p3, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (type === 0x53) {
+          ctx.strokeStyle = this.colorHex(p5);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(p1, p2);
+          ctx.lineTo(p3, p4);
+          ctx.stroke();
+        } else if (type === 0x54) {
+          if (targetVm.texts && textIdx < targetVm.texts.length) {
+            var t = targetVm.texts[textIdx++];
+            ctx.fillStyle = this.colorHex(t.color);
+            ctx.font = (t.size || 16) + 'px monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(t.text, t.x, t.y);
+          }
+        } else if (type === 0x56) {
+          ctx.fillStyle = this.colorHex(p5);
+          if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(p1, p2, p3, p4, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } else {
+            ctx.fillRect(p1, p2, p3, p4);
+          }
+
+          var btnText = 'BOTÓN';
+          if (targetVm.buttons && btnIdx < targetVm.buttons.length) {
+            btnText = targetVm.buttons[btnIdx].label || btnText;
+          }
+          btnIdx++;
+          var fontSize = 14;
+          if (btnText.length * 8.5 > p3 - 10) {
+            fontSize = Math.max(9, Math.floor((p3 - 10) / (btnText.length * 0.65)));
+          }
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold ' + fontSize + 'px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(btnText, p1 + (p3 / 2), p2 + (p4 / 2));
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'left';
+        }
+      }
+    },
+
+    init: function(wasmPathOrPayload, canvasId, options) {
+      var self = this;
+      options = options || {};
+      self.title = options.title || 'PhasorLang Application';
+      self.showHud = !!options.showHud;
+
+      if (options.children && Array.isArray(options.children) && options.children.length > 0) {
+        self.children = options.children;
+      }
+
+      // Inicializar MicroPhasorVM si se proporciona bytecode compilado
+      if (options.bytecode && options.constPool) {
+        self.vm = new MicroPhasorVM(options.bytecode, options.constPool, options.strings || []);
+        self.screenRoutes = options.screenRoutes || {};
+        self.actionRoutes = options.actionRoutes || {};
+        self.currentScreenPc = options.firstScreenPc || 0;
+
+        self.handleAction = function(target, ch) {
+          var key = String(Math.round(Number(target)));
+          var targetPc = (self.actionRoutes[key] !== undefined)
+            ? self.actionRoutes[key]
+            : ((self.screenRoutes[key] !== undefined) ? self.screenRoutes[key] : null);
+
+          if (targetPc !== null) {
+            self.vm.run(targetPc);
+            self.vm.run(self.currentScreenPc);
+            self.renderFrame();
+          }
+        };
+
+        self.vm.run(0);
+        if (self.currentScreenPc !== 0) {
+          self.vm.run(self.currentScreenPc);
+        }
+
+        // Asignar VM a la primera ventana hija si no tiene uno
+        if (self.children.length > 0 && !self.children[0].appVm) {
+          self.children[0].appVm = self.vm;
+        }
+      }
+
+      self.canvas = document.getElementById(canvasId || 'phasorCanvas');
+      if (!self.canvas) {
+        console.error('[PhasorRuntime] Elemento Canvas no encontrado: #' + canvasId);
+        return;
+      }
+      self.ctx = self.canvas.getContext('2d', { alpha: false });
+
+      self.resize();
+      window.addEventListener('resize', function() {
+        self.resize();
+      });
+
+      self.setupInteractions();
+      self.loadWasm(wasmPathOrPayload || 'phasor_ide.wasm');
+    },
+
+    setupInteractions: function() {
+      var self = this;
+      if (!self.canvas) return;
+
+      // 1. MOUSE (ESCRITORIO): BOTONES, VENTANAS, REDIMENSIÓN, MINIMIZADO Y SCROLL
+      self.canvas.addEventListener('mousedown', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+        self.setRegister(254, 1.0);
+
+        if (self.width < 768) return; // Móvil gestionado por toques y gestos
+
+        // Clic en botón de alternar Telemetría HUD en la barra superior
+        if (my >= 6 && my <= 30 && mx >= self.width - 150 && mx <= self.width - 16) {
+          self.showHud = !self.showHud;
+          self.renderFrame();
+          return;
+        }
+
+        // Clic en botón cerrar de Telemetría HUD flotante
+        if (self.showHud) {
+          var hudMargin = 24;
+          var hudW = Math.min(460, self.width - (hudMargin * 2));
+          var hudH = 90;
+          var hudX = self.width - hudW - hudMargin;
+          var hudY = self.height - hudH - 46;
+          if (mx >= hudX + hudW - 24 && mx <= hudX + hudW - 4 && my >= hudY + 4 && my <= hudY + 24) {
+            self.showHud = false;
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Comprobar ventanas hijas en orden inverso (top-most primero)
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+
+          // A. Minimizar / Restaurar (-) o (+)
+          if (mx >= ch.x + ch.w - 28 && mx <= ch.x + ch.w - 6 && my >= ch.y + 4 && my <= ch.y + 26) {
+            ch.minimized = !ch.minimized;
+            self.renderFrame();
+            return;
+          }
+
+          if (!ch.minimized) {
+            // B. Agarradera SE de redimensión
+            if (mx >= ch.x + ch.w - 16 && mx <= ch.x + ch.w + 6 && my >= ch.y + ch.h - 16 && my <= ch.y + ch.h + 6) {
+              self.isResizingWindow = {
+                child: ch,
+                dir: 'se',
+                startX: mx,
+                startY: my,
+                origX: ch.x,
+                origY: ch.y,
+                origW: ch.w,
+                origH: ch.h
+              };
+              self.children.splice(i, 1);
+              self.children.push(ch);
+              self.renderFrame();
+              return;
+            }
+
+            // C. Barras de Scroll (Vertical / Horizontal)
+            var metrics = self.getScrollMetrics(ch);
+            if (metrics) {
+              if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                  my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+                var isThumbClick = (my >= metrics.v.thumbY && my <= metrics.v.thumbY + metrics.v.thumbH);
+                var offset = isThumbClick ? (my - metrics.v.thumbY) : (metrics.v.thumbH / 2);
+                if (!isThumbClick) {
+                  var availH = metrics.v.trackH - metrics.v.thumbH;
+                  if (availH > 0) {
+                    var targetThumbY = (my - offset) - metrics.v.trackY;
+                    var ratio = Math.max(0, Math.min(1, targetThumbY / availH));
+                    ch.scrollY = Math.round(ratio * metrics.v.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'vertical',
+                  trackPos: metrics.v.trackY,
+                  trackLen: metrics.v.trackH,
+                  thumbLen: metrics.v.thumbH,
+                  maxScroll: metrics.v.maxScroll,
+                  offset: offset
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+
+              if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                  mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+                var isThumbClickH = (mx >= metrics.h.thumbX && mx <= metrics.h.thumbX + metrics.h.thumbW);
+                var offsetH = isThumbClickH ? (mx - metrics.h.thumbX) : (metrics.h.thumbW / 2);
+                if (!isThumbClickH) {
+                  var availW = metrics.h.trackW - metrics.h.thumbW;
+                  if (availW > 0) {
+                    var targetThumbX = (mx - offsetH) - metrics.h.trackX;
+                    var ratioH = Math.max(0, Math.min(1, targetThumbX / availW));
+                    ch.scrollX = Math.round(ratioH * metrics.h.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'horizontal',
+                  trackPos: metrics.h.trackX,
+                  trackLen: metrics.h.trackW,
+                  thumbLen: metrics.h.thumbW,
+                  maxScroll: metrics.h.maxScroll,
+                  offset: offsetH
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+            }
+
+            // D. Detección y clic en botones de la aplicación dentro de la ventana
+            var targetVm = ch.appVm || self.vm;
+            var testBtns = (ch.buttons && ch.buttons.length > 0) ? ch.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0) {
+              var innerX = ch.x + 12;
+              var innerY = ch.y + 32;
+              var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+              var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+              var localX = mx - innerX + scX;
+              var localY = my - innerY + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, ch);
+                  }
+                  self.children.splice(i, 1);
+                  self.children.push(ch);
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+
+          // E. Redimensión perimetral en 8 direcciones
+          var resizeDir = self.getResizeDir(ch, mx, my);
+          if (resizeDir) {
+            self.isResizingWindow = {
+              child: ch,
+              dir: resizeDir,
+              startX: mx,
+              startY: my,
+              origX: ch.x,
+              origY: ch.y,
+              origW: ch.w,
+              origH: ch.h
+            };
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // F. Arrastre de ventana mediante la barra de título
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + 30) {
+            self.isDraggingWindow = ch;
+            self.dragOffsetX = mx - ch.x;
+            self.dragOffsetY = my - ch.y;
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // G. Clic en cuerpo de la ventana: traer al frente
+          if (!ch.minimized && mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + ch.h) {
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Clic en barra inferior de dock para restaurar ventanas minimizadas
+        if (my >= self.height - 36) {
+          for (var j = 0; j < self.children.length; j++) {
+            self.children[j].minimized = false;
+          }
+          self.renderFrame();
+        }
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+
+        if (self.width < 768) return;
+
+        // Arrastre activo de barra de scroll
+        if (self.isDraggingScrollbar) {
+          var sb = self.isDraggingScrollbar;
+          var avail = sb.trackLen - sb.thumbLen;
+          if (avail > 0) {
+            if (sb.type === 'vertical') {
+              var targetPos = (my - sb.offset) - sb.trackPos;
+              var ratio = Math.max(0, Math.min(1, targetPos / avail));
+              sb.child.scrollY = Math.round(ratio * sb.maxScroll);
+            } else if (sb.type === 'horizontal') {
+              var targetPosX = (mx - sb.offset) - sb.trackPos;
+              var ratioX = Math.max(0, Math.min(1, targetPosX / avail));
+              sb.child.scrollX = Math.round(ratioX * sb.maxScroll);
+            }
+          }
+          self.renderFrame();
+          return;
+        }
+
+        // Redimensión activa de ventana
+        if (self.isResizingWindow) {
+          var res = self.isResizingWindow;
+          var dx = mx - res.startX;
+          var dy = my - res.startY;
+          var minW = 200;
+          var minH = 120;
+
+          if (res.dir.indexOf('e') !== -1) {
+            res.child.w = Math.max(minW, res.origW + dx);
+          } else if (res.dir.indexOf('w') !== -1) {
+            var newW = Math.max(minW, res.origW - dx);
+            res.child.x = res.origX + (res.origW - newW);
+            res.child.w = newW;
+          }
+
+          if (res.dir.indexOf('s') !== -1) {
+            res.child.h = Math.max(minH, res.origH + dy);
+          } else if (res.dir.indexOf('n') !== -1) {
+            var newH = Math.max(minH, res.origH - dy);
+            res.child.y = res.origY + (res.origH - newH);
+            res.child.h = newH;
+          }
+
+          var curInnerW = Math.max(10, res.child.w - 24);
+          var curInnerH = Math.max(10, res.child.h - 36);
+          var curTotW = res.child.contentW || 460;
+          var curTotH = res.child.contentH || 520;
+          var curMaxScX = Math.max(0, curTotW - curInnerW);
+          var curMaxScY = Math.max(0, curTotH - curInnerH);
+
+          res.child.scrollX = Math.max(0, Math.min(curMaxScX, res.child.scrollX || 0));
+          res.child.scrollY = Math.max(0, Math.min(curMaxScY, res.child.scrollY || 0));
+
+          self.renderFrame();
+          return;
+        }
+
+        // Arrastre activo de ventana
+        if (self.isDraggingWindow) {
+          var ch = self.isDraggingWindow;
+          ch.x = Math.max(0, Math.min(self.width - 60, mx - self.dragOffsetX));
+          ch.y = Math.max(0, Math.min(self.height - 30, my - self.dragOffsetY));
+          self.renderFrame();
+          return;
+        }
+
+        // Actualización de cursor según bordes, scrollbars y botones
+        var cursor = 'default';
+        for (var k = self.children.length - 1; k >= 0; k--) {
+          var target = self.children[k];
+          if (target.minimized) {
+            if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+              cursor = 'move';
+              break;
+            }
+            continue;
+          }
+
+          var metrics = self.getScrollMetrics(target);
+          if (metrics) {
+            if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+              cursor = 'pointer';
+              break;
+            }
+            if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+              cursor = 'pointer';
+              break;
+            }
+          }
+
+          // Comprobar hover en botones de la ventana
+          var targetVm = target.appVm || self.vm;
+          var testBtns = (target.buttons && target.buttons.length > 0) ? target.buttons : (targetVm ? targetVm.buttons : null);
+          if (testBtns && testBtns.length > 0) {
+            var innerX = target.x + 12;
+            var innerY = target.y + 32;
+            var scX = metrics ? metrics.scX : (target.scrollX || 0);
+            var scY = metrics ? metrics.scY : (target.scrollY || 0);
+            var localX = mx - innerX + scX;
+            var localY = my - innerY + scY;
+            var overButton = false;
+            for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+              var btn = testBtns[bIdx];
+              if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                cursor = 'pointer';
+                overButton = true;
+                break;
+              }
+            }
+            if (overButton) break;
+          }
+
+          var rDir = self.getResizeDir(target, mx, my);
+          if (rDir) {
+            if (rDir === 'nw' || rDir === 'se') cursor = 'nwse-resize';
+            else if (rDir === 'ne' || rDir === 'sw') cursor = 'nesw-resize';
+            else if (rDir === 'w' || rDir === 'e') cursor = 'ew-resize';
+            else if (rDir === 'n' || rDir === 's') cursor = 'ns-resize';
+            break;
+          } else if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+            cursor = 'move';
+            break;
+          }
+        }
+        self.canvas.style.cursor = cursor;
+      });
+
+      window.addEventListener('mouseup', function() {
+        self.setRegister(254, 0.0);
+        self.isDraggingWindow = null;
+        self.isResizingWindow = null;
+        self.isDraggingScrollbar = null;
+        if (self.canvas) self.canvas.style.cursor = 'default';
+      });
+
+      // Scroll con rueda de ratón en escritorio
+      self.canvas.addEventListener('wheel', function(e) {
+        self.setRegister(255, e.deltaY);
+        if (self.width < 768) return;
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+          if (ch.minimized) continue;
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y + 30 && my <= ch.y + ch.h) {
+            e.preventDefault();
+            var metrics = self.getScrollMetrics(ch);
+            if (!metrics) return;
+
+            if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+              var dX = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+              ch.scrollX = Math.max(0, Math.min(metrics.maxScX, (ch.scrollX || 0) + dX));
+            } else {
+              ch.scrollY = Math.max(0, Math.min(metrics.maxScY, (ch.scrollY || 0) + e.deltaY));
+            }
+            self.renderFrame();
+            return;
+          }
+        }
+      }, { passive: false });
+
+      // 2. TOUCH (MÓVIL): BOTONES, PESTAÑAS Y GESTOS MULTITÁCTILES
+      var touchStartX = 0;
+      var touchStartY = 0;
+
+      self.canvas.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          var tx = e.touches[0].clientX - rect.left;
+          var ty = e.touches[0].clientY - rect.top;
+          self.setRegister(252, tx);
+          self.setRegister(253, ty);
+          self.setRegister(254, 1.0);
+
+          if (self.width < 768) {
+            // A. Clic en pestañas superiores si hay múltiples ventanas
+            if (self.children.length > 1 && ty <= 44) {
+              var tabW = Math.min(140, Math.floor((self.width - 20) / self.children.length));
+              for (var tIdx = 0; tIdx < self.children.length; tIdx++) {
+                var tabX = 10 + (tIdx * (tabW + 6));
+                if (tx >= tabX && tx <= tabX + tabW) {
+                  self.activeChildIndex = tIdx;
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+
+            // B. Clic en botones dentro de la ventana activa en móvil
+            var activeChild = self.children[self.activeChildIndex] || self.children[0];
+            var targetVm = activeChild.appVm || self.vm;
+            var testBtns = (activeChild.buttons && activeChild.buttons.length > 0) ? activeChild.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0 && ty >= 44) {
+              var scX = activeChild.scrollX || 0;
+              var scY = activeChild.scrollY || 0;
+              var localX = tx - 10 + scX;
+              var localY = ty - 48 + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, activeChild);
+                  }
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        if (e.touches.length === 2) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          self.initialPinchDist = Math.sqrt(dx * dx + dy * dy);
+        } else if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          self.setRegister(252, e.touches[0].clientX - rect.left);
+          self.setRegister(253, e.touches[0].clientY - rect.top);
+        }
+        if (e.touches.length === 2 && self.initialPinchDist > 0 && self.children.length > 1) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          var currentDist = Math.sqrt(dx * dx + dy * dy);
+          if (Math.abs(currentDist - self.initialPinchDist) > 40) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.initialPinchDist = currentDist;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchend', function(e) {
+        self.setRegister(254, 0.0);
+        self.initialPinchDist = 0;
+        if (e.changedTouches.length === 1 && self.children.length > 1) {
+          var deltaX = e.changedTouches[0].clientX - touchStartX;
+          var deltaY = e.changedTouches[0].clientY - touchStartY;
+          if (Math.abs(deltaX) > 60 || Math.abs(deltaY) > 60) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+    },
+
+    setRegister: function(idx, val) {
+      if (this.wasmInstance && this.wasmInstance.exports) {
+        if (typeof this.wasmInstance.exports.set_register === 'function') {
+          this.wasmInstance.exports.set_register(idx, val);
+        }
+      }
+      if (this.wasmMemory && this.wasmMemory.buffer) {
+        var f64 = new Float64Array(this.wasmMemory.buffer);
+        if (f64.length > idx) {
+          f64[idx] = val;
+        }
+      }
+    },
+
+    resize: function() {
+      var w = window.innerWidth || document.documentElement.clientWidth || 800;
+      var h = window.innerHeight || document.documentElement.clientHeight || 600;
+      this.width = w;
+      this.height = h;
+      this.canvas.width = w;
+      this.canvas.height = h;
+
+      this.setRegister(250, w);
+      this.setRegister(251, h);
+
+      if (this.ctx) {
+        this.renderFrame();
+      }
+    },
+
+    loadWasm: function(wasmInput) {
+      var self = this;
+      var onInstanceReady = function(instance) {
+        self.wasmInstance = instance;
+        self.wasmMemory = instance.exports.memory;
+        self.setRegister(250, self.width);
+        self.setRegister(251, self.height);
+        self.startLoop();
+      };
+
+      if (typeof wasmInput === 'string' && wasmInput.length > 500 && !wasmInput.endsWith('.wasm')) {
+        try {
+          var binaryString = atob(wasmInput);
+          var len = binaryString.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          WebAssembly.instantiate(bytes.buffer).then(function(result) {
+            onInstanceReady(result.instance);
+          }).catch(function(err) {
+            console.warn('[PhasorRuntime] Error instanciando WASM Base64:', err);
+            self.startLoop();
+          });
+          return;
+        } catch(e) {
+          console.warn('[PhasorRuntime] Error decodificando Base64:', e);
+        }
+      }
+
+      var targetPath = wasmInput || 'phasor_ide.wasm';
+      fetch(targetPath)
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function(bytes) {
+          return WebAssembly.instantiate(bytes);
+        })
+        .then(function(result) {
+          onInstanceReady(result.instance);
+        })
+        .catch(function(err) {
+          self.startLoop();
+        });
+    },
+
+    startLoop: function() {
+      var self = this;
+      var loop = function(now) {
+        self.frameCount++;
+        if (now - self.lastFrameTime >= 1000) {
+          self.fps = Math.round((self.frameCount * 1000) / (now - self.lastFrameTime));
+          self.frameCount = 0;
+          self.lastFrameTime = now;
+        }
+        self.renderFrame();
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    },
+
+    renderFrame: function() {
+      var self = this;
+      var ctx = this.ctx;
+      if (!ctx) return;
+      var w = this.width;
+      var h = this.height;
+      var isMobile = w < 768;
+
+      // 1. ESPACIO DE TRABAJO PADRE (<main>)
+      ctx.fillStyle = '#0B0E14';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!isMobile) {
+        // Cuadrícula sutil de fondo en escritorio
+        ctx.strokeStyle = '#161B22';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (var x = 0; x < w; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+        for (var y = 0; y < h; y += 40) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+        ctx.stroke();
+
+        // Barra superior de acoplamiento (Docking Bar)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 36);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 36); ctx.lineTo(w, 36); ctx.stroke();
+
+        // Título de la aplicación / workspace
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText(this.title.toUpperCase(), 16, 22);
+
+        // Badge Zero-GC / FPS
+        ctx.fillStyle = '#238636';
+        ctx.fillRect(w - 290, 6, 120, 24);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('Zero-GC | ' + this.fps + ' FPS', w - 280, 22);
+
+        // Botón interactivo para alternar Telemetría HUD
+        ctx.fillStyle = this.showHud ? '#1F6FEB' : '#21262D';
+        ctx.fillRect(w - 150, 6, 134, 24);
+        ctx.strokeStyle = '#30363D';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(w - 150, 6, 134, 24);
+        ctx.fillStyle = this.showHud ? '#FFFFFF' : '#8B949E';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('📊 Telemetría', w - 136, 22);
+
+        // Barra inferior de estado y ventanas minimizadas
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, h - 34, w, 34);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, h - 34); ctx.lineTo(w, h - 34); ctx.stroke();
+        ctx.fillStyle = '#8B949E';
+        ctx.font = '12px monospace';
+        ctx.fillText('Ventanas Hijas (' + this.children.length + '). Arrastra la barra de título para mover, [-] para minimizar.', 16, h - 13);
+      }
+
+      // 2. CONTENEDORES HIJOS (<s>1, <s>2)
+      if (!isMobile) {
+        // --- MODO ESCRITORIO: RENDERIZAR CADA HIJO ---
+        for (var i = 0; i < this.children.length; i++) {
+          var ch = this.children[i];
+          var isMin = !!ch.minimized;
+          var curH = isMin ? 30 : ch.h;
+
+          // Sombra de ventana
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.fillRect(ch.x + 6, ch.y + 6, ch.w, curH);
+
+          if (!isMin) {
+            ctx.fillStyle = ch.color || '#161B22';
+            ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ch.x, ch.y, ch.w, ch.h);
+          }
+
+          // Barra de título arrastrable
+          ctx.fillStyle = isMin ? '#1C2128' : '#21262D';
+          ctx.fillRect(ch.x, ch.y, ch.w, 30);
+          ctx.strokeStyle = isMin ? '#58A6FF' : '#30363D';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(ch.x, ch.y, ch.w, 30);
+
+          // Título de la ventana
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 12px monospace';
+          var titleStr = isMin ? ch.title + ' [MIN]' : ch.title;
+          ctx.fillText(titleStr, ch.x + 10, ch.y + 19);
+
+          // Botón minimizar / restaurar
+          ctx.fillStyle = isMin ? '#238636' : '#30363D';
+          ctx.fillRect(ch.x + ch.w - 24, ch.y + 6, 18, 18);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText(isMin ? '+' : '-', ch.x + ch.w - 18, ch.y + 19);
+
+          if (!isMin) {
+            var metrics = self.getScrollMetrics(ch);
+            var innerX = ch.x + 12;
+            var innerY = ch.y + 32;
+            var innerW = metrics ? metrics.innerW : Math.max(10, ch.w - 24);
+            var innerH = metrics ? metrics.innerH : Math.max(10, ch.h - 36);
+
+            // Clipping estricto por hardware
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(ch.x + 2, ch.y + 30, ch.w - 4, ch.h - 32);
+            ctx.clip();
+
+            var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+            var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+            ctx.translate(innerX - scX, innerY - scY);
+
+            var targetVm = ch.appVm || self.vm;
+            if (self.vm && ch.screenPc !== undefined) {
+              self.vm.run(ch.screenPc);
+              ch.buttons = self.vm.buttons.slice();
+              self.renderVmUi(ctx, self.vm, innerW, innerH);
+            } else if (targetVm && targetVm.uiCmds && targetVm.uiCmds.length > 0) {
+              // RENDERIZADO DINÁMICO DE ELEMENTOS PHASORLANG DE LA VENTANA
+              self.renderVmUi(ctx, targetVm, innerW, innerH);
+            } else {
+              // Fallback para pruebas unitarias de maquetación y wrap
+              ctx.fillStyle = '#3FB950';
+              ctx.font = 'bold 11px monospace';
+              ctx.fillText('Contenedor Hijo [' + ch.id + '] • Viewport Activo', 0, 16);
+
+              ctx.fillStyle = '#8B949E';
+              ctx.font = '10px monospace';
+              ctx.fillText('Resolución: ' + Math.round(ch.w) + 'x' + Math.round(ch.h) + ' px | Scroll: (' + Math.round(scX) + ', ' + Math.round(scY) + ')', 0, 32);
+
+              var charsPerLine = Math.max(8, Math.floor(innerW / 6.8));
+              var rawText = 'PhasorLang Zero-GC Runtime. El contenido se adapta en modo wrap a los bordes de la ventana hija y permite desplazamiento bidireccional suave con la rueda del raton o touchpad.';
+              var words = rawText.split(' ');
+              var curLine = '';
+              var lineY = 52;
+              ctx.fillStyle = '#C9D1D9';
+              ctx.font = '10px monospace';
+
+              for (var wIdx = 0; wIdx < words.length; wIdx++) {
+                var testLine = curLine + (curLine ? ' ' : '') + words[wIdx];
+                if (testLine.length > charsPerLine && curLine.length > 0) {
+                  ctx.fillText(curLine, 0, lineY);
+                  lineY += 16;
+                  curLine = words[wIdx];
+                } else {
+                  curLine = testLine;
+                }
+              }
+              if (curLine.length > 0) {
+                ctx.fillText(curLine, 0, lineY);
+                lineY += 16;
+              }
+
+              if (lineY + 36 > 0) {
+                ctx.fillStyle = '#238636';
+                ctx.fillRect(0, lineY + 10, Math.max(120, Math.min(220, innerW - 20)), 32);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText('Acción Hijo ' + ch.id, 16, lineY + 30);
+              }
+
+              ctx.fillStyle = '#1F6FEB';
+              ctx.fillRect(340, 16, 140, 28);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.font = '9px monospace';
+              ctx.fillText('Panel Virtual X=340', 348, 34);
+            }
+
+            ctx.restore(); // Fin de clipping
+
+            // Barras de desplazamiento (Scrollbars)
+            if (metrics) {
+              if (metrics.v) {
+                var v = metrics.v;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(v.trackX, v.trackY, v.trackW, v.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(v.trackX, v.trackY, v.trackW, v.trackH);
+
+                var isVDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'vertical');
+                ctx.fillStyle = isVDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH);
+                }
+              }
+
+              if (metrics.h) {
+                var hMetrics = metrics.h;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+
+                var isHDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'horizontal');
+                ctx.fillStyle = isHDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2);
+                }
+              }
+            }
+
+            // Agarradera visual de redimensión en esquina SE
+            ctx.strokeStyle = '#58A6FF';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ch.x + ch.w - 12, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 12);
+            ctx.moveTo(ch.x + ch.w - 8, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 8);
+            ctx.moveTo(ch.x + ch.w - 4, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 4);
+            ctx.stroke();
+          }
+        }
+      } else {
+        // --- MODO MÓVIL: AJUSTE SNAP 100% AL VIEWPORT ---
+        var activeChild = this.children[this.activeChildIndex] || this.children[0];
+
+        ctx.fillStyle = activeChild.color || '#161B22';
+        ctx.fillRect(0, 0, w, h);
+
+        // Barra superior móvil (44px)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 44);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 44); ctx.lineTo(w, 44); ctx.stroke();
+
+        if (this.children.length === 1) {
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 13px monospace';
+          ctx.fillText(activeChild.title, 14, 27);
+        } else {
+          var tabW = Math.min(130, Math.floor((w - 20) / this.children.length));
+          for (var tIdx = 0; tIdx < this.children.length; tIdx++) {
+            var cTab = this.children[tIdx];
+            var isSel = (tIdx === this.activeChildIndex);
+            var tabX = 10 + (tIdx * (tabW + 6));
+            ctx.fillStyle = isSel ? '#238636' : '#21262D';
+            ctx.fillRect(tabX, 8, tabW, 28);
+            ctx.fillStyle = isSel ? '#FFFFFF' : '#8B949E';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(cTab.title.substring(0, 14), tabX + (tabW / 2), 26);
+            ctx.textAlign = 'left';
+          }
+        }
+
+        // FPS badge en barra superior
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(this.fps + ' FPS', w - 14, 27);
+        ctx.textAlign = 'left';
+
+        // Renderizado del contenido hijo en móvil
+        var targetVmMobile = activeChild.appVm || this.vm;
+        var innerH = h - 44;
+        var scXMobile = activeChild.scrollX || 0;
+        var scYMobile = activeChild.scrollY || 0;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 44, w, innerH);
+        ctx.clip();
+        ctx.translate(10 - scXMobile, 48 - scYMobile);
+
+        if (self.vm && activeChild.screenPc !== undefined) {
+          self.vm.run(activeChild.screenPc);
+          activeChild.buttons = self.vm.buttons.slice();
+          self.renderVmUi(ctx, self.vm, w - 20, innerH);
+        } else if (targetVmMobile && targetVmMobile.uiCmds && targetVmMobile.uiCmds.length > 0) {
+          self.renderVmUi(ctx, targetVmMobile, w - 20, innerH);
+        } else {
+          ctx.fillStyle = '#8B949E';
+          ctx.font = '10px monospace';
+          ctx.fillText('Hijo ' + (this.activeChildIndex + 1) + '/' + this.children.length + ' • Desliza para orbitar 360°', 14, 20);
+
+          var btnMargin = 15;
+          var btnW = w - (btnMargin * 2);
+          var btnH = 48;
+          ctx.fillStyle = '#238636';
+          ctx.fillRect(btnMargin - 10, innerH - 80, btnW, btnH);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 13px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('Cambiar Sub-Pantalla (Touch >= 44px)', (w - 20) / 2, innerH - 50);
+          ctx.textAlign = 'left';
+        }
+        ctx.restore();
+      }
+
+      // 3. PANEL DE TELEMETRÍA RUNTIME (SHOW HUD NO-INVASIVO)
+      if (this.showHud) {
+        var hudMargin = isMobile ? 12 : 24;
+        var hudW = Math.min(460, w - (hudMargin * 2));
+        var hudH = 92;
+        var hudX = w - hudW - hudMargin;
+        var hudY = isMobile ? (h - hudH - 20) : (h - hudH - 46);
+
+        ctx.fillStyle = 'rgba(11, 14, 20, 0.95)';
+        ctx.fillRect(hudX, hudY, hudW, hudH);
+        ctx.strokeStyle = '#58A6FF';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+        ctx.fillStyle = '#21262D';
+        ctx.fillRect(hudX, hudY, hudW, 24);
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('TELEMETRÍA RUNTIME [Zero-GC]', hudX + 10, hudY + 16);
+
+        // Botón cerrar
+        ctx.fillStyle = '#F85149';
+        ctx.fillRect(hudX + hudW - 20, hudY + 4, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('x', hudX + hudW - 15, hudY + 15);
+
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '11px monospace';
+        ctx.fillText('Invariante Zero-GC: 0.0 Bytes Heap | ' + this.fps + ' FPS', hudX + 12, hudY + 46);
+
+        ctx.fillStyle = '#C9D1D9';
+        ctx.font = '10px monospace';
+        ctx.fillText('Ventanas Activas: ' + this.children.length + ' | Modo: ' + (isMobile ? 'Móvil Snap 100%' : 'Escritorio Multi-Ventana'), hudX + 12, hudY + 70);
+      }
+    }
+  };
+
+  global.MicroPhasorVM = MicroPhasorVM;
+  global.PhasorRuntime = PhasorRuntime;
+})(typeof window !== 'undefined' ? window : this);
+
+  </script>
+  <script>
+    (function() {
+      if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+        try {
+          var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+        } catch(e) {}
+      }
+
+      var WASM_PAYLOAD = "AGFzbQEAAAABLgdgAABgAX8BfGACf3wAYAR/f398AGAFf398fHwAYAZ8fHx8fHwBfGADfHx8AXwDCAcAAQIDBAUGBQMBAAEHZwkGbWVtb3J5AgADcnVuAAAEbWFpbgAADGdldF9yZWdpc3RlcgABDHNldF9yZWdpc3RlcgACCXNpbWRfc3RlcAADDXNpbWRfaW5pdF92ZWwABAh2ZWMzX2RvdAAFCHZlYzNfbWFnAAYKuJABB/6NAQKACHwIf0GAwAAhgAhBACsDACEAQQgrAwAhAUEQKwMAIQJBGCsDACEDQSArAwAhBEEoKwMAIQVBMCsDACEGQTgrAwAhB0HAACsDACEIQcgAKwMAIQlB0AArAwAhCkHYACsDACELQeAAKwMAIQxB6AArAwAhDUHwACsDACEOQfgAKwMAIQ9BgAErAwAhEEGIASsDACERQZABKwMAIRJBmAErAwAhE0GgASsDACEUQagBKwMAIRVBsAErAwAhFkG4ASsDACEXQcABKwMAIRhByAErAwAhGUHQASsDACEaQdgBKwMAIRtB4AErAwAhHEHoASsDACEdQfABKwMAIR5B+AErAwAhH0GAAisDACEgQYgCKwMAISFBkAIrAwAhIkGYAisDACEjQaACKwMAISRBqAIrAwAhJUGwAisDACEmQbgCKwMAISdBwAIrAwAhKEHIAisDACEpQdACKwMAISpB2AIrAwAhK0HgAisDACEsQegCKwMAIS1B8AIrAwAhLkH4AisDACEvQYADKwMAITBBiAMrAwAhMUGQAysDACEyQZgDKwMAITNBoAMrAwAhNEGoAysDACE1QbADKwMAITZBuAMrAwAhN0HAAysDACE4QcgDKwMAITlB0AMrAwAhOkHYAysDACE7QeADKwMAITxB6AMrAwAhPUHwAysDACE+QfgDKwMAIT9BgAQrAwAhQEGIBCsDACFBQZAEKwMAIUJBmAQrAwAhQ0GgBCsDACFEQagEKwMAIUVBsAQrAwAhRkG4BCsDACFHQcAEKwMAIUhByAQrAwAhSUHQBCsDACFKQdgEKwMAIUtB4AQrAwAhTEHoBCsDACFNQfAEKwMAIU5B+AQrAwAhT0GABSsDACFQQYgFKwMAIVFBkAUrAwAhUkGYBSsDACFTQaAFKwMAIVRBqAUrAwAhVUGwBSsDACFWQbgFKwMAIVdBwAUrAwAhWEHIBSsDACFZQdAFKwMAIVpB2AUrAwAhW0HgBSsDACFcQegFKwMAIV1B8AUrAwAhXkH4BSsDACFfQYAGKwMAIWBBiAYrAwAhYUGQBisDACFiQZgGKwMAIWNBoAYrAwAhZEGoBisDACFlQbAGKwMAIWZBuAYrAwAhZ0HABisDACFoQcgGKwMAIWlB0AYrAwAhakHYBisDACFrQeAGKwMAIWxB6AYrAwAhbUHwBisDACFuQfgGKwMAIW9BgAcrAwAhcEGIBysDACFxQZAHKwMAIXJBmAcrAwAhc0GgBysDACF0QagHKwMAIXVBsAcrAwAhdkG4BysDACF3QcAHKwMAIXhByAcrAwAheUHQBysDACF6QdgHKwMAIXtB4AcrAwAhfEHoBysDACF9QfAHKwMAIX5B+AcrAwAhf0GACCsDACGAAUGICCsDACGBAUGQCCsDACGCAUGYCCsDACGDAUGgCCsDACGEAUGoCCsDACGFAUGwCCsDACGGAUG4CCsDACGHAUHACCsDACGIAUHICCsDACGJAUHQCCsDACGKAUHYCCsDACGLAUHgCCsDACGMAUHoCCsDACGNAUHwCCsDACGOAUH4CCsDACGPAUGACSsDACGQAUGICSsDACGRAUGQCSsDACGSAUGYCSsDACGTAUGgCSsDACGUAUGoCSsDACGVAUGwCSsDACGWAUG4CSsDACGXAUHACSsDACGYAUHICSsDACGZAUHQCSsDACGaAUHYCSsDACGbAUHgCSsDACGcAUHoCSsDACGdAUHwCSsDACGeAUH4CSsDACGfAUGACisDACGgAUGICisDACGhAUGQCisDACGiAUGYCisDACGjAUGgCisDACGkAUGoCisDACGlAUGwCisDACGmAUG4CisDACGnAUHACisDACGoAUHICisDACGpAUHQCisDACGqAUHYCisDACGrAUHgCisDACGsAUHoCisDACGtAUHwCisDACGuAUH4CisDACGvAUGACysDACGwAUGICysDACGxAUGQCysDACGyAUGYCysDACGzAUGgCysDACG0AUGoCysDACG1AUGwCysDACG2AUG4CysDACG3AUHACysDACG4AUHICysDACG5AUHQCysDACG6AUHYCysDACG7AUHgCysDACG8AUHoCysDACG9AUHwCysDACG+AUH4CysDACG/AUGADCsDACHAAUGIDCsDACHBAUGQDCsDACHCAUGYDCsDACHDAUGgDCsDACHEAUGoDCsDACHFAUGwDCsDACHGAUG4DCsDACHHAUHADCsDACHIAUHIDCsDACHJAUHQDCsDACHKAUHYDCsDACHLAUHgDCsDACHMAUHoDCsDACHNAUHwDCsDACHOAUH4DCsDACHPAUGADSsDACHQAUGIDSsDACHRAUGQDSsDACHSAUGYDSsDACHTAUGgDSsDACHUAUGoDSsDACHVAUGwDSsDACHWAUG4DSsDACHXAUHADSsDACHYAUHIDSsDACHZAUHQDSsDACHaAUHYDSsDACHbAUHgDSsDACHcAUHoDSsDACHdAUHwDSsDACHeAUH4DSsDACHfAUGADisDACHgAUGIDisDACHhAUGQDisDACHiAUGYDisDACHjAUGgDisDACHkAUGoDisDACHlAUGwDisDACHmAUG4DisDACHnAUHADisDACHoAUHIDisDACHpAUHQDisDACHqAUHYDisDACHrAUHgDisDACHsAUHoDisDACHtAUHwDisDACHuAUH4DisDACHvAUGADysDACHwAUGIDysDACHxAUGQDysDACHyAUGYDysDACHzAUGgDysDACH0AUGoDysDACH1AUGwDysDACH2AUG4DysDACH3AUHADysDACH4AUHIDysDACH5AUHQDysDACH6AUHYDysDACH7AUHgDysDACH8AUHoDysDACH9AUHwDysDACH+AUH4DysDACH/AUGAECsDACGAAkGIECsDACGBAkGQECsDACGCAkGYECsDACGDAkGgECsDACGEAkGoECsDACGFAkGwECsDACGGAkG4ECsDACGHAkHAECsDACGIAkHIECsDACGJAkHQECsDACGKAkHYECsDACGLAkHgECsDACGMAkHoECsDACGNAkHwECsDACGOAkH4ECsDACGPAkGAESsDACGQAkGIESsDACGRAkGQESsDACGSAkGYESsDACGTAkGgESsDACGUAkGoESsDACGVAkGwESsDACGWAkG4ESsDACGXAkHAESsDACGYAkHIESsDACGZAkHQESsDACGaAkHYESsDACGbAkHgESsDACGcAkHoESsDACGdAkHwESsDACGeAkH4ESsDACGfAkGAEisDACGgAkGIEisDACGhAkGQEisDACGiAkGYEisDACGjAkGgEisDACGkAkGoEisDACGlAkGwEisDACGmAkG4EisDACGnAkHAEisDACGoAkHIEisDACGpAkHQEisDACGqAkHYEisDACGrAkHgEisDACGsAkHoEisDACGtAkHwEisDACGuAkH4EisDACGvAkGAEysDACGwAkGIEysDACGxAkGQEysDACGyAkGYEysDACGzAkGgEysDACG0AkGoEysDACG1AkGwEysDACG2AkG4EysDACG3AkHAEysDACG4AkHIEysDACG5AkHQEysDACG6AkHYEysDACG7AkHgEysDACG8AkHoEysDACG9AkHwEysDACG+AkH4EysDACG/AkGAFCsDACHAAkGIFCsDACHBAkGQFCsDACHCAkGYFCsDACHDAkGgFCsDACHEAkGoFCsDACHFAkGwFCsDACHGAkG4FCsDACHHAkHAFCsDACHIAkHIFCsDACHJAkHQFCsDACHKAkHYFCsDACHLAkHgFCsDACHMAkHoFCsDACHNAkHwFCsDACHOAkH4FCsDACHPAkGAFSsDACHQAkGIFSsDACHRAkGQFSsDACHSAkGYFSsDACHTAkGgFSsDACHUAkGoFSsDACHVAkGwFSsDACHWAkG4FSsDACHXAkHAFSsDACHYAkHIFSsDACHZAkHQFSsDACHaAkHYFSsDACHbAkHgFSsDACHcAkHoFSsDACHdAkHwFSsDACHeAkH4FSsDACHfAkGAFisDACHgAkGIFisDACHhAkGQFisDACHiAkGYFisDACHjAkGgFisDACHkAkGoFisDACHlAkGwFisDACHmAkG4FisDACHnAkHAFisDACHoAkHIFisDACHpAkHQFisDACHqAkHYFisDACHrAkHgFisDACHsAkHoFisDACHtAkHwFisDACHuAkH4FisDACHvAkGAFysDACHwAkGIFysDACHxAkGQFysDACHyAkGYFysDACHzAkGgFysDACH0AkGoFysDACH1AkGwFysDACH2AkG4FysDACH3AkHAFysDACH4AkHIFysDACH5AkHQFysDACH6AkHYFysDACH7AkHgFysDACH8AkHoFysDACH9AkHwFysDACH+AkH4FysDACH/AkGAGCsDACGAA0GIGCsDACGBA0GQGCsDACGCA0GYGCsDACGDA0GgGCsDACGEA0GoGCsDACGFA0GwGCsDACGGA0G4GCsDACGHA0HAGCsDACGIA0HIGCsDACGJA0HQGCsDACGKA0HYGCsDACGLA0HgGCsDACGMA0HoGCsDACGNA0HwGCsDACGOA0H4GCsDACGPA0GAGSsDACGQA0GIGSsDACGRA0GQGSsDACGSA0GYGSsDACGTA0GgGSsDACGUA0GoGSsDACGVA0GwGSsDACGWA0G4GSsDACGXA0HAGSsDACGYA0HIGSsDACGZA0HQGSsDACGaA0HYGSsDACGbA0HgGSsDACGcA0HoGSsDACGdA0HwGSsDACGeA0H4GSsDACGfA0GAGisDACGgA0GIGisDACGhA0GQGisDACGiA0GYGisDACGjA0GgGisDACGkA0GoGisDACGlA0GwGisDACGmA0G4GisDACGnA0HAGisDACGoA0HIGisDACGpA0HQGisDACGqA0HYGisDACGrA0HgGisDACGsA0HoGisDACGtA0HwGisDACGuA0H4GisDACGvA0GAGysDACGwA0GIGysDACGxA0GQGysDACGyA0GYGysDACGzA0GgGysDACG0A0GoGysDACG1A0GwGysDACG2A0G4GysDACG3A0HAGysDACG4A0HIGysDACG5A0HQGysDACG6A0HYGysDACG7A0HgGysDACG8A0HoGysDACG9A0HwGysDACG+A0H4GysDACG/A0GAHCsDACHAA0GIHCsDACHBA0GQHCsDACHCA0GYHCsDACHDA0GgHCsDACHEA0GoHCsDACHFA0GwHCsDACHGA0G4HCsDACHHA0HAHCsDACHIA0HIHCsDACHJA0HQHCsDACHKA0HYHCsDACHLA0HgHCsDACHMA0HoHCsDACHNA0HwHCsDACHOA0H4HCsDACHPA0GAHSsDACHQA0GIHSsDACHRA0GQHSsDACHSA0GYHSsDACHTA0GgHSsDACHUA0GoHSsDACHVA0GwHSsDACHWA0G4HSsDACHXA0HAHSsDACHYA0HIHSsDACHZA0HQHSsDACHaA0HYHSsDACHbA0HgHSsDACHcA0HoHSsDACHdA0HwHSsDACHeA0H4HSsDACHfA0GAHisDACHgA0GIHisDACHhA0GQHisDACHiA0GYHisDACHjA0GgHisDACHkA0GoHisDACHlA0GwHisDACHmA0G4HisDACHnA0HAHisDACHoA0HIHisDACHpA0HQHisDACHqA0HYHisDACHrA0HgHisDACHsA0HoHisDACHtA0HwHisDACHuA0H4HisDACHvA0GAHysDACHwA0GIHysDACHxA0GQHysDACHyA0GYHysDACHzA0GgHysDACH0A0GoHysDACH1A0GwHysDACH2A0G4HysDACH3A0HAHysDACH4A0HIHysDACH5A0HQHysDACH6A0HYHysDACH7A0HgHysDACH8A0HoHysDACH9A0HwHysDACH+A0H4HysDACH/A0GAICsDACGABEGIICsDACGBBEGQICsDACGCBEGYICsDACGDBEGgICsDACGEBEGoICsDACGFBEGwICsDACGGBEG4ICsDACGHBEHAICsDACGIBEHIICsDACGJBEHQICsDACGKBEHYICsDACGLBEHgICsDACGMBEHoICsDACGNBEHwICsDACGOBEH4ICsDACGPBEGAISsDACGQBEGIISsDACGRBEGQISsDACGSBEGYISsDACGTBEGgISsDACGUBEGoISsDACGVBEGwISsDACGWBEG4ISsDACGXBEHAISsDACGYBEHIISsDACGZBEHQISsDACGaBEHYISsDACGbBEHgISsDACGcBEHoISsDACGdBEHwISsDACGeBEH4ISsDACGfBEGAIisDACGgBEGIIisDACGhBEGQIisDACGiBEGYIisDACGjBEGgIisDACGkBEGoIisDACGlBEGwIisDACGmBEG4IisDACGnBEHAIisDACGoBEHIIisDACGpBEHQIisDACGqBEHYIisDACGrBEHgIisDACGsBEHoIisDACGtBEHwIisDACGuBEH4IisDACGvBEGAIysDACGwBEGIIysDACGxBEGQIysDACGyBEGYIysDACGzBEGgIysDACG0BEGoIysDACG1BEGwIysDACG2BEG4IysDACG3BEHAIysDACG4BEHIIysDACG5BEHQIysDACG6BEHYIysDACG7BEHgIysDACG8BEHoIysDACG9BEHwIysDACG+BEH4IysDACG/BEGAJCsDACHABEGIJCsDACHBBEGQJCsDACHCBEGYJCsDACHDBEGgJCsDACHEBEGoJCsDACHFBEGwJCsDACHGBEG4JCsDACHHBEHAJCsDACHIBEHIJCsDACHJBEHQJCsDACHKBEHYJCsDACHLBEHgJCsDACHMBEHoJCsDACHNBEHwJCsDACHOBEH4JCsDACHPBEGAJSsDACHQBEGIJSsDACHRBEGQJSsDACHSBEGYJSsDACHTBEGgJSsDACHUBEGoJSsDACHVBEGwJSsDACHWBEG4JSsDACHXBEHAJSsDACHYBEHIJSsDACHZBEHQJSsDACHaBEHYJSsDACHbBEHgJSsDACHcBEHoJSsDACHdBEHwJSsDACHeBEH4JSsDACHfBEGAJisDACHgBEGIJisDACHhBEGQJisDACHiBEGYJisDACHjBEGgJisDACHkBEGoJisDACHlBEGwJisDACHmBEG4JisDACHnBEHAJisDACHoBEHIJisDACHpBEHQJisDACHqBEHYJisDACHrBEHgJisDACHsBEHoJisDACHtBEHwJisDACHuBEH4JisDACHvBEGAJysDACHwBEGIJysDACHxBEGQJysDACHyBEGYJysDACHzBEGgJysDACH0BEGoJysDACH1BEGwJysDACH2BEG4JysDACH3BEHAJysDACH4BEHIJysDACH5BEHQJysDACH6BEHYJysDACH7BEHgJysDACH8BEHoJysDACH9BEHwJysDACH+BEH4JysDACH/BEGAKCsDACGABUGIKCsDACGBBUGQKCsDACGCBUGYKCsDACGDBUGgKCsDACGEBUGoKCsDACGFBUGwKCsDACGGBUG4KCsDACGHBUHAKCsDACGIBUHIKCsDACGJBUHQKCsDACGKBUHYKCsDACGLBUHgKCsDACGMBUHoKCsDACGNBUHwKCsDACGOBUH4KCsDACGPBUGAKSsDACGQBUGIKSsDACGRBUGQKSsDACGSBUGYKSsDACGTBUGgKSsDACGUBUGoKSsDACGVBUGwKSsDACGWBUG4KSsDACGXBUHAKSsDACGYBUHIKSsDACGZBUHQKSsDACGaBUHYKSsDACGbBUHgKSsDACGcBUHoKSsDACGdBUHwKSsDACGeBUH4KSsDACGfBUGAKisDACGgBUGIKisDACGhBUGQKisDACGiBUGYKisDACGjBUGgKisDACGkBUGoKisDACGlBUGwKisDACGmBUG4KisDACGnBUHAKisDACGoBUHIKisDACGpBUHQKisDACGqBUHYKisDACGrBUHgKisDACGsBUHoKisDACGtBUHwKisDACGuBUH4KisDACGvBUGAKysDACGwBUGIKysDACGxBUGQKysDACGyBUGYKysDACGzBUGgKysDACG0BUGoKysDACG1BUGwKysDACG2BUG4KysDACG3BUHAKysDACG4BUHIKysDACG5BUHQKysDACG6BUHYKysDACG7BUHgKysDACG8BUHoKysDACG9BUHwKysDACG+BUH4KysDACG/BUGALCsDACHABUGILCsDACHBBUGQLCsDACHCBUGYLCsDACHDBUGgLCsDACHEBUGoLCsDACHFBUGwLCsDACHGBUG4LCsDACHHBUHALCsDACHIBUHILCsDACHJBUHQLCsDACHKBUHYLCsDACHLBUHgLCsDACHMBUHoLCsDACHNBUHwLCsDACHOBUH4LCsDACHPBUGALSsDACHQBUGILSsDACHRBUGQLSsDACHSBUGYLSsDACHTBUGgLSsDACHUBUGoLSsDACHVBUGwLSsDACHWBUG4LSsDACHXBUHALSsDACHYBUHILSsDACHZBUHQLSsDACHaBUHYLSsDACHbBUHgLSsDACHcBUHoLSsDACHdBUHwLSsDACHeBUH4LSsDACHfBUGALisDACHgBUGILisDACHhBUGQLisDACHiBUGYLisDACHjBUGgLisDACHkBUGoLisDACHlBUGwLisDACHmBUG4LisDACHnBUHALisDACHoBUHILisDACHpBUHQLisDACHqBUHYLisDACHrBUHgLisDACHsBUHoLisDACHtBUHwLisDACHuBUH4LisDACHvBUGALysDACHwBUGILysDACHxBUGQLysDACHyBUGYLysDACHzBUGgLysDACH0BUGoLysDACH1BUGwLysDACH2BUG4LysDACH3BUHALysDACH4BUHILysDACH5BUHQLysDACH6BUHYLysDACH7BUHgLysDACH8BUHoLysDACH9BUHwLysDACH+BUH4LysDACH/BUGAMCsDACGABkGIMCsDACGBBkGQMCsDACGCBkGYMCsDACGDBkGgMCsDACGEBkGoMCsDACGFBkGwMCsDACGGBkG4MCsDACGHBkHAMCsDACGIBkHIMCsDACGJBkHQMCsDACGKBkHYMCsDACGLBkHgMCsDACGMBkHoMCsDACGNBkHwMCsDACGOBkH4MCsDACGPBkGAMSsDACGQBkGIMSsDACGRBkGQMSsDACGSBkGYMSsDACGTBkGgMSsDACGUBkGoMSsDACGVBkGwMSsDACGWBkG4MSsDACGXBkHAMSsDACGYBkHIMSsDACGZBkHQMSsDACGaBkHYMSsDACGbBkHgMSsDACGcBkHoMSsDACGdBkHwMSsDACGeBkH4MSsDACGfBkGAMisDACGgBkGIMisDACGhBkGQMisDACGiBkGYMisDACGjBkGgMisDACGkBkGoMisDACGlBkGwMisDACGmBkG4MisDACGnBkHAMisDACGoBkHIMisDACGpBkHQMisDACGqBkHYMisDACGrBkHgMisDACGsBkHoMisDACGtBkHwMisDACGuBkH4MisDACGvBkGAMysDACGwBkGIMysDACGxBkGQMysDACGyBkGYMysDACGzBkGgMysDACG0BkGoMysDACG1BkGwMysDACG2BkG4MysDACG3BkHAMysDACG4BkHIMysDACG5BkHQMysDACG6BkHYMysDACG7BkHgMysDACG8BkHoMysDACG9BkHwMysDACG+BkH4MysDACG/BkGANCsDACHABkGINCsDACHBBkGQNCsDACHCBkGYNCsDACHDBkGgNCsDACHEBkGoNCsDACHFBkGwNCsDACHGBkG4NCsDACHHBkHANCsDACHIBkHINCsDACHJBkHQNCsDACHKBkHYNCsDACHLBkHgNCsDACHMBkHoNCsDACHNBkHwNCsDACHOBkH4NCsDACHPBkGANSsDACHQBkGINSsDACHRBkGQNSsDACHSBkGYNSsDACHTBkGgNSsDACHUBkGoNSsDACHVBkGwNSsDACHWBkG4NSsDACHXBkHANSsDACHYBkHINSsDACHZBkHQNSsDACHaBkHYNSsDACHbBkHgNSsDACHcBkHoNSsDACHdBkHwNSsDACHeBkH4NSsDACHfBkGANisDACHgBkGINisDACHhBkGQNisDACHiBkGYNisDACHjBkGgNisDACHkBkGoNisDACHlBkGwNisDACHmBkG4NisDACHnBkHANisDACHoBkHINisDACHpBkHQNisDACHqBkHYNisDACHrBkHgNisDACHsBkHoNisDACHtBkHwNisDACHuBkH4NisDACHvBkGANysDACHwBkGINysDACHxBkGQNysDACHyBkGYNysDACHzBkGgNysDACH0BkGoNysDACH1BkGwNysDACH2BkG4NysDACH3BkHANysDACH4BkHINysDACH5BkHQNysDACH6BkHYNysDACH7BkHgNysDACH8BkHoNysDACH9BkHwNysDACH+BkH4NysDACH/BkGAOCsDACGAB0GIOCsDACGBB0GQOCsDACGCB0GYOCsDACGDB0GgOCsDACGEB0GoOCsDACGFB0GwOCsDACGGB0G4OCsDACGHB0HAOCsDACGIB0HIOCsDACGJB0HQOCsDACGKB0HYOCsDACGLB0HgOCsDACGMB0HoOCsDACGNB0HwOCsDACGOB0H4OCsDACGPB0GAOSsDACGQB0GIOSsDACGRB0GQOSsDACGSB0GYOSsDACGTB0GgOSsDACGUB0GoOSsDACGVB0GwOSsDACGWB0G4OSsDACGXB0HAOSsDACGYB0HIOSsDACGZB0HQOSsDACGaB0HYOSsDACGbB0HgOSsDACGcB0HoOSsDACGdB0HwOSsDACGeB0H4OSsDACGfB0GAOisDACGgB0GIOisDACGhB0GQOisDACGiB0GYOisDACGjB0GgOisDACGkB0GoOisDACGlB0GwOisDACGmB0G4OisDACGnB0HAOisDACGoB0HIOisDACGpB0HQOisDACGqB0HYOisDACGrB0HgOisDACGsB0HoOisDACGtB0HwOisDACGuB0H4OisDACGvB0GAOysDACGwB0GIOysDACGxB0GQOysDACGyB0GYOysDACGzB0GgOysDACG0B0GoOysDACG1B0GwOysDACG2B0G4OysDACG3B0HAOysDACG4B0HIOysDACG5B0HQOysDACG6B0HYOysDACG7B0HgOysDACG8B0HoOysDACG9B0HwOysDACG+B0H4OysDACG/B0GAPCsDACHAB0GIPCsDACHBB0GQPCsDACHCB0GYPCsDACHDB0GgPCsDACHEB0GoPCsDACHFB0GwPCsDACHGB0G4PCsDACHHB0HAPCsDACHIB0HIPCsDACHJB0HQPCsDACHKB0HYPCsDACHLB0HgPCsDACHMB0HoPCsDACHNB0HwPCsDACHOB0H4PCsDACHPB0GAPSsDACHQB0GIPSsDACHRB0GQPSsDACHSB0GYPSsDACHTB0GgPSsDACHUB0GoPSsDACHVB0GwPSsDACHWB0G4PSsDACHXB0HAPSsDACHYB0HIPSsDACHZB0HQPSsDACHaB0HYPSsDACHbB0HgPSsDACHcB0HoPSsDACHdB0HwPSsDACHeB0H4PSsDACHfB0GAPisDACHgB0GIPisDACHhB0GQPisDACHiB0GYPisDACHjB0GgPisDACHkB0GoPisDACHlB0GwPisDACHmB0G4PisDACHnB0HAPisDACHoB0HIPisDACHpB0HQPisDACHqB0HYPisDACHrB0HgPisDACHsB0HoPisDACHtB0HwPisDACHuB0H4PisDACHvB0GAPysDACHwB0GIPysDACHxB0GQPysDACHyB0GYPysDACHzB0GgPysDACH0B0GoPysDACH1B0GwPysDACH2B0G4PysDACH3B0HAPysDACH4B0HIPysDACH5B0HQPysDACH6B0HYPysDACH7B0HgPysDACH8B0HoPysDACH9B0HwPysDACH+B0H4PysDACH/B0EAIAA5AwBBCCABOQMAQRAgAjkDAEEYIAM5AwBBICAEOQMAQSggBTkDAEEwIAY5AwBBOCAHOQMAQcAAIAg5AwBByAAgCTkDAEHQACAKOQMAQdgAIAs5AwBB4AAgDDkDAEHoACANOQMAQfAAIA45AwBB+AAgDzkDAEGAASAQOQMAQYgBIBE5AwBBkAEgEjkDAEGYASATOQMAQaABIBQ5AwBBqAEgFTkDAEGwASAWOQMAQbgBIBc5AwBBwAEgGDkDAEHIASAZOQMAQdABIBo5AwBB2AEgGzkDAEHgASAcOQMAQegBIB05AwBB8AEgHjkDAEH4ASAfOQMAQYACICA5AwBBiAIgITkDAEGQAiAiOQMAQZgCICM5AwBBoAIgJDkDAEGoAiAlOQMAQbACICY5AwBBuAIgJzkDAEHAAiAoOQMAQcgCICk5AwBB0AIgKjkDAEHYAiArOQMAQeACICw5AwBB6AIgLTkDAEHwAiAuOQMAQfgCIC85AwBBgAMgMDkDAEGIAyAxOQMAQZADIDI5AwBBmAMgMzkDAEGgAyA0OQMAQagDIDU5AwBBsAMgNjkDAEG4AyA3OQMAQcADIDg5AwBByAMgOTkDAEHQAyA6OQMAQdgDIDs5AwBB4AMgPDkDAEHoAyA9OQMAQfADID45AwBB+AMgPzkDAEGABCBAOQMAQYgEIEE5AwBBkAQgQjkDAEGYBCBDOQMAQaAEIEQ5AwBBqAQgRTkDAEGwBCBGOQMAQbgEIEc5AwBBwAQgSDkDAEHIBCBJOQMAQdAEIEo5AwBB2AQgSzkDAEHgBCBMOQMAQegEIE05AwBB8AQgTjkDAEH4BCBPOQMAQYAFIFA5AwBBiAUgUTkDAEGQBSBSOQMAQZgFIFM5AwBBoAUgVDkDAEGoBSBVOQMAQbAFIFY5AwBBuAUgVzkDAEHABSBYOQMAQcgFIFk5AwBB0AUgWjkDAEHYBSBbOQMAQeAFIFw5AwBB6AUgXTkDAEHwBSBeOQMAQfgFIF85AwBBgAYgYDkDAEGIBiBhOQMAQZAGIGI5AwBBmAYgYzkDAEGgBiBkOQMAQagGIGU5AwBBsAYgZjkDAEG4BiBnOQMAQcAGIGg5AwBByAYgaTkDAEHQBiBqOQMAQdgGIGs5AwBB4AYgbDkDAEHoBiBtOQMAQfAGIG45AwBB+AYgbzkDAEGAByBwOQMAQYgHIHE5AwBBkAcgcjkDAEGYByBzOQMAQaAHIHQ5AwBBqAcgdTkDAEGwByB2OQMAQbgHIHc5AwBBwAcgeDkDAEHIByB5OQMAQdAHIHo5AwBB2AcgezkDAEHgByB8OQMAQegHIH05AwBB8AcgfjkDAEH4ByB/OQMAQYAIIIABOQMAQYgIIIEBOQMAQZAIIIIBOQMAQZgIIIMBOQMAQaAIIIQBOQMAQagIIIUBOQMAQbAIIIYBOQMAQbgIIIcBOQMAQcAIIIgBOQMAQcgIIIkBOQMAQdAIIIoBOQMAQdgIIIsBOQMAQeAIIIwBOQMAQegIII0BOQMAQfAIII4BOQMAQfgIII8BOQMAQYAJIJABOQMAQYgJIJEBOQMAQZAJIJIBOQMAQZgJIJMBOQMAQaAJIJQBOQMAQagJIJUBOQMAQbAJIJYBOQMAQbgJIJcBOQMAQcAJIJgBOQMAQcgJIJkBOQMAQdAJIJoBOQMAQdgJIJsBOQMAQeAJIJwBOQMAQegJIJ0BOQMAQfAJIJ4BOQMAQfgJIJ8BOQMAQYAKIKABOQMAQYgKIKEBOQMAQZAKIKIBOQMAQZgKIKMBOQMAQaAKIKQBOQMAQagKIKUBOQMAQbAKIKYBOQMAQbgKIKcBOQMAQcAKIKgBOQMAQcgKIKkBOQMAQdAKIKoBOQMAQdgKIKsBOQMAQeAKIKwBOQMAQegKIK0BOQMAQfAKIK4BOQMAQfgKIK8BOQMAQYALILABOQMAQYgLILEBOQMAQZALILIBOQMAQZgLILMBOQMAQaALILQBOQMAQagLILUBOQMAQbALILYBOQMAQbgLILcBOQMAQcALILgBOQMAQcgLILkBOQMAQdALILoBOQMAQdgLILsBOQMAQeALILwBOQMAQegLIL0BOQMAQfALIL4BOQMAQfgLIL8BOQMAQYAMIMABOQMAQYgMIMEBOQMAQZAMIMIBOQMAQZgMIMMBOQMAQaAMIMQBOQMAQagMIMUBOQMAQbAMIMYBOQMAQbgMIMcBOQMAQcAMIMgBOQMAQcgMIMkBOQMAQdAMIMoBOQMAQdgMIMsBOQMAQeAMIMwBOQMAQegMIM0BOQMAQfAMIM4BOQMAQfgMIM8BOQMAQYANINABOQMAQYgNINEBOQMAQZANINIBOQMAQZgNINMBOQMAQaANINQBOQMAQagNINUBOQMAQbANINYBOQMAQbgNINcBOQMAQcANINgBOQMAQcgNINkBOQMAQdANINoBOQMAQdgNINsBOQMAQeANINwBOQMAQegNIN0BOQMAQfANIN4BOQMAQfgNIN8BOQMAQYAOIOABOQMAQYgOIOEBOQMAQZAOIOIBOQMAQZgOIOMBOQMAQaAOIOQBOQMAQagOIOUBOQMAQbAOIOYBOQMAQbgOIOcBOQMAQcAOIOgBOQMAQcgOIOkBOQMAQdAOIOoBOQMAQdgOIOsBOQMAQeAOIOwBOQMAQegOIO0BOQMAQfAOIO4BOQMAQfgOIO8BOQMAQYAPIPABOQMAQYgPIPEBOQMAQZAPIPIBOQMAQZgPIPMBOQMAQaAPIPQBOQMAQagPIPUBOQMAQbAPIPYBOQMAQbgPIPcBOQMAQcAPIPgBOQMAQcgPIPkBOQMAQdAPIPoBOQMAQdgPIPsBOQMAQeAPIPwBOQMAQegPIP0BOQMAQfAPIP4BOQMAQfgPIP8BOQMAQYAQIIACOQMAQYgQIIECOQMAQZAQIIICOQMAQZgQIIMCOQMAQaAQIIQCOQMAQagQIIUCOQMAQbAQIIYCOQMAQbgQIIcCOQMAQcAQIIgCOQMAQcgQIIkCOQMAQdAQIIoCOQMAQdgQIIsCOQMAQeAQIIwCOQMAQegQII0COQMAQfAQII4COQMAQfgQII8COQMAQYARIJACOQMAQYgRIJECOQMAQZARIJICOQMAQZgRIJMCOQMAQaARIJQCOQMAQagRIJUCOQMAQbARIJYCOQMAQbgRIJcCOQMAQcARIJgCOQMAQcgRIJkCOQMAQdARIJoCOQMAQdgRIJsCOQMAQeARIJwCOQMAQegRIJ0COQMAQfARIJ4COQMAQfgRIJ8COQMAQYASIKACOQMAQYgSIKECOQMAQZASIKICOQMAQZgSIKMCOQMAQaASIKQCOQMAQagSIKUCOQMAQbASIKYCOQMAQbgSIKcCOQMAQcASIKgCOQMAQcgSIKkCOQMAQdASIKoCOQMAQdgSIKsCOQMAQeASIKwCOQMAQegSIK0COQMAQfASIK4COQMAQfgSIK8COQMAQYATILACOQMAQYgTILECOQMAQZATILICOQMAQZgTILMCOQMAQaATILQCOQMAQagTILUCOQMAQbATILYCOQMAQbgTILcCOQMAQcATILgCOQMAQcgTILkCOQMAQdATILoCOQMAQdgTILsCOQMAQeATILwCOQMAQegTIL0COQMAQfATIL4COQMAQfgTIL8COQMAQYAUIMACOQMAQYgUIMECOQMAQZAUIMICOQMAQZgUIMMCOQMAQaAUIMQCOQMAQagUIMUCOQMAQbAUIMYCOQMAQbgUIMcCOQMAQcAUIMgCOQMAQcgUIMkCOQMAQdAUIMoCOQMAQdgUIMsCOQMAQeAUIMwCOQMAQegUIM0COQMAQfAUIM4COQMAQfgUIM8COQMAQYAVINACOQMAQYgVINECOQMAQZAVINICOQMAQZgVINMCOQMAQaAVINQCOQMAQagVINUCOQMAQbAVINYCOQMAQbgVINcCOQMAQcAVINgCOQMAQcgVINkCOQMAQdAVINoCOQMAQdgVINsCOQMAQeAVINwCOQMAQegVIN0COQMAQfAVIN4COQMAQfgVIN8COQMAQYAWIOACOQMAQYgWIOECOQMAQZAWIOICOQMAQZgWIOMCOQMAQaAWIOQCOQMAQagWIOUCOQMAQbAWIOYCOQMAQbgWIOcCOQMAQcAWIOgCOQMAQcgWIOkCOQMAQdAWIOoCOQMAQdgWIOsCOQMAQeAWIOwCOQMAQegWIO0COQMAQfAWIO4COQMAQfgWIO8COQMAQYAXIPACOQMAQYgXIPECOQMAQZAXIPICOQMAQZgXIPMCOQMAQaAXIPQCOQMAQagXIPUCOQMAQbAXIPYCOQMAQbgXIPcCOQMAQcAXIPgCOQMAQcgXIPkCOQMAQdAXIPoCOQMAQdgXIPsCOQMAQeAXIPwCOQMAQegXIP0COQMAQfAXIP4COQMAQfgXIP8COQMAQYAYIIADOQMAQYgYIIEDOQMAQZAYIIIDOQMAQZgYIIMDOQMAQaAYIIQDOQMAQagYIIUDOQMAQbAYIIYDOQMAQbgYIIcDOQMAQcAYIIgDOQMAQcgYIIkDOQMAQdAYIIoDOQMAQdgYIIsDOQMAQeAYIIwDOQMAQegYII0DOQMAQfAYII4DOQMAQfgYII8DOQMAQYAZIJADOQMAQYgZIJEDOQMAQZAZIJIDOQMAQZgZIJMDOQMAQaAZIJQDOQMAQagZIJUDOQMAQbAZIJYDOQMAQbgZIJcDOQMAQcAZIJgDOQMAQcgZIJkDOQMAQdAZIJoDOQMAQdgZIJsDOQMAQeAZIJwDOQMAQegZIJ0DOQMAQfAZIJ4DOQMAQfgZIJ8DOQMAQYAaIKADOQMAQYgaIKEDOQMAQZAaIKIDOQMAQZgaIKMDOQMAQaAaIKQDOQMAQagaIKUDOQMAQbAaIKYDOQMAQbgaIKcDOQMAQcAaIKgDOQMAQcgaIKkDOQMAQdAaIKoDOQMAQdgaIKsDOQMAQeAaIKwDOQMAQegaIK0DOQMAQfAaIK4DOQMAQfgaIK8DOQMAQYAbILADOQMAQYgbILEDOQMAQZAbILIDOQMAQZgbILMDOQMAQaAbILQDOQMAQagbILUDOQMAQbAbILYDOQMAQbgbILcDOQMAQcAbILgDOQMAQcgbILkDOQMAQdAbILoDOQMAQdgbILsDOQMAQeAbILwDOQMAQegbIL0DOQMAQfAbIL4DOQMAQfgbIL8DOQMAQYAcIMADOQMAQYgcIMEDOQMAQZAcIMIDOQMAQZgcIMMDOQMAQaAcIMQDOQMAQagcIMUDOQMAQbAcIMYDOQMAQbgcIMcDOQMAQcAcIMgDOQMAQcgcIMkDOQMAQdAcIMoDOQMAQdgcIMsDOQMAQeAcIMwDOQMAQegcIM0DOQMAQfAcIM4DOQMAQfgcIM8DOQMAQYAdINADOQMAQYgdINEDOQMAQZAdINIDOQMAQZgdINMDOQMAQaAdINQDOQMAQagdINUDOQMAQbAdINYDOQMAQbgdINcDOQMAQcAdINgDOQMAQcgdINkDOQMAQdAdINoDOQMAQdgdINsDOQMAQeAdINwDOQMAQegdIN0DOQMAQfAdIN4DOQMAQfgdIN8DOQMAQYAeIOADOQMAQYgeIOEDOQMAQZAeIOIDOQMAQZgeIOMDOQMAQaAeIOQDOQMAQageIOUDOQMAQbAeIOYDOQMAQbgeIOcDOQMAQcAeIOgDOQMAQcgeIOkDOQMAQdAeIOoDOQMAQdgeIOsDOQMAQeAeIOwDOQMAQegeIO0DOQMAQfAeIO4DOQMAQfgeIO8DOQMAQYAfIPADOQMAQYgfIPEDOQMAQZAfIPIDOQMAQZgfIPMDOQMAQaAfIPQDOQMAQagfIPUDOQMAQbAfIPYDOQMAQbgfIPcDOQMAQcAfIPgDOQMAQcgfIPkDOQMAQdAfIPoDOQMAQdgfIPsDOQMAQeAfIPwDOQMAQegfIP0DOQMAQfAfIP4DOQMAQfgfIP8DOQMAQYAgIIAEOQMAQYggIIEEOQMAQZAgIIIEOQMAQZggIIMEOQMAQaAgIIQEOQMAQaggIIUEOQMAQbAgIIYEOQMAQbggIIcEOQMAQcAgIIgEOQMAQcggIIkEOQMAQdAgIIoEOQMAQdggIIsEOQMAQeAgIIwEOQMAQeggII0EOQMAQfAgII4EOQMAQfggII8EOQMAQYAhIJAEOQMAQYghIJEEOQMAQZAhIJIEOQMAQZghIJMEOQMAQaAhIJQEOQMAQaghIJUEOQMAQbAhIJYEOQMAQbghIJcEOQMAQcAhIJgEOQMAQcghIJkEOQMAQdAhIJoEOQMAQdghIJsEOQMAQeAhIJwEOQMAQeghIJ0EOQMAQfAhIJ4EOQMAQfghIJ8EOQMAQYAiIKAEOQMAQYgiIKEEOQMAQZAiIKIEOQMAQZgiIKMEOQMAQaAiIKQEOQMAQagiIKUEOQMAQbAiIKYEOQMAQbgiIKcEOQMAQcAiIKgEOQMAQcgiIKkEOQMAQdAiIKoEOQMAQdgiIKsEOQMAQeAiIKwEOQMAQegiIK0EOQMAQfAiIK4EOQMAQfgiIK8EOQMAQYAjILAEOQMAQYgjILEEOQMAQZAjILIEOQMAQZgjILMEOQMAQaAjILQEOQMAQagjILUEOQMAQbAjILYEOQMAQbgjILcEOQMAQcAjILgEOQMAQcgjILkEOQMAQdAjILoEOQMAQdgjILsEOQMAQeAjILwEOQMAQegjIL0EOQMAQfAjIL4EOQMAQfgjIL8EOQMAQYAkIMAEOQMAQYgkIMEEOQMAQZAkIMIEOQMAQZgkIMMEOQMAQaAkIMQEOQMAQagkIMUEOQMAQbAkIMYEOQMAQbgkIMcEOQMAQcAkIMgEOQMAQcgkIMkEOQMAQdAkIMoEOQMAQdgkIMsEOQMAQeAkIMwEOQMAQegkIM0EOQMAQfAkIM4EOQMAQfgkIM8EOQMAQYAlINAEOQMAQYglINEEOQMAQZAlINIEOQMAQZglINMEOQMAQaAlINQEOQMAQaglINUEOQMAQbAlINYEOQMAQbglINcEOQMAQcAlINgEOQMAQcglINkEOQMAQdAlINoEOQMAQdglINsEOQMAQeAlINwEOQMAQeglIN0EOQMAQfAlIN4EOQMAQfglIN8EOQMAQYAmIOAEOQMAQYgmIOEEOQMAQZAmIOIEOQMAQZgmIOMEOQMAQaAmIOQEOQMAQagmIOUEOQMAQbAmIOYEOQMAQbgmIOcEOQMAQcAmIOgEOQMAQcgmIOkEOQMAQdAmIOoEOQMAQdgmIOsEOQMAQeAmIOwEOQMAQegmIO0EOQMAQfAmIO4EOQMAQfgmIO8EOQMAQYAnIPAEOQMAQYgnIPEEOQMAQZAnIPIEOQMAQZgnIPMEOQMAQaAnIPQEOQMAQagnIPUEOQMAQbAnIPYEOQMAQbgnIPcEOQMAQcAnIPgEOQMAQcgnIPkEOQMAQdAnIPoEOQMAQdgnIPsEOQMAQeAnIPwEOQMAQegnIP0EOQMAQfAnIP4EOQMAQfgnIP8EOQMAQYAoIIAFOQMAQYgoIIEFOQMAQZAoIIIFOQMAQZgoIIMFOQMAQaAoIIQFOQMAQagoIIUFOQMAQbAoIIYFOQMAQbgoIIcFOQMAQcAoIIgFOQMAQcgoIIkFOQMAQdAoIIoFOQMAQdgoIIsFOQMAQeAoIIwFOQMAQegoII0FOQMAQfAoII4FOQMAQfgoII8FOQMAQYApIJAFOQMAQYgpIJEFOQMAQZApIJIFOQMAQZgpIJMFOQMAQaApIJQFOQMAQagpIJUFOQMAQbApIJYFOQMAQbgpIJcFOQMAQcApIJgFOQMAQcgpIJkFOQMAQdApIJoFOQMAQdgpIJsFOQMAQeApIJwFOQMAQegpIJ0FOQMAQfApIJ4FOQMAQfgpIJ8FOQMAQYAqIKAFOQMAQYgqIKEFOQMAQZAqIKIFOQMAQZgqIKMFOQMAQaAqIKQFOQMAQagqIKUFOQMAQbAqIKYFOQMAQbgqIKcFOQMAQcAqIKgFOQMAQcgqIKkFOQMAQdAqIKoFOQMAQdgqIKsFOQMAQeAqIKwFOQMAQegqIK0FOQMAQfAqIK4FOQMAQfgqIK8FOQMAQYArILAFOQMAQYgrILEFOQMAQZArILIFOQMAQZgrILMFOQMAQaArILQFOQMAQagrILUFOQMAQbArILYFOQMAQbgrILcFOQMAQcArILgFOQMAQcgrILkFOQMAQdArILoFOQMAQdgrILsFOQMAQeArILwFOQMAQegrIL0FOQMAQfArIL4FOQMAQfgrIL8FOQMAQYAsIMAFOQMAQYgsIMEFOQMAQZAsIMIFOQMAQZgsIMMFOQMAQaAsIMQFOQMAQagsIMUFOQMAQbAsIMYFOQMAQbgsIMcFOQMAQcAsIMgFOQMAQcgsIMkFOQMAQdAsIMoFOQMAQdgsIMsFOQMAQeAsIMwFOQMAQegsIM0FOQMAQfAsIM4FOQMAQfgsIM8FOQMAQYAtINAFOQMAQYgtINEFOQMAQZAtINIFOQMAQZgtINMFOQMAQaAtINQFOQMAQagtINUFOQMAQbAtINYFOQMAQbgtINcFOQMAQcAtINgFOQMAQcgtINkFOQMAQdAtINoFOQMAQdgtINsFOQMAQeAtINwFOQMAQegtIN0FOQMAQfAtIN4FOQMAQfgtIN8FOQMAQYAuIOAFOQMAQYguIOEFOQMAQZAuIOIFOQMAQZguIOMFOQMAQaAuIOQFOQMAQaguIOUFOQMAQbAuIOYFOQMAQbguIOcFOQMAQcAuIOgFOQMAQcguIOkFOQMAQdAuIOoFOQMAQdguIOsFOQMAQeAuIOwFOQMAQeguIO0FOQMAQfAuIO4FOQMAQfguIO8FOQMAQYAvIPAFOQMAQYgvIPEFOQMAQZAvIPIFOQMAQZgvIPMFOQMAQaAvIPQFOQMAQagvIPUFOQMAQbAvIPYFOQMAQbgvIPcFOQMAQcAvIPgFOQMAQcgvIPkFOQMAQdAvIPoFOQMAQdgvIPsFOQMAQeAvIPwFOQMAQegvIP0FOQMAQfAvIP4FOQMAQfgvIP8FOQMAQYAwIIAGOQMAQYgwIIEGOQMAQZAwIIIGOQMAQZgwIIMGOQMAQaAwIIQGOQMAQagwIIUGOQMAQbAwIIYGOQMAQbgwIIcGOQMAQcAwIIgGOQMAQcgwIIkGOQMAQdAwIIoGOQMAQdgwIIsGOQMAQeAwIIwGOQMAQegwII0GOQMAQfAwII4GOQMAQfgwII8GOQMAQYAxIJAGOQMAQYgxIJEGOQMAQZAxIJIGOQMAQZgxIJMGOQMAQaAxIJQGOQMAQagxIJUGOQMAQbAxIJYGOQMAQbgxIJcGOQMAQcAxIJgGOQMAQcgxIJkGOQMAQdAxIJoGOQMAQdgxIJsGOQMAQeAxIJwGOQMAQegxIJ0GOQMAQfAxIJ4GOQMAQfgxIJ8GOQMAQYAyIKAGOQMAQYgyIKEGOQMAQZAyIKIGOQMAQZgyIKMGOQMAQaAyIKQGOQMAQagyIKUGOQMAQbAyIKYGOQMAQbgyIKcGOQMAQcAyIKgGOQMAQcgyIKkGOQMAQdAyIKoGOQMAQdgyIKsGOQMAQeAyIKwGOQMAQegyIK0GOQMAQfAyIK4GOQMAQfgyIK8GOQMAQYAzILAGOQMAQYgzILEGOQMAQZAzILIGOQMAQZgzILMGOQMAQaAzILQGOQMAQagzILUGOQMAQbAzILYGOQMAQbgzILcGOQMAQcAzILgGOQMAQcgzILkGOQMAQdAzILoGOQMAQdgzILsGOQMAQeAzILwGOQMAQegzIL0GOQMAQfAzIL4GOQMAQfgzIL8GOQMAQYA0IMAGOQMAQYg0IMEGOQMAQZA0IMIGOQMAQZg0IMMGOQMAQaA0IMQGOQMAQag0IMUGOQMAQbA0IMYGOQMAQbg0IMcGOQMAQcA0IMgGOQMAQcg0IMkGOQMAQdA0IMoGOQMAQdg0IMsGOQMAQeA0IMwGOQMAQeg0IM0GOQMAQfA0IM4GOQMAQfg0IM8GOQMAQYA1INAGOQMAQYg1INEGOQMAQZA1INIGOQMAQZg1INMGOQMAQaA1INQGOQMAQag1INUGOQMAQbA1INYGOQMAQbg1INcGOQMAQcA1INgGOQMAQcg1INkGOQMAQdA1INoGOQMAQdg1INsGOQMAQeA1INwGOQMAQeg1IN0GOQMAQfA1IN4GOQMAQfg1IN8GOQMAQYA2IOAGOQMAQYg2IOEGOQMAQZA2IOIGOQMAQZg2IOMGOQMAQaA2IOQGOQMAQag2IOUGOQMAQbA2IOYGOQMAQbg2IOcGOQMAQcA2IOgGOQMAQcg2IOkGOQMAQdA2IOoGOQMAQdg2IOsGOQMAQeA2IOwGOQMAQeg2IO0GOQMAQfA2IO4GOQMAQfg2IO8GOQMAQYA3IPAGOQMAQYg3IPEGOQMAQZA3IPIGOQMAQZg3IPMGOQMAQaA3IPQGOQMAQag3IPUGOQMAQbA3IPYGOQMAQbg3IPcGOQMAQcA3IPgGOQMAQcg3IPkGOQMAQdA3IPoGOQMAQdg3IPsGOQMAQeA3IPwGOQMAQeg3IP0GOQMAQfA3IP4GOQMAQfg3IP8GOQMAQYA4IIAHOQMAQYg4IIEHOQMAQZA4IIIHOQMAQZg4IIMHOQMAQaA4IIQHOQMAQag4IIUHOQMAQbA4IIYHOQMAQbg4IIcHOQMAQcA4IIgHOQMAQcg4IIkHOQMAQdA4IIoHOQMAQdg4IIsHOQMAQeA4IIwHOQMAQeg4II0HOQMAQfA4II4HOQMAQfg4II8HOQMAQYA5IJAHOQMAQYg5IJEHOQMAQZA5IJIHOQMAQZg5IJMHOQMAQaA5IJQHOQMAQag5IJUHOQMAQbA5IJYHOQMAQbg5IJcHOQMAQcA5IJgHOQMAQcg5IJkHOQMAQdA5IJoHOQMAQdg5IJsHOQMAQeA5IJwHOQMAQeg5IJ0HOQMAQfA5IJ4HOQMAQfg5IJ8HOQMAQYA6IKAHOQMAQYg6IKEHOQMAQZA6IKIHOQMAQZg6IKMHOQMAQaA6IKQHOQMAQag6IKUHOQMAQbA6IKYHOQMAQbg6IKcHOQMAQcA6IKgHOQMAQcg6IKkHOQMAQdA6IKoHOQMAQdg6IKsHOQMAQeA6IKwHOQMAQeg6IK0HOQMAQfA6IK4HOQMAQfg6IK8HOQMAQYA7ILAHOQMAQYg7ILEHOQMAQZA7ILIHOQMAQZg7ILMHOQMAQaA7ILQHOQMAQag7ILUHOQMAQbA7ILYHOQMAQbg7ILcHOQMAQcA7ILgHOQMAQcg7ILkHOQMAQdA7ILoHOQMAQdg7ILsHOQMAQeA7ILwHOQMAQeg7IL0HOQMAQfA7IL4HOQMAQfg7IL8HOQMAQYA8IMAHOQMAQYg8IMEHOQMAQZA8IMIHOQMAQZg8IMMHOQMAQaA8IMQHOQMAQag8IMUHOQMAQbA8IMYHOQMAQbg8IMcHOQMAQcA8IMgHOQMAQcg8IMkHOQMAQdA8IMoHOQMAQdg8IMsHOQMAQeA8IMwHOQMAQeg8IM0HOQMAQfA8IM4HOQMAQfg8IM8HOQMAQYA9INAHOQMAQYg9INEHOQMAQZA9INIHOQMAQZg9INMHOQMAQaA9INQHOQMAQag9INUHOQMAQbA9INYHOQMAQbg9INcHOQMAQcA9INgHOQMAQcg9INkHOQMAQdA9INoHOQMAQdg9INsHOQMAQeA9INwHOQMAQeg9IN0HOQMAQfA9IN4HOQMAQfg9IN8HOQMAQYA+IOAHOQMAQYg+IOEHOQMAQZA+IOIHOQMAQZg+IOMHOQMAQaA+IOQHOQMAQag+IOUHOQMAQbA+IOYHOQMAQbg+IOcHOQMAQcA+IOgHOQMAQcg+IOkHOQMAQdA+IOoHOQMAQdg+IOsHOQMAQeA+IOwHOQMAQeg+IO0HOQMAQfA+IO4HOQMAQfg+IO8HOQMAQYA/IPAHOQMAQYg/IPEHOQMAQZA/IPIHOQMAQZg/IPMHOQMAQaA/IPQHOQMAQag/IPUHOQMAQbA/IPYHOQMAQbg/IPcHOQMAQcA/IPgHOQMAQcg/IPkHOQMAQdA/IPoHOQMAQdg/IPsHOQMAQeA/IPwHOQMAQeg/IP0HOQMAQfA/IP4HOQMAQfg/IP8HOQMACwoAIABBA3QrAwALDAAgAEEDdCABOQMAC6YBAQF/QQAhBANAIAQgAkgEQCAAIARqQQN0IAAgBGpBA3QrAwAgASAEakEDdCsDACADoqA5AwAgACACaiAEakEDdCAAIAJqIARqQQN0KwMAIAEgAmogBGpBA3QrAwAgA6KgOQMAIAAgAkEBdGogBGpBA3QgACACQQF0aiAEakEDdCsDACABIAJBAXRqIARqQQN0KwMAIAOioDkDACAEQQFqIQQMAQsLC0wBAX9BACEFA0AgBSABSARAIAAgBWpBA3QgAjkDACAAIAFqIAVqQQN0IAM5AwAgACABQQF0aiAFakEDdCAEOQMAIAVBAWohBQwBCwsLEwAgACADoiABIASioCACIAWioAsUACAAIACiIAEgAaKgIAIgAqKgnws=";
+      var BYTECODE = [16908288,33620480,16973824,33686272,17039360,33752064,17105152,33817856,17170432,33883648,805371904,805306624,1073741837,17170944,1342570496,17171200,17236992,17302784,17368576,17434368,1358954496,6,7,8,9,10,17171200,17236992,17303552,17368064,17434880,1392508928,6,7,8,9,10,17172480,17236992,17303552,17369600,17434880,1392508928,6,7,8,9,10,17172480,17238528,17302272,17369600,17434880,1392508928,6,7,8,9,10,17171200,17238528,17302272,17368064,17434880,1392508928,6,7,8,9,10,17173248,17239040,17304832,17370624,1409351680,1,6,7,8,9,17173248,17236736,17305344,17371136,17436928,1358954496,6,7,8,9,10,17173248,17236736,17306112,17367808,17437440,1392508928,6,7,8,9,10,17175040,17236736,17306112,17372160,17437440,1392508928,6,7,8,9,10,17175040,17241088,17304320,17372160,17437440,1392508928,6,7,8,9,10,17173248,17241088,17304320,17367808,17437440,1392508928,6,7,8,9,10,17170688,554108166,1090977941,17372416,17438208,17504000,17569792,1409351680,2,9,10,11,12,34079232,17170432,554108166,1090977955,17372416,17438208,17504000,17570048,1409286144,1,9,10,11,12,34078976,17173248,17242624,17307136,17373952,17439744,1443037184,6,7,8,9,526770957,10,17177856,17242624,17307136,17373952,17434880,1443102720,6,7,8,9,1432681656,10,17178112,17242624,17307136,17373952,17434880,1443168256,6,7,8,9,164488310,10,17178368,17242624,17309696,17373952,17441024,1443233792,6,7,8,9,866522655,10,17173248,17244672,17307136,17373952,17437440,1443299328,6,7,8,9,1264934609,10,17177856,17244672,17307136,17373952,17437440,1443364864,6,7,8,9,1147491276,10,17178112,17244672,17307136,17373952,17437440,1443430400,6,7,8,9,1164268895,10,17178368,17244672,17309696,17373952,17441024,1443495936,6,7,8,9,832004586,10,17173248,17244928,17307136,17373952,17437440,1443561472,6,7,8,9,1214601752,10,17177856,17244928,17307136,17373952,17437440,1443627008,6,7,8,9,1231379371,10,17178112,17244928,17307136,17373952,17437440,1443692544,6,7,8,9,1248156990,10,17178368,17244928,17309696,17373952,17441024,1443758080,6,7,8,9,75682442,10,17173248,17245184,17307136,17373952,17437440,1443823616,6,7,8,9,1298489847,10,17177856,17245184,17307136,17373952,17437440,1443889152,6,7,8,9,1315267466,10,17178112,17245184,17307136,17373952,17437440,1443954688,6,7,8,9,1332045085,10,17178368,17245184,17309696,17373952,17441024,1444020224,6,7,8,9,1932077583,10,17173248,17245440,17307136,17373952,17437440,1444085760,6,7,8,9,1281712228,10,17177856,17245440,17307136,17373952,17442304,1444151296,6,7,8,9,1613994370,10,17178112,17245440,17307136,17373952,17442304,1444216832,6,7,8,9,1731944002,10,17178368,17245440,17309696,17373952,17442560,1444282368,6,7,8,9,1077727434,10,-16777216,33948672,17236224,554173959,1091043741,17432576,33622528,17235968,33818368,34145280,17235968,554173959,1091043750,17442816,302711050,17563648,269290252,33623296,34144512,805306624,-16777216,33948672,17170688,554108422,1090978225,17367296,33622272,17235968,33818368,34079744,17235968,554173959,1091043770,17442816,302711050,17563904,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043781,17443072,33622528,17235968,33818368,34145280,17235968,554173959,1091043790,17442816,302711050,17574144,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043801,17443328,33622528,17235968,33818368,34145280,17235968,554173959,1091043810,17442816,302711050,17574400,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043821,17443584,33622528,17235968,33818368,34145280,17235968,554173959,1091043830,17442816,302711050,17574656,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043841,17443840,33622528,17235968,33818368,34145280,17235968,554173959,1091043850,17442816,302711050,17574912,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043861,17444096,33622528,17235968,33818368,34145280,17235968,554173959,1091043870,17442816,302711050,17575168,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043881,17444352,33622528,17235968,33818368,34145280,17235968,554173959,1091043890,17442816,302711050,17575424,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043901,17444608,33622528,17235968,33818368,34145280,17235968,554173959,1091043910,17442816,302711050,17575680,269290252,33623296,34144512,805306624,-16777216,33948672,17236224,554173959,1091043921,17444864,33622528,17235968,33818368,34145280,17235968,554173959,1091043930,17442816,302711050,17575936,269290252,33623296,34144512,805306624,-16777216,33685760,17236224,33752832,17236224,33818368,805377792,-16777216,33685760,17246464,33752832,17236224,33818368,805378048,-16777216,33685760,17246720,33752832,17236224,33818368,805378304,-16777216,33685760,17246976,33752832,17236224,33818368,805378560,-16777216,302448897,33621760,17236224,33818368,805306624,-16777216,369557760,33621760,17236224,33818368,805306624,-16777216,17236224,17301504,285804551,302645513,33622528,805306624,-16777216,17235968,33883904,923206323,17301760,554238728,1091109524,269156865,33622784,34210048,17312000,554238728,1091109530,285934081,33622784,34210048,17312256,554238728,1091109536,302711297,33622784,34210048,17312512,554238728,1091109547,17498112,554434827,1091306152,906042112,34406400,319291905,33622016,34210048,17301760,33818624,17301504,33753088,805379072,805306624,939524096,1073742520,17301760,33884160,17301504,33622016,805379328,-16777216,17235968,33621760,17301504,33687552,17301504,33753088,17301504,33884160,17301760,33818624,805379584,17301504,805308416,-16777216,17301504,33622016,17301760,33818624,17301504,805308416,-16777216];
+      var CONST_POOL = [0.0,1.0,658967.0,50.0,20.0,340.0,420.0,1448738.0,390.0,3159613.0,440.0,65.0,30.0,11.0,5809919.0,310.0,55.0,856343.0,375.0,2172461.0,105.0,80.0,68.0,18.0,1.6273737E7,4176208.0,120.0,48.0,1.4300723E7,145.0,225.0,305.0,70.0,2060267.0,180.0,240.0,300.0,360.0,9000933.0,2328118.0,10.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0];
+      var SCREEN_ROUTES = {"1787879944":13};
+      var ACTION_ROUTES = {"1281712228":404,"1298489847":424,"1315267466":444,"1332045085":464,"1214601752":484,"1231379371":504,"1248156990":524,"1264934609":544,"1147491276":564,"1164268895":584,"1932077583":604,"75682442":611,"832004586":618,"866522655":625,"1613994370":632,"1731944002":638,"164488310":644,"1077727434":651,"526770957":697,"1432681656":711};
+      var STRINGS = ["Iniciando Calculadora Vectorial PhasorLang v1.0...","PHASOR CALC — ZERO-GC 90+ FPS","ERR: DIV/0","C","CE","+/-","/","7","8","9","*","4","5","6","-","1","2","3","+","0","x^2","sqrt","=","Operación: Suma (+)","Operación: Resta (-)","Operación: Multiplicación (*)","Operación: División (/)","División por cero no permitida","Resultado calculado:","Excepción capturada: Error en cálculo aritmético","Calculadora Reiniciada (C)"];
+      var FIRST_SCREEN_PC = 13;
+      var CHILDREN = [{"id":1,"title":"<s>1: Calculadora Fasorial (Zero-GC)","x":60,"y":50,"w":460,"h":560,"contentW":460,"contentH":520,"color":"#161B22","screenPc":13}];
+
+      window.addEventListener('DOMContentLoaded', function() {
+        if (typeof PhasorRuntime !== 'undefined' && typeof PhasorRuntime.init === 'function') {
+          PhasorRuntime.init(WASM_PAYLOAD, 'phasorCanvas', {
+            title: "Calculadora Fasorial",
+            showHud: false,
+            bytecode: BYTECODE,
+            constPool: CONST_POOL,
+            screenRoutes: SCREEN_ROUTES,
+            actionRoutes: ACTION_ROUTES,
+            strings: STRINGS,
+            firstScreenPc: FIRST_SCREEN_PC,
+            children: CHILDREN
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

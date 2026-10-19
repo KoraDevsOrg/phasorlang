@@ -1,0 +1,32 @@
+# =============================================================================
+# PHASORLANG & CHRONOS IDE — .GITIGNORE (KORADEVS)
+# https://github.com/koradevsorg
+# =============================================================================
+
+# Directorios de compilación temporal y cachés
+temp/
+scratch/
+logcat/
+*.log
+
+# Archivos de sincronización y temporales
+.stfolder/
+.stfolder.removed*/
+.stversions/
+*.sync-conflict-*
+debug.txt
+debug*.txt
+
+# Archivos de entorno y herramientas locales
+.vscode/
+*.class
+
+# Binarios temporales en la raíz (los binarios de distribución van en dist/)
+*.wasm
+
+# Residuos legacy de Sketchware Pro y móviles cerrados
+data/
+libs/
+resources/
+META-INF/
+

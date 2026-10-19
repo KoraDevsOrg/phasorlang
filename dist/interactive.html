@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PhasorLang Standalone App</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    html, body { width: 100%; height: 100%; background: #0b0e14; color: #adbac7; font-family: monospace; display: flex; flex-direction: column; overflow: hidden; }
+    #console { height: 22vh; background: #0d1117; border-bottom: 2px solid #30363d; padding: 10px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; color: #58a6ff; }
+    #canvas-container { flex: 1; position: relative; width: 100%; background: #121212; touch-action: manipulation; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <div id="console">&gt; L1: 0,0000
+</div>
+  <div id="canvas-container">
+    <canvas id="stage"></canvas>
+  </div>
+  <script>
+    const BYTECODE = [16842752,117440514,16908544,1342308352,16974336,17040128,17105920,17171712,17237504,1358954496,3,4,5,6,7,17303296,17369088,17434880,17500672,1409351680,0,8,9,10,11,17566464,17632256,17698048,17763840,1409351680,1,12,13,14,15,17829632,17895424,17961216,18027008,1409286144,1,16,17,18,19,18092800,18158592,18224384,18290176,18355968,1442971648,20,21,22,23,111895899,24,18421760,18487552,18553344,18619136,18684928,1443037184,25,26,27,28,1835481444,29,-16777216,18750720,270467358,33627904,-16777216,18882048,1344274432,18947840,19013632,19079424,19145216,19211008,1358954496,33,34,35,36,37,19276800,19342592,19408384,19474176,1409351680,4,38,39,40,41,19539968,19605760,19671552,19737344,1409351680,5,42,43,44,45,19803136,19868928,19934720,20000512,1409286144,1,46,47,48,49,20066304,20132096,20197888,20263680,20329472,1443233792,50,51,52,53,214270097,54,20395264,20461056,20526848,20592640,20658432,1443299328,55,56,57,58,1885814301,59,-16777216,20724224,305987900,33635584,-16777216];
+    const CONST_POOL = [0.0,921879.0,30.0,30.0,320.0,160.0,1448738.0,45.0,45.0,14.0,5809919.0,45.0,80.0,16.0,9147550.0,45.0,115.0,40.0,4176208.0,40.0,220.0,300.0,50.0,2328118.0,40.0,290.0,300.0,50.0,2060267.0,1.0,1448738.0,30.0,30.0,320.0,160.0,921879.0,45.0,45.0,14.0,1.3801762E7,45.0,80.0,16.0,9147550.0,45.0,115.0,40.0,5809919.0,40.0,220.0,300.0,50.0,9000933.0,40.0,290.0,300.0,50.0,3159613.0,2.0];
+    const SCREEN_ROUTES = {"1885814301":2,"1835481444":74};
+    const ACTION_ROUTES = {"111895899":70,"214270097":142};
+    const STRINGS = ["APP INTERACTIVA PHASOR","Puntos acumulados:","Sumar Puntos (+1)","Ir a Pantalla 2","PANTALLA 2 - ESTADO VIVO","Valor leido en memoria:","Duplicar Puntos (*2)","Volver a Pantalla 1"];
+    const FIRST_SCREEN_PC = 2;
+
+    class MicroPhasorVM {
+      constructor(code, consts) {
+        this.code = code;
+        this.consts = consts;
+        this.rScalar = new Float64Array(256);
+        this.rCompReal = new Float64Array(256);
+        this.rCompImag = new Float64Array(256);
+        this.isComplex = new Uint8Array(256);
+        this.uiCmds = [];
+        this.buttons = [];
+        this.texts = [];
+        this.logs = [];
+      }
+
+      pushUi(type, p1=0, p2=0, p3=0, p4=0, p5=0) {
+        this.uiCmds.push(type, p1, p2, p3, p4, p5);
+      }
+
+      run(entryPc = 0) {
+        let pc = entryPc;
+        this.uiCmds = [];
+        this.buttons = [];
+        this.texts = [];
+        while (pc < this.code.length) {
+          const instr = this.code[pc++];
+          const op = (instr >>> 24) & 0xFF;
+          const dst = (instr >>> 16) & 0xFF;
+          const s1 = (instr >>> 8) & 0xFF;
+          const s2 = instr & 0xFF;
+
+          if (op === 0x00 || op === 0xFF) break; // HALT
+          switch (op) {
+            case 0x01:
+              this.rScalar[dst] = this.consts[s1];
+              this.isComplex[dst] = 0;
+              break;
+            case 0x02:
+              this.rScalar[dst] = this.rScalar[s1];
+              this.rCompReal[dst] = this.rCompReal[s1];
+              this.rCompImag[dst] = this.rCompImag[s1];
+              this.isComplex[dst] = this.isComplex[s1];
+              break;
+            case 0x10:
+            case 0x03:
+              this.rScalar[dst] = this.rScalar[s1] + this.rScalar[s2];
+              this.isComplex[dst] = 0;
+              break;
+            case 0x11:
+            case 0x04:
+              this.rScalar[dst] = this.rScalar[s1] - this.rScalar[s2];
+              this.isComplex[dst] = 0;
+              break;
+            case 0x12:
+            case 0x05:
+              this.rScalar[dst] = this.rScalar[s1] * this.rScalar[s2];
+              this.isComplex[dst] = 0;
+              break;
+            case 0x13:
+            case 0x06:
+              this.rScalar[dst] = this.rScalar[s1] / this.rScalar[s2];
+              this.isComplex[dst] = 0;
+              break;
+            case 0x07:
+              pc = (instr & 0xFFFF);
+              break;
+            case 0x08:
+              if (this.rScalar[dst] === 0.0) pc = (instr & 0xFFFF);
+              break;
+            case 0x28:
+            case 0x09: {
+              const mag = this.rScalar[s1];
+              const rad = this.rScalar[s2] * (Math.PI / 180.0);
+              this.rCompReal[dst] = mag * Math.cos(rad);
+              this.rCompImag[dst] = mag * Math.sin(rad);
+              this.isComplex[dst] = 1;
+              break;
+            }
+            case 0x30:
+            case 0x0A: {
+              const reg = s1;
+              if (this.isComplex[reg]) {
+                const re = this.rCompReal[reg], im = this.rCompImag[reg];
+                const mag = Math.hypot(re, im);
+                const deg = Math.atan2(im, re) * (180.0 / Math.PI);
+                this.logs.push(`> OUT: ${re.toFixed(2)} + ${im.toFixed(2)}j (${mag.toFixed(2)} @ ${deg.toFixed(2)}°)\n`);
+              } else {
+                this.logs.push(`> OUT: ${this.rScalar[reg]}\n`);
+              }
+              break;
+            }
+            case 0x50:
+              this.pushUi(0x50, this.rScalar[dst]);
+              break;
+            case 0x51: {
+              const rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++], rh = this.code[pc++], rc = this.code[pc++];
+              this.pushUi(0x51, this.rScalar[rx], this.rScalar[ry], this.rScalar[rw], this.rScalar[rh], this.rScalar[rc]);
+              break;
+            }
+            case 0x52: {
+              const rcx = this.code[pc++], rcy = this.code[pc++], rr = this.code[pc++], rc = this.code[pc++];
+              this.pushUi(0x52, this.rScalar[rcx], this.rScalar[rcy], this.rScalar[rr], this.rScalar[rc], 0);
+              break;
+            }
+            case 0x53: {
+              const rx1 = this.code[pc++], ry1 = this.code[pc++], rx2 = this.code[pc++], ry2 = this.code[pc++], rc = this.code[pc++];
+              this.pushUi(0x53, this.rScalar[rx1], this.rScalar[ry1], this.rScalar[rx2], this.rScalar[ry2], this.rScalar[rc]);
+              break;
+            }
+            case 0x54: { // OP_UI_TEXT: isString, contentRef, rx, ry, rSize, rc
+              const isString = dst;
+              const contentRef = this.code[pc++];
+              const rx = this.code[pc++], ry = this.code[pc++], rSize = this.code[pc++], rc = this.code[pc++];
+              const x = this.rScalar[rx], y = this.rScalar[ry], size = this.rScalar[rSize];
+              const color = (rc !== -1 && rc < 256 && this.rScalar[rc] !== undefined) ? this.rScalar[rc] : 0xFFFFFF;
+              let displayText = "";
+              if (isString === 1) {
+                displayText = (typeof STRINGS !== 'undefined' && STRINGS[contentRef] !== undefined) ? STRINGS[contentRef] : "";
+              } else {
+                if (this.isComplex[contentRef]) {
+                  const re = this.rCompReal[contentRef];
+                  const im = this.rCompImag[contentRef];
+                  const sign = im >= 0 ? "+" : "-";
+                  displayText = re.toFixed(2) + " " + sign + " " + Math.abs(im).toFixed(2) + "j";
+                } else {
+                  const val = this.rScalar[contentRef];
+                  displayText = (Math.floor(val) === val) ? String(Math.floor(val)) : val.toFixed(2);
+                }
+              }
+              this.pushUi(0x54, x, y, size, color, 0);
+              this.texts.push({ text: displayText, x: x, y: y, size: size, color: color });
+              break;
+            }
+            case 0x56: { // OP_UI_BUTTON: rx, ry, rw, rh, targetScreen, rc
+              const strIdx = dst;
+              const rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++], rh = this.code[pc++];
+              const targetVal = this.code[pc++], rc = this.code[pc++];
+              const bx = this.rScalar[rx], by = this.rScalar[ry], bw = this.rScalar[rw], bh = this.rScalar[rh];
+              const targetKey = String(targetVal);
+              const target = (SCREEN_ROUTES[targetKey] !== undefined || (typeof ACTION_ROUTES !== 'undefined' && ACTION_ROUTES[targetKey] !== undefined)) ? targetVal : ((targetVal >= 0 && targetVal < 256 && this.rScalar[targetVal] !== undefined && this.rScalar[targetVal] !== 0) ? this.rScalar[targetVal] : targetVal);
+              const color = (rc !== 0 && rc !== -1 && rc < 256 && this.rScalar[rc] !== undefined) ? this.rScalar[rc] : 0x1f6feb;
+              const btnLabel = (typeof STRINGS !== 'undefined' && STRINGS[strIdx] !== undefined) ? STRINGS[strIdx] : 'BOTÓN';
+              this.pushUi(0x56, bx, by, bw, bh, color);
+              this.buttons.push({ x: bx, y: by, w: bw, h: bh, target: target, label: btnLabel, color: color });
+              break;
+            }
+            case 0x57: { // OP_NAVIGATE
+              const target = this.code[pc++];
+              handleActionOrNavigate(target);
+              break;
+            }
+            default:
+              break;
+          }
+        }
+      }
+    }
+
+    const canvas = document.getElementById('stage');
+    const container = document.getElementById('canvas-container');
+    const ctx = canvas.getContext('2d');
+    const consoleEl = document.getElementById('console');
+
+    let currentScreenPc = FIRST_SCREEN_PC;
+    const vm = new MicroPhasorVM(BYTECODE, CONST_POOL);
+    // Ejecutar arranque inicial en pc=0 (ejecuta inicializaciones globales y salta a la primera pantalla)
+    vm.run(0);
+    if (vm.logs.length > 0) {
+      consoleEl.textContent += '\n' + vm.logs.join('');
+    }
+
+    function navigateTo(target) {
+      let entryPc = target;
+      const key = String(Math.round(Number(target)));
+      if (SCREEN_ROUTES[key] !== undefined) {
+        entryPc = SCREEN_ROUTES[key];
+      } else if (SCREEN_ROUTES[target] !== undefined) {
+        entryPc = SCREEN_ROUTES[target];
+      }
+      currentScreenPc = entryPc;
+      vm.run(entryPc);
+      render();
+    }
+    window.navigateTo = navigateTo;
+
+    function handleActionOrNavigate(target) {
+      const key = String(Math.round(Number(target)));
+      if (typeof ACTION_ROUTES !== 'undefined' && (ACTION_ROUTES[key] !== undefined || ACTION_ROUTES[target] !== undefined)) {
+        const actionPc = ACTION_ROUTES[key] !== undefined ? ACTION_ROUTES[key] : ACTION_ROUTES[target];
+        vm.run(actionPc);
+        vm.run(currentScreenPc);
+        render();
+        return;
+      }
+      navigateTo(target);
+    }
+    window.handleActionOrNavigate = handleActionOrNavigate;
+
+    function colorHex(c) {
+      const n = (Number(c) >>> 0) & 0xFFFFFF;
+      return '#' + n.toString(16).padStart(6, '0');
+    }
+
+    function render() {
+      canvas.width = container.clientWidth || window.innerWidth;
+      canvas.height = container.clientHeight || (window.innerHeight * 0.78);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cmds = vm.uiCmds;
+      let btnIdx = 0;
+      let textIdx = 0;
+      for (let i = 0; i < cmds.length; i += 6) {
+        const type = Math.floor(cmds[i]);
+        const p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
+
+        if (type === 0x50) {
+          ctx.fillStyle = colorHex(p1);
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (type === 0x51) {
+          ctx.fillStyle = colorHex(p5);
+          ctx.fillRect(p1, p2, p3, p4);
+        } else if (type === 0x52) {
+          ctx.strokeStyle = colorHex(p4);
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(p1, p2, p3, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (type === 0x53) {
+          ctx.strokeStyle = colorHex(p5);
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(p1, p2);
+          ctx.lineTo(p3, p4);
+          ctx.stroke();
+        } else if (type === 0x54) {
+          if (vm.texts && textIdx < vm.texts.length) {
+            const t = vm.texts[textIdx++];
+            ctx.fillStyle = colorHex(t.color);
+            ctx.font = (Math.round(t.size) || 16) + 'px monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(t.text, t.x, t.y);
+          }
+        } else if (type === 0x56) {
+          ctx.fillStyle = colorHex(p5);
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(p1, p2, p3, p4, 8);
+          } else {
+            ctx.fillRect(p1, p2, p3, p4);
+          }
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 15px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          let btnText = 'CAMBIAR PANTALLA';
+          if (vm.buttons && btnIdx < vm.buttons.length) {
+            btnText = vm.buttons[btnIdx].label || btnText;
+          }
+          btnIdx++;
+          ctx.fillText(btnText, p1 + (p3 / 2), p2 + (p4 / 2));
+        }
+      }
+    }
+
+    function handlePointer(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const touchX = (e.clientX - rect.left) * scaleX;
+      const touchY = (e.clientY - rect.top) * scaleY;
+      for (const b of vm.buttons) {
+        if (touchX >= b.x && touchX <= b.x + b.w && touchY >= b.y && touchY <= b.y + b.h) {
+          handleActionOrNavigate(b.target);
+          break;
+        }
+      }
+    }
+    canvas.addEventListener('pointerdown', handlePointer);
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      let hovering = false;
+      for (const b of vm.buttons) {
+        if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+          hovering = true;
+          break;
+        }
+      }
+      canvas.style.cursor = hovering ? 'pointer' : 'default';
+    });
+
+    window.addEventListener('resize', render);
+    setTimeout(render, 30);
+  </script>
+</body>
+</html>

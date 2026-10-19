@@ -1,0 +1,86 @@
+name: KoraDevs QA & Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  qa_validation_and_deploy:
+    name: Suite de Pruebas Unitarias y Despliegue PWA (KoraDevs)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout del Repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 2. Configurar Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 3. Ejecutar Suite de Pruebas Unitarias e Integración (tests/*.fas)
+        run: |
+          echo "======================================================================"
+          echo "   KORADEVS QA PIPELINE — EJECUTANDO SUITE COMPLETA PHASOR TEST"
+          echo "   Organización: https://github.com/koradevsorg"
+          echo "======================================================================"
+          java -jar phasor.jar test tests
+          TEST_EXIT_CODE=$?
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "::error::La suite de pruebas falló con código de salida: $TEST_EXIT_CODE"
+            echo "Deteniendo integración continua. Reporte de depuración emitido."
+            exit $TEST_EXIT_CODE
+          fi
+          echo ">>> 100% DE PRUEBAS PASADAS EXITOSAMENTE [5/5 SUITES OK]"
+
+      - name: 4. Compilar Artefactos WASM & PWA de Producción
+        run: |
+          echo "Compilando módulo WebAssembly de Phasor IDE desde samples/phasor_ide.ph..."
+          java -jar phasor.jar build samples/phasor_ide.ph --target=wasm -o dist/phasor_ide.wasm
+
+          echo "Validando contenedor host ultra-ligero dist/phasor_ide.html..."
+          if grep -q "<header>" dist/phasor_ide.html || grep -q "<button>" dist/phasor_ide.html || grep -q "sidebar" dist/phasor_ide.html; then
+            echo "::error::dist/phasor_ide.html contiene elementos HTML hardcoded o estilos de barra lateral prohibidos."
+            exit 1
+          fi
+
+          if ! grep -q 'id="phasorCanvas"' dist/phasor_ide.html; then
+            echo "::error::dist/phasor_ide.html debe contener el lienzo con id 'phasorCanvas'."
+            exit 1
+          fi
+
+          echo "Artefactos PWA y WebAssembly listos en dist/"
+          ls -la dist/
+
+      - name: 5. Configurar GitHub Pages
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/configure-pages@v5
+
+      - name: 6. Subir Artefacto para GitHub Pages
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      - name: 7. Publicar PWA en GitHub Pages (Solo al 100% de Pruebas Exitosas)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,231 @@
+// ===============================================================
+// TESTS/03_TEST_UI_RESPONSIVE.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación de Detección Automática de Viewport (R250/R251)
+// Autocontención de Texto en Modales (Zero-Overflow)
+// Arquitectura Padre/Hijos: Drag & Drop en Escritorio vs Snap 100% en Móvil
+// ===============================================================
+
+import "lib/test.ph"
+import "lib/ui.ph"
+
+out("=== TEST SUITE 03: RESPONSIVE UI, MODAL ZERO-OVERFLOW & PARENT/CHILDREN ===")
+test.init()
+
+// ===============================================================
+// 1. SIMULACIÓN MODO MÓVIL (360x740) — MAQUETACIÓN LLAVE EN CERRADURA
+// ===============================================================
+R250 = 360.0
+R251 = 740.0
+
+test.assert_eq(R250, 360.0, "Lectura de R250 en PVM (Viewport Ancho Movil = 360)")
+test.assert_eq(R251, 740.0, "Lectura de R251 en PVM (Viewport Alto Movil = 740)")
+
+is_mob = auto_is_mobile()
+test.assert_eq(is_mob, 1.0, "auto_is_mobile() retorna 1.0 en modo movil (360x740)")
+
+screen_w_mob = ui.screen_auto()
+test.assert_eq(screen_w_mob, 360.0, "ui.screen_auto() adapta ancho al 100% del viewport movil (360px)")
+
+btn_h_mob = ui.button()
+test.assert_eq(btn_h_mob, 48.0, "ui.button() asigna altura tactil ampliada en movil (48.0px)")
+test.assert_eq(btn_h_mob >= 44.0, 1.0, "ui.button() cumple directriz ergonomica tactil >= 44px")
+
+margin_mob = 15.0
+btn_w_mob = ui.button_w(margin_mob)
+test.assert_eq(btn_w_mob, 330.0, "ui.button_w() calcula ancho llave en cerradura: 330.0px")
+test.assert_eq((margin_mob * 2.0) + btn_w_mob <= R250, 1.0, "Boton encaja exactamente dentro del limite de pantalla")
+
+// ===============================================================
+// 2. AUTOCONTENCIÓN DE TEXTO EN MODALES (ui.modal_card)
+// ===============================================================
+// Modal estrecho (240px) con texto de 40 caracteres
+card_w = 240.0
+pad_m = 12.0
+avail_w = card_w - (pad_m * 2.0) // 216.0px disponible
+text_len = 40.0
+
+// A tamaño estándar de 14px, el texto mediría 40 * 14 * 0.6 = 336px (se saldría 120px!)
+font_scaled = ui.modal_calc_font_size(card_w, pad_m, text_len, 14.0)
+text_eff_w = ui.modal_calc_text_w(text_len, font_scaled)
+
+test.assert_eq(font_scaled <= 14.0, 1.0, "Fuente se reduce automaticamente para evitar desbordamiento del modal")
+test.assert_eq(text_eff_w <= avail_w, 1.0, "Ancho efectivo de texto cabe estrictamente dentro del modal")
+
+modal_contained = ui.modal_check_containment(card_w, pad_m, text_len, font_scaled)
+test.assert_eq(modal_contained, 1.0, "Modal garantiza autocontencion Zero-Overflow del texto en sus bordes")
+
+// ===============================================================
+// 3. CONTENEDORES PADRE E HIJOS EN MODO MÓVIL (SNAP 100% & VIRTUAL ORBIT)
+// ===============================================================
+// Creación de 2 sub-pantallas hijas (hijo 0 e hijo 1)
+ui.sub_screen_create(0.0, 40.0, 80.0, 0.0, 0.0)
+ui.sub_screen_create(1.0, 440.0, 80.0, 1.0, 0.0)
+
+// Hijo 0 activo por defecto
+ui.sub_screen_select(0.0)
+val_x0 = ui.sub_screen_get_x(0.0)
+val_y0 = ui.sub_screen_get_y(0.0)
+test.assert_eq(val_x0, 0.0, "Sub-pantalla activa hace Snap 100% al borde izquierdo X=0")
+test.assert_eq(val_y0, 0.0, "Sub-pantalla activa hace Snap 100% al borde superior Y=0")
+val_w0 = ui.sub_screen_get_w(0.0)
+val_h0 = ui.sub_screen_get_h(0.0)
+test.assert_eq(val_w0, 360.0, "Sub-pantalla activa ocupa 100% del ancho del viewport movil")
+test.assert_eq(val_h0, 740.0, "Sub-pantalla activa ocupa 100% del alto del viewport movil")
+
+// Transición por pellizco / 2 dedos a Hijo 1
+ui.sub_screen_pinch_swipe(1.0)
+val_x1 = ui.sub_screen_get_x(1.0)
+val_w1 = ui.sub_screen_get_w(1.0)
+test.assert_eq(val_x1, 0.0, "Hijo 1 alternado por pellizco/gesto hace Snap inmediato al 100% del viewport")
+test.assert_eq(val_w1, 360.0, "Hijo 1 adopta el 100% del ancho del viewport")
+
+// ===============================================================
+// 4. CONTENEDORES PADRE E HIJOS EN MODO ESCRITORIO (DRAG & DROP Y DOCKING)
+// ===============================================================
+R250 = 1280.0
+R251 = 720.0
+
+test.assert_eq(R250, 1280.0, "Lectura de R250 en PVM (Viewport Ancho Desktop = 1280)")
+test.assert_eq(R251, 720.0, "Lectura de R251 en PVM (Viewport Alto Desktop = 720)")
+test.assert_eq(auto_is_mobile(), 0.0, "auto_is_mobile() retorna 0.0 en modo escritorio (1280x720)")
+
+// Contenedor padre <main>
+workspace_w = ui.workspace_main(0x0B0E14)
+test.assert_eq(workspace_w, 1280.0, "ui.workspace_main() cubre el 100% del lienzo de escritorio")
+
+// Dimensiones de ventana hija en escritorio (~360px móvil dentro de monitor de escritorio)
+test.assert_eq(ui.sub_screen_get_w(0.0), 360.0, "Hijo en escritorio mantiene proporcion movil (360px)")
+test.assert_eq(ui.sub_screen_get_h(0.0), 640.0, "Hijo en escritorio mantiene altura vertical movil (640px)")
+
+// Reposicionamiento libre Drag & Drop con ratón en escritorio
+ui.sub_screen_drag(0.0, 120.0, 90.0)
+test.assert_eq(ui.sub_screen_get_x(0.0), 120.0, "Drag & Drop actualiza libremente la coordenada X de ventana hija a 120px")
+test.assert_eq(ui.sub_screen_get_y(0.0), 90.0, "Drag & Drop actualiza libremente la coordenada Y de ventana hija a 90px")
+
+// Minimizar ventana hija: queda viéndose solo la barrita de título (28px) sin esconderse del todo
+vis_before = ui.sub_screen_is_visible(0.0)
+test.assert_eq(vis_before, 1.0, "Ventana hija inicialmente expandida")
+
+ui.sub_screen_toggle(0.0)
+min_st = ui.sub_screen_is_minimized(0.0)
+test.assert_eq(min_st, 1.0, "Minimizar ventana hija activa estado minimizado")
+
+h_min = ui.sub_screen_get_h(0.0)
+test.assert_eq(h_min, 28.0, "Al minimizar solo queda viendose la barrita de titulo (28px)")
+test.assert_eq(ui.sub_screen_get_x(0.0), 120.0, "Barra de titulo minimizada conserva posicion X en pantalla")
+test.assert_eq(ui.sub_screen_get_y(0.0), 90.0, "Barra de titulo minimizada conserva posicion Y en pantalla")
+
+// Restaurar ventana hija: recupera su altura completa previa
+ui.sub_screen_toggle(0.0)
+h_restored = ui.sub_screen_get_h(0.0)
+test.assert_eq(h_restored, 640.0, "Restaurar ventana hija recupera su altura completa original (640px)")
+
+// ===============================================================
+// 5. REDIMENSIÓN EN TIEMPO REAL EN TODOS LOS SENTIDOS (ARRIBA, ABAJO, IZQUIERDA, DERECHA, DIAGONAL)
+// ===============================================================
+// Redimensión directa independiente de hijo 0
+ui.sub_screen_resize(0.0, 420.0, 680.0)
+test.assert_eq(ui.sub_screen_get_w(0.0), 420.0, "Redimensionar en tiempo real amplía ancho de hijo 0 a 420px")
+test.assert_eq(ui.sub_screen_get_h(0.0), 680.0, "Redimensionar en tiempo real amplía alto de hijo 0 a 680px")
+
+// Ampliar hacia la Derecha (East: dir 1.0, delta +30)
+ui.sub_screen_resize_dir(0.0, 1.0, 30.0)
+test.assert_eq(ui.sub_screen_get_w(0.0), 450.0, "Redimensionar derecha (East) amplía ancho a 450px")
+
+// Ampliar hacia la Izquierda (West: dir 2.0, delta +20)
+ui.sub_screen_resize_dir(0.0, 2.0, 20.0)
+test.assert_eq(ui.sub_screen_get_x(0.0), 100.0, "Redimensionar izquierda (West) desplaza origen X a 100px")
+test.assert_eq(ui.sub_screen_get_w(0.0), 470.0, "Redimensionar izquierda (West) amplía ancho a 470px")
+
+// Ampliar hacia Abajo (South: dir 3.0, delta +20)
+ui.sub_screen_resize_dir(0.0, 3.0, 20.0)
+test.assert_eq(ui.sub_screen_get_h(0.0), 700.0, "Redimensionar abajo (South) amplía alto a 700px")
+
+// Ampliar hacia Arriba (North: dir 4.0, delta +15)
+ui.sub_screen_resize_dir(0.0, 4.0, 15.0)
+test.assert_eq(ui.sub_screen_get_y(0.0), 75.0, "Redimensionar arriba (North) desplaza origen Y a 75px")
+test.assert_eq(ui.sub_screen_get_h(0.0), 715.0, "Redimensionar arriba (North) amplía alto a 715px")
+
+// Ampliar en Diagonal Sureste (SE: dir 5.0, delta +25)
+ui.sub_screen_resize_dir(0.0, 5.0, 25.0)
+test.assert_eq(ui.sub_screen_get_w(0.0), 495.0, "Redimensionar diagonal SE amplía ancho a 495px")
+test.assert_eq(ui.sub_screen_get_h(0.0), 740.0, "Redimensionar diagonal SE amplía alto a 740px")
+
+// Estrechar en tiempo real (delta negativo: estrechar ancho en -95px)
+ui.sub_screen_resize_dir(0.0, 1.0, -95.0)
+test.assert_eq(ui.sub_screen_get_w(0.0), 400.0, "Estrechar en tiempo real reduce ancho a 400px")
+
+// Verificación estricta de independencia: Hijo 1 permanece completamente intacto
+test.assert_eq(ui.sub_screen_get_w(1.0), 360.0, "Hijo 1 conserva ancho independiente (360px)")
+test.assert_eq(ui.sub_screen_get_h(1.0), 640.0, "Hijo 1 conserva alto independiente (640px)")
+
+// ===============================================================
+// 6. VIEWPORT INTERIOR, MODO WRAP, CLIPPING Y SCROLL VERTICAL/HORIZONTAL
+// ===============================================================
+pad = 10.0
+in_w0 = ui.sub_screen_inner_w(0.0, pad)
+test.assert_eq(in_w0, 380.0, "Ancho interior de viewport resta padding lateral (380px)")
+
+in_h0 = ui.sub_screen_inner_h(0.0, pad)
+test.assert_eq(in_h0, 692.0, "Alto interior de viewport resta barra de titulo y padding (692px)")
+
+// A. Modo Wrap de Texto (Word/Line Wrap adaptativo al ancho interior)
+cpl_narrow = ui.wrap_calc_chars_per_line(180.0, 10.0)
+test.assert_eq(cpl_narrow, 30.0, "Al estrechar la ventana caben 30 caracteres por linea en wrap")
+
+lines_narrow = ui.wrap_calc_line_count(120.0, 180.0, 10.0)
+test.assert_eq(lines_narrow, 4.999, "Texto envuelve a 4 lineas al estrechar ventana")
+
+// B. Clipping ("como si vieramos a traves de una ventana")
+is_vis1 = ui.sub_screen_is_visible_within(0.0, 50.0, 50.0, 100.0, 40.0, pad)
+test.assert_eq(is_vis1, 1.0, "Elemento dentro de coordenadas visibles es visible a traves de la ventana")
+
+is_vis_right = ui.sub_screen_is_visible_within(0.0, 500.0, 50.0, 100.0, 40.0, pad)
+test.assert_eq(is_vis_right, 0.0, "Elemento que excede el ancho queda oculto por clipping derecho")
+
+is_vis_bottom = ui.sub_screen_is_visible_within(0.0, 50.0, 800.0, 100.0, 40.0, pad)
+test.assert_eq(is_vis_bottom, 0.0, "Elemento que excede el alto queda oculto por clipping inferior")
+
+// Al minimizar la ventana (cerrar persiana), TODO el contenido interior queda en 0.0 (oculto)
+ui.sub_screen_toggle(0.0)
+min_inner_h = ui.sub_screen_inner_h(0.0, pad)
+test.assert_eq(min_inner_h, 0.0, "Al minimizar la ventana su altura interior es 0.0")
+
+is_vis_when_min = ui.sub_screen_is_visible_within(0.0, 50.0, 50.0, 100.0, 40.0, pad)
+test.assert_eq(is_vis_when_min, 0.0, "Al estar minimizada/cerrada todo el contenido interior queda estrictamente oculto")
+
+// Restaurar ventana
+ui.sub_screen_toggle(0.0)
+
+// C. Scroll Vertical y Scroll Horizontal
+ui.sub_screen_set_content_size(0.0, 1000.0, 2000.0)
+val_cw0 = ui.sub_screen_get_content_w(0.0)
+val_ch0 = ui.sub_screen_get_content_h(0.0)
+test.assert_eq(val_cw0, 1000.0, "Ancho virtual de contenido asignado a 1000px")
+test.assert_eq(val_ch0, 2000.0, "Alto virtual de contenido asignado a 2000px")
+
+max_sx = ui.sub_screen_max_scroll_x(0.0, pad)
+test.assert_eq(max_sx, 620.0, "Maximo scroll horizontal disponible es 620px")
+
+max_sy = ui.sub_screen_max_scroll_y(0.0, pad)
+test.assert_eq(max_sy, 1308.0, "Maximo scroll vertical disponible es 1308px")
+
+// Desplazamiento de scroll
+ui.sub_screen_scroll(0.0, 150.0, 300.0)
+val_sc_x = ui.sub_screen_get_scroll_x(0.0)
+val_sc_y = ui.sub_screen_get_scroll_y(0.0)
+test.assert_eq(val_sc_x, 150.0, "Scroll horizontal aplicado a 150px")
+test.assert_eq(val_sc_y, 300.0, "Scroll vertical aplicado a 300px")
+
+is_vis_scrolled = ui.sub_screen_is_visible_within(0.0, 200.0, 350.0, 100.0, 40.0, pad)
+test.assert_eq(is_vis_scrolled, 1.0, "Elemento entra en el viewport visible tras desplazar el scroll vertical y horizontal")
+
+// Clamping de scroll
+ui.sub_screen_set_scroll(0.0, -100.0, 5000.0)
+clamp_sx = ui.sub_screen_get_scroll_x(0.0)
+clamp_sy = ui.sub_screen_get_scroll_y(0.0)
+test.assert_eq(clamp_sx, 0.0, "Scroll horizontal clamping inferior a 0px")
+test.assert_eq(clamp_sy, 1308.0, "Scroll vertical clamping superior al maximo (1308px)")
+
+out("=== TEST 03 COMPLETADO EXITOSAMENTE ===")

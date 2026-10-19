@@ -1,0 +1,88 @@
+// ===============================================================
+// TESTS/04_TEST_AUDIO_BARGEIN.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación de Cancelación de Eco Acústico (AEC) y Corte por Voz (Barge-In O(1))
+// Procesamiento de Señales de Audio PCM en Memoria Plana SoA
+// ===============================================================
+
+import "lib/test.ph"
+import "lib/barge_in_assistant.ph"
+
+out("=== TEST SUITE 04: FULL-DUPLEX AUDIO AEC & BARGE-IN O(1) ===")
+test.init()
+
+// 1. Configuración de Buffer PCM de Altavoz (SoA Circular de 1024 muestras)
+CAP_PCM = 1024
+speaker_ring = alloc_soa(1, CAP_PCM)
+
+// Cargar muestra previa de altavoz en índice 0
+sample_spk = 0.50
+set_soa(speaker_ring, 0, 0, CAP_PCM, sample_spk)
+
+// 2. Validación de Cancelación de Eco Acústico (AEC por Resta de Fase)
+// Caso A: El micrófono solo capta el eco acústico del altavoz (atenuación alfa = 0.80)
+// Eco esperado en micro = 0.50 * 0.80 = 0.40
+mic_only_echo = 0.40
+clean_residual = phase_cancel_echo(mic_only_echo, speaker_ring, 0, 0.80, CAP_PCM)
+test.assert_near(clean_residual, 0.0, 0.0001, "AEC: Cancelacion total de eco puro (0.40 - 0.80*0.50 = 0.0)")
+
+// Caso B: El micrófono capta eco del altavoz (0.40) + voz nítida del usuario (0.65) = 1.05
+mic_voice_and_echo = 1.05
+clean_voice = phase_cancel_echo(mic_voice_and_echo, speaker_ring, 0, 0.80, CAP_PCM)
+test.assert_near(clean_voice, 0.65, 0.0001, "AEC: Preservacion exacta de voz del usuario tras sustraer eco")
+
+// 3. Validación de Detección de Actividad de Voz (VAD / Energy Detector)
+// Umbral de energía cuadrática de interrupción = 0.04 (amplitud ~0.20)
+vad_threshold = 0.04
+
+// Ruido residual bajo (amplitud 0.05 -> energia 0.0025 < 0.04)
+is_noise_detected = barge_in_detect(0.05, vad_threshold)
+test.assert_eq(is_noise_detected, 0.0, "VAD: Ruido residual bajo umbral no activa interrupcion (0.0)")
+
+// Voz humana activa (amplitud 0.65 -> energia 0.4225 > 0.04)
+is_voice_detected = barge_in_detect(clean_voice, vad_threshold)
+test.assert_eq(is_voice_detected, 1.0, "VAD: Voz humana sobre umbral detectada con exito (1.0)")
+
+// 4. Validación de Corte Inmediato de Síntesis (Barge-In State Switch O(1))
+CAP_STATE = 4
+assistant_state = alloc_soa(4, CAP_STATE)
+
+// Inicializar asistente en estado SPEAKING (3.0) con cabezal de audio activo (128.0)
+set_soa(assistant_state, 0, 0, CAP_STATE, 3.0) // State: SPEAKING
+set_soa(assistant_state, 1, 0, CAP_STATE, 128.0) // Audio buffer cursor
+set_soa(assistant_state, 2, 0, CAP_STATE, 0.0) // Barge-in flag
+
+st_before = get_soa(assistant_state, 0, 0, CAP_STATE)
+test.assert_eq(st_before, 3.0, "Estado previo del asistente: SPEAKING (3.0)")
+
+// Disparar corte inmediato por voz
+barge_res = assistant_interrupt_tts(assistant_state, 0, CAP_STATE)
+test.assert_eq(barge_res, 1.0, "assistant_interrupt_tts ejecuta transicion de corte exitosa")
+
+st_after = get_soa(assistant_state, 0, 0, CAP_STATE)
+cursor_after = get_soa(assistant_state, 1, 0, CAP_STATE)
+flag_after = get_soa(assistant_state, 2, 0, CAP_STATE)
+
+test.assert_eq(st_after, 1.0, "Estado conmutado a LISTENING (1.0) en tiempo constante O(1)")
+test.assert_eq(cursor_after, 0.0, "Cabezal de streaming de audio silenciado y reseteado a 0.0")
+test.assert_eq(flag_after, 1.0, "Flag de interrupcion por voz activado (1.0)")
+
+// 5. Validación de Inmunidad en Estados no Reproductores
+// Si el asistente ya está en LISTENING (1.0), el barge-in no debe alterar punteros
+barge_idle = assistant_interrupt_tts(assistant_state, 0, CAP_STATE)
+test.assert_eq(barge_idle, 0.0, "assistant_interrupt_tts es no-operativo cuando no esta hablando (retorna 0.0)")
+
+// 6. Validación de Paso Integral Full-Duplex en Tiempo Real
+// Configurar asistente en SPEAKING
+set_soa(assistant_state, 0, 0, CAP_STATE, 3.0)
+set_soa(assistant_state, 1, 0, CAP_STATE, 450.0)
+
+// Entrada del micro con voz fuerte (0.75) y eco (0.425)
+mic_in = 1.175
+voice_clean_stream = assistant_full_duplex_step(mic_in, speaker_ring, 0, assistant_state, 0, vad_threshold, CAP_PCM)
+
+test.assert_near(voice_clean_stream, 0.75, 0.001, "Pipeline Full-Duplex: Voz limpia aislada para el reconocedor")
+st_final = get_soa(assistant_state, 0, 0, CAP_STATE)
+test.assert_eq(st_final, 1.0, "Pipeline Full-Duplex: Asistente silenciado y listo para escuchar al usuario")
+
+out("=== TEST 04 COMPLETADO EXITOSAMENTE ===")

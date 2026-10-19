@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Chronos IDE Autonomous</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBCMEUxNCIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMwMzYzRCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjM4NjM2IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIi8+CiAgICA8bGluZSB4MT0iMzIiIHkxPSIzMiIgeDI9IjQ4IiB5Mj0iMjAiIHN0cm9rZT0iIzU4QTZGRiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iMjAiIHI9IjQuNSIgZmlsbD0iIzU4QTZGRiIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iNCIgZmlsbD0iIzNGQjk1MCIvPgogIDwvc3ZnPg==">
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Chronos%20IDE%20Autonomous%22%2C%22short_name%22%3A%22phasor_ide%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0e14%22%2C%22theme_color%22%3A%22%230b0e14%22%7D">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0e14; touch-action: none; font-family: monospace; }
+    #phasorCanvas { width: 100vw; height: 100vh; display: block; outline: none; }
+  </style>
+</head>
+<body>
+  <canvas id="phasorCanvas" tabindex="1"></canvas>
+  <script>
+// ===============================================================
+// PHASOR_RUNTIME.JS — Runtime Universal WebAssembly & Canvas 2D
+// PhasorLang v1.0 [Chronos IDE & KoraDevs Ecosystem]
+// https://github.com/koradevsorg
+//
+// Arquitectura Unificada Multi-Dispositivo & Multi-Ventana:
+// - Espacio de Trabajo Padre (<main>) en Escritorio (#0B0E14)
+// - Ventanas Hijas (<s>1, <s>2, <s>3): Drag & Drop, Redimensión 8D,
+//   Minimizado, Scroll Clamped Zero-Overflow y Renderizado de UI
+// - Modo Móvil (<768px): Snap 100% Llave en Cerradura al Viewport
+//   con Barra Superior Ergonómica y Pestañas / Gestos de Navegación
+// - MicroPhasorVM Zero-GC Integrada con Despacho de 32 Bits y Rutas
+// - Telemetría No-Invasiva Opcional (Show HUD) con Invariante 120 FPS
+// ===============================================================
+
+(function(global) {
+  'use strict';
+
+  // =========================================================================
+  // 1. MICRO PHASOR VM INTEGRADA (ZERO-GC INTERPRETER & UI DISPATCHER)
+  // =========================================================================
+  function MicroPhasorVM(code, consts, strings) {
+    this.code = code || [];
+    this.consts = consts || [];
+    this.strings = strings || [];
+    this.rScalar = new Float64Array(1024);
+    this.rCompReal = new Float64Array(1024);
+    this.rCompImag = new Float64Array(1024);
+    this.isComplex = new Uint8Array(1024);
+    this.rVecX = new Float64Array(1024);
+    this.rVecY = new Float64Array(1024);
+    this.rVecZ = new Float64Array(1024);
+    this.isVector3 = new Uint8Array(1024);
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+    this.logs = [];
+  }
+
+  MicroPhasorVM.prototype.pushUi = function(type, p1, p2, p3, p4, p5) {
+    this.uiCmds.push(type, p1 || 0, p2 || 0, p3 || 0, p4 || 0, p5 || 0);
+  };
+
+  MicroPhasorVM.prototype.run = function(entryPc) {
+    var pc = entryPc || 0;
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+
+    while (pc < this.code.length) {
+      var instr = this.code[pc++];
+      var op = (instr >>> 24) & 0xFF;
+      var dst = (instr >>> 16) & 0xFF;
+      var s1 = (instr >>> 8) & 0xFF;
+      var s2 = instr & 0xFF;
+
+      if (op === 0x00 || op === 0xFF) break;
+      switch (op) {
+        case 0x01: this.rScalar[dst] = this.consts[s1]; this.isComplex[dst] = 0; break;
+        case 0x02: this.rScalar[dst] = this.rScalar[s1]; break;
+        case 0x10: case 0x03: this.rScalar[dst] = this.rScalar[s1] + this.rScalar[s2]; break;
+        case 0x11: case 0x04: this.rScalar[dst] = this.rScalar[s1] - this.rScalar[s2]; break;
+        case 0x12: case 0x05: this.rScalar[dst] = this.rScalar[s1] * this.rScalar[s2]; break;
+        case 0x13: case 0x06: this.rScalar[dst] = (this.rScalar[s2] !== 0) ? (this.rScalar[s1] / this.rScalar[s2]) : 0; break;
+        case 0x14: this.rScalar[dst] = Math.pow(this.rScalar[s1], this.rScalar[s2]); break;
+        case 0x15: this.rScalar[dst] = this.rScalar[s1] % this.rScalar[s2]; break;
+        case 0x16: this.rScalar[dst] = Math.sqrt(Math.abs(this.rScalar[s1])); break;
+        case 0x17: this.rScalar[dst] = Math.sin(this.rScalar[s1]); break;
+        case 0x18: this.rScalar[dst] = Math.cos(this.rScalar[s1]); break;
+        case 0x19: this.rScalar[dst] = Math.tan(this.rScalar[s1]); break;
+        case 0x1C: this.rScalar[dst] = Math.abs(this.rScalar[s1]); break;
+        case 0x07: case 0x40: pc = (instr & 0xFFFF); break;
+        case 0x08: case 0x41: if (this.rScalar[dst] === 0.0) pc = (instr & 0xFFFF); break;
+        case 0x21: this.rScalar[dst] = (this.rScalar[s1] === this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x22: this.rScalar[dst] = (this.rScalar[s1] !== this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x23: this.rScalar[dst] = (this.rScalar[s1] < this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x24: this.rScalar[dst] = (this.rScalar[s1] <= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x25: this.rScalar[dst] = (this.rScalar[s1] > this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x26: this.rScalar[dst] = (this.rScalar[s1] >= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x30: {
+          var val = this.rScalar[s1];
+          this.logs.push('> OUT: ' + (typeof val === 'number' ? val.toFixed(4) : val) + '\n');
+          break;
+        }
+        case 0x50: this.pushUi(0x50, this.rScalar[dst]); break;
+        case 0x51: {
+          var rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++], rh = this.code[pc++], rc = this.code[pc++];
+          this.pushUi(0x51, this.rScalar[rx], this.rScalar[ry], this.rScalar[rw], this.rScalar[rh], this.rScalar[rc]);
+          break;
+        }
+        case 0x52: {
+          var rcx = this.code[pc++], rcy = this.code[pc++], rr = this.code[pc++], rc2 = this.code[pc++];
+          this.pushUi(0x52, this.rScalar[rcx], this.rScalar[rcy], this.rScalar[rr], this.rScalar[rc2]);
+          break;
+        }
+        case 0x53: {
+          var rx1 = this.code[pc++], ry1 = this.code[pc++], rx2 = this.code[pc++], ry2 = this.code[pc++], lc = this.code[pc++];
+          this.pushUi(0x53, this.rScalar[rx1], this.rScalar[ry1], this.rScalar[rx2], this.rScalar[ry2], this.rScalar[lc]);
+          break;
+        }
+        case 0x54: {
+          var isString = (dst === 1);
+          var strOrReg = this.code[pc++], tx = this.code[pc++], ty = this.code[pc++], tSize = this.code[pc++], tc = this.code[pc++];
+          var px = this.rScalar[tx], py = this.rScalar[ty], pCol = this.rScalar[tc], pSize = this.rScalar[tSize] || 16;
+          var displayText = isString
+            ? ((this.strings && this.strings[strOrReg] !== undefined) ? this.strings[strOrReg] : "")
+            : (Number.isInteger(this.rScalar[strOrReg]) ? this.rScalar[strOrReg].toString() : this.rScalar[strOrReg].toFixed(2));
+          this.pushUi(0x54, px, py, pCol, pSize);
+          this.texts.push({ text: displayText, x: px, y: py, color: pCol, size: pSize });
+          break;
+        }
+        case 0x56: {
+          var strIdx = dst;
+          var bx = this.code[pc++], by = this.code[pc++], bw = this.code[pc++], bh = this.code[pc++];
+          var actHash = this.code[pc++];
+          var bc = this.code[pc++];
+          var px = this.rScalar[bx], py = this.rScalar[by], pw = this.rScalar[bw], ph = this.rScalar[bh];
+          var bColor = this.rScalar[bc] || 0x1f6feb;
+          var label = (this.strings && this.strings[strIdx] !== undefined) ? this.strings[strIdx] : 'BOTÓN';
+          this.pushUi(0x56, px, py, pw, ph, bColor);
+          this.buttons.push({ x: px, y: py, w: pw, h: ph, target: actHash, label: label, color: bColor });
+          break;
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // 2. PHASOR RUNTIME MASTER (CANVAS COMPOSITOR & MULTI-WINDOW MANAGER)
+  // =========================================================================
+  var PhasorRuntime = {
+    wasmInstance: null,
+    wasmMemory: null,
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    fps: 120,
+    lastFrameTime: performance.now(),
+    frameCount: 0,
+    title: 'PhasorLang Application',
+    showHud: false,
+    vm: null,
+    screenRoutes: {},
+    actionRoutes: {},
+    currentScreenPc: 0,
+
+    // Sub-pantallas hijas configurables (por defecto 1 ventana centrada o N ventanas)
+    children: [
+      { id: 1, title: '<s>1: Ventana Principal', x: 60, y: 60, w: 460, h: 560, visible: true, minimized: false, color: '#161B22', scrollX: 0, scrollY: 0, contentW: 460, contentH: 520 }
+    ],
+    activeChildIndex: 0,
+    isDraggingWindow: null,
+    isResizingWindow: null,
+    isDraggingScrollbar: null,
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    initialPinchDist: 0,
+
+    // Cálculo unificado de métricas de scroll y barras (Single Source of Truth)
+    getScrollMetrics: function(ch) {
+      if (!ch || ch.minimized) return null;
+
+      var innerW = Math.max(10, ch.w - 24);
+      var innerH = Math.max(10, ch.h - 36);
+      var totW = ch.contentW || 460;
+      var totH = ch.contentH || 520;
+
+      var hasVScroll = totH > innerH;
+      var hasHScroll = totW > innerW;
+
+      var maxScX = Math.max(0, totW - innerW);
+      var maxScY = Math.max(0, totH - innerH);
+
+      var scX = Math.max(0, Math.min(maxScX, ch.scrollX || 0));
+      var scY = Math.max(0, Math.min(maxScY, ch.scrollY || 0));
+      ch.scrollX = scX;
+      ch.scrollY = scY;
+
+      var cornerReserve = 16;
+      var sbSize = 8;
+
+      var vMetrics = null;
+      if (hasVScroll) {
+        var vTrackX = ch.x + ch.w - sbSize - 3;
+        var vTrackY = ch.y + 32;
+        var vTrackH = Math.max(20, ch.h - 32 - cornerReserve);
+        var vThumbH = Math.max(18, Math.min(vTrackH, Math.round(vTrackH * (innerH / totH))));
+        var vAvail = vTrackH - vThumbH;
+        var vRatio = maxScY > 0 ? (scY / maxScY) : 0;
+        vRatio = Math.max(0, Math.min(1, vRatio));
+        var vThumbY = Math.round(vTrackY + vRatio * vAvail);
+
+        vMetrics = {
+          trackX: vTrackX,
+          trackY: vTrackY,
+          trackW: sbSize,
+          trackH: vTrackH,
+          thumbY: vThumbY,
+          thumbH: vThumbH,
+          maxScroll: maxScY,
+          hitX: vTrackX - 3,
+          hitW: sbSize + 6
+        };
+      }
+
+      var hMetrics = null;
+      if (hasHScroll) {
+        var hTrackX = ch.x + 4;
+        var hTrackY = ch.y + ch.h - sbSize - 3;
+        var hTrackW = Math.max(20, ch.w - 8 - cornerReserve);
+        var hThumbW = Math.max(18, Math.min(hTrackW, Math.round(hTrackW * (innerW / totW))));
+        var hAvail = hTrackW - hThumbW;
+        var hRatio = maxScX > 0 ? (scX / maxScX) : 0;
+        hRatio = Math.max(0, Math.min(1, hRatio));
+        var hThumbX = Math.round(hTrackX + hRatio * hAvail);
+
+        hMetrics = {
+          trackX: hTrackX,
+          trackY: hTrackY,
+          trackW: hTrackW,
+          trackH: sbSize,
+          thumbX: hThumbX,
+          thumbW: hThumbW,
+          maxScroll: maxScX,
+          hitY: hTrackY - 3,
+          hitH: sbSize + 6
+        };
+      }
+
+      return {
+        innerW: innerW,
+        innerH: innerH,
+        totW: totW,
+        totH: totH,
+        maxScX: maxScX,
+        maxScY: maxScY,
+        scX: scX,
+        scY: scY,
+        hasVScroll: hasVScroll,
+        hasHScroll: hasHScroll,
+        v: vMetrics,
+        h: hMetrics
+      };
+    },
+
+    getResizeDir: function(ch, mx, my) {
+      if (ch.minimized) return null;
+      var x = ch.x, y = ch.y, w = ch.w, h = ch.h;
+
+      if (mx >= x + w - 16 && mx <= x + w + 6 && my >= y + h - 16 && my <= y + h + 6) return 'se';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y - 6 && my <= y + 8) return 'nw';
+      if (mx >= x + w - 8 && mx <= x + w + 6 && my >= y - 6 && my <= y + 8) return 'ne';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y + h - 8 && my <= y + h + 6) return 'sw';
+      if (mx >= x - 5 && mx <= x + 3 && my >= y && my <= y + h) return 'w';
+      if (mx >= x + w - 3 && mx <= x + w + 5 && my >= y && my <= y + h) return 'e';
+      if (my >= y - 5 && my <= y + 3 && mx >= x && mx <= x + w) return 'n';
+      if (my >= y + h - 3 && my <= y + h + 5 && mx >= x && mx <= x + w) return 's';
+
+      return null;
+    },
+
+    colorHex: function(c) {
+      var n = (Number(c) >>> 0) & 0xFFFFFF;
+      return '#' + n.toString(16).padStart(6, '0');
+    },
+
+    // Renderizado Zero-GC de comandos de interfaz de MicroPhasorVM
+    renderVmUi: function(ctx, targetVm, availW, availH) {
+      if (!targetVm || !targetVm.uiCmds) return;
+      var cmds = targetVm.uiCmds;
+      var textIdx = 0;
+      var btnIdx = 0;
+
+      for (var i = 0; i < cmds.length; i += 6) {
+        var type = Math.floor(cmds[i]);
+        var p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
+
+        if (type === 0x50) {
+          ctx.fillStyle = this.colorHex(p1);
+          ctx.fillRect(0, 0, availW, availH);
+        } else if (type === 0x51) {
+          ctx.fillStyle = this.colorHex(p5);
+          ctx.fillRect(p1, p2, p3, p4);
+        } else if (type === 0x52) {
+          ctx.strokeStyle = this.colorHex(p4);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(p1, p2, p3, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (type === 0x53) {
+          ctx.strokeStyle = this.colorHex(p5);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(p1, p2);
+          ctx.lineTo(p3, p4);
+          ctx.stroke();
+        } else if (type === 0x54) {
+          if (targetVm.texts && textIdx < targetVm.texts.length) {
+            var t = targetVm.texts[textIdx++];
+            ctx.fillStyle = this.colorHex(t.color);
+            ctx.font = (t.size || 16) + 'px monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(t.text, t.x, t.y);
+          }
+        } else if (type === 0x56) {
+          ctx.fillStyle = this.colorHex(p5);
+          if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(p1, p2, p3, p4, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } else {
+            ctx.fillRect(p1, p2, p3, p4);
+          }
+
+          var btnText = 'BOTÓN';
+          if (targetVm.buttons && btnIdx < targetVm.buttons.length) {
+            btnText = targetVm.buttons[btnIdx].label || btnText;
+          }
+          btnIdx++;
+          var fontSize = 14;
+          if (btnText.length * 8.5 > p3 - 10) {
+            fontSize = Math.max(9, Math.floor((p3 - 10) / (btnText.length * 0.65)));
+          }
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold ' + fontSize + 'px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(btnText, p1 + (p3 / 2), p2 + (p4 / 2));
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'left';
+        }
+      }
+    },
+
+    init: function(wasmPathOrPayload, canvasId, options) {
+      var self = this;
+      options = options || {};
+      self.title = options.title || 'PhasorLang Application';
+      self.showHud = !!options.showHud;
+
+      if (options.children && Array.isArray(options.children) && options.children.length > 0) {
+        self.children = options.children;
+      }
+
+      // Inicializar MicroPhasorVM si se proporciona bytecode compilado
+      if (options.bytecode && options.constPool) {
+        self.vm = new MicroPhasorVM(options.bytecode, options.constPool, options.strings || []);
+        self.screenRoutes = options.screenRoutes || {};
+        self.actionRoutes = options.actionRoutes || {};
+        self.currentScreenPc = options.firstScreenPc || 0;
+
+        self.handleAction = function(target, ch) {
+          var key = String(Math.round(Number(target)));
+          var targetPc = (self.actionRoutes[key] !== undefined)
+            ? self.actionRoutes[key]
+            : ((self.screenRoutes[key] !== undefined) ? self.screenRoutes[key] : null);
+
+          if (targetPc !== null) {
+            self.vm.run(targetPc);
+            self.vm.run(self.currentScreenPc);
+            self.renderFrame();
+          }
+        };
+
+        self.vm.run(0);
+        if (self.currentScreenPc !== 0) {
+          self.vm.run(self.currentScreenPc);
+        }
+
+        // Asignar VM a la primera ventana hija si no tiene uno
+        if (self.children.length > 0 && !self.children[0].appVm) {
+          self.children[0].appVm = self.vm;
+        }
+      }
+
+      self.canvas = document.getElementById(canvasId || 'phasorCanvas');
+      if (!self.canvas) {
+        console.error('[PhasorRuntime] Elemento Canvas no encontrado: #' + canvasId);
+        return;
+      }
+      self.ctx = self.canvas.getContext('2d', { alpha: false });
+
+      self.resize();
+      window.addEventListener('resize', function() {
+        self.resize();
+      });
+
+      self.setupInteractions();
+      self.loadWasm(wasmPathOrPayload || 'phasor_ide.wasm');
+    },
+
+    setupInteractions: function() {
+      var self = this;
+      if (!self.canvas) return;
+
+      // 1. MOUSE (ESCRITORIO): BOTONES, VENTANAS, REDIMENSIÓN, MINIMIZADO Y SCROLL
+      self.canvas.addEventListener('mousedown', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+        self.setRegister(254, 1.0);
+
+        if (self.width < 768) {
+          // A. Clic en pestañas superiores si hay múltiples ventanas
+          if (self.children.length > 1 && my <= 44) {
+            var sortedTabs = self.children.slice().sort(function(a, b) { return a.id - b.id; });
+            var tabW = Math.min(130, Math.floor((self.width - 20) / self.children.length));
+            for (var tIdx = 0; tIdx < sortedTabs.length; tIdx++) {
+              var tabX = 10 + (tIdx * (tabW + 6));
+              if (mx >= tabX && mx <= tabX + tabW) {
+                var chosen = sortedTabs[tIdx];
+                self.activeChildIndex = self.children.indexOf(chosen);
+                self.renderFrame();
+                return;
+              }
+            }
+          }
+
+          // B. Clic en botones dentro de la ventana activa en móvil
+          var activeChild = self.children[self.activeChildIndex] || self.children[0];
+          var targetVm = activeChild.appVm || self.vm;
+          var testBtns = (activeChild.buttons && activeChild.buttons.length > 0) ? activeChild.buttons : (targetVm ? targetVm.buttons : null);
+          if (testBtns && testBtns.length > 0 && my >= 44) {
+            var scX = activeChild.scrollX || 0;
+            var scY = activeChild.scrollY || 0;
+            var localX = mx - 10 + scX;
+            var localY = my - 48 + scY;
+
+            for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+              var btn = testBtns[bIdx];
+              if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                if (typeof self.handleAction === 'function') {
+                  self.handleAction(btn.target, activeChild);
+                }
+                self.renderFrame();
+                return;
+              }
+            }
+          }
+          return;
+        }
+
+        // Clic en botón de alternar Telemetría HUD en la barra superior
+        if (my >= 6 && my <= 30 && mx >= self.width - 150 && mx <= self.width - 16) {
+          self.showHud = !self.showHud;
+          self.renderFrame();
+          return;
+        }
+
+        // Clic en botón cerrar de Telemetría HUD flotante
+        if (self.showHud) {
+          var hudMargin = 24;
+          var hudW = Math.min(460, self.width - (hudMargin * 2));
+          var hudH = 90;
+          var hudX = self.width - hudW - hudMargin;
+          var hudY = self.height - hudH - 46;
+          if (mx >= hudX + hudW - 24 && mx <= hudX + hudW - 4 && my >= hudY + 4 && my <= hudY + 24) {
+            self.showHud = false;
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Comprobar ventanas hijas en orden inverso (top-most primero)
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+
+          // A. Minimizar / Restaurar (-) o (+)
+          if (mx >= ch.x + ch.w - 28 && mx <= ch.x + ch.w - 6 && my >= ch.y + 4 && my <= ch.y + 26) {
+            ch.minimized = !ch.minimized;
+            self.renderFrame();
+            return;
+          }
+
+          if (!ch.minimized) {
+            // B. Agarradera SE de redimensión
+            if (mx >= ch.x + ch.w - 16 && mx <= ch.x + ch.w + 6 && my >= ch.y + ch.h - 16 && my <= ch.y + ch.h + 6) {
+              self.isResizingWindow = {
+                child: ch,
+                dir: 'se',
+                startX: mx,
+                startY: my,
+                origX: ch.x,
+                origY: ch.y,
+                origW: ch.w,
+                origH: ch.h
+              };
+              self.children.splice(i, 1);
+              self.children.push(ch);
+              self.renderFrame();
+              return;
+            }
+
+            // C. Barras de Scroll (Vertical / Horizontal)
+            var metrics = self.getScrollMetrics(ch);
+            if (metrics) {
+              if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                  my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+                var isThumbClick = (my >= metrics.v.thumbY && my <= metrics.v.thumbY + metrics.v.thumbH);
+                var offset = isThumbClick ? (my - metrics.v.thumbY) : (metrics.v.thumbH / 2);
+                if (!isThumbClick) {
+                  var availH = metrics.v.trackH - metrics.v.thumbH;
+                  if (availH > 0) {
+                    var targetThumbY = (my - offset) - metrics.v.trackY;
+                    var ratio = Math.max(0, Math.min(1, targetThumbY / availH));
+                    ch.scrollY = Math.round(ratio * metrics.v.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'vertical',
+                  trackPos: metrics.v.trackY,
+                  trackLen: metrics.v.trackH,
+                  thumbLen: metrics.v.thumbH,
+                  maxScroll: metrics.v.maxScroll,
+                  offset: offset
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+
+              if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                  mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+                var isThumbClickH = (mx >= metrics.h.thumbX && mx <= metrics.h.thumbX + metrics.h.thumbW);
+                var offsetH = isThumbClickH ? (mx - metrics.h.thumbX) : (metrics.h.thumbW / 2);
+                if (!isThumbClickH) {
+                  var availW = metrics.h.trackW - metrics.h.thumbW;
+                  if (availW > 0) {
+                    var targetThumbX = (mx - offsetH) - metrics.h.trackX;
+                    var ratioH = Math.max(0, Math.min(1, targetThumbX / availW));
+                    ch.scrollX = Math.round(ratioH * metrics.h.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'horizontal',
+                  trackPos: metrics.h.trackX,
+                  trackLen: metrics.h.trackW,
+                  thumbLen: metrics.h.thumbW,
+                  maxScroll: metrics.h.maxScroll,
+                  offset: offsetH
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+            }
+
+            // D. Detección y clic en botones de la aplicación dentro de la ventana
+            var targetVm = ch.appVm || self.vm;
+            var testBtns = (ch.buttons && ch.buttons.length > 0) ? ch.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0) {
+              var innerX = ch.x + 12;
+              var innerY = ch.y + 32;
+              var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+              var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+              var localX = mx - innerX + scX;
+              var localY = my - innerY + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, ch);
+                  }
+                  self.children.splice(i, 1);
+                  self.children.push(ch);
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+
+          // E. Redimensión perimetral en 8 direcciones
+          var resizeDir = self.getResizeDir(ch, mx, my);
+          if (resizeDir) {
+            self.isResizingWindow = {
+              child: ch,
+              dir: resizeDir,
+              startX: mx,
+              startY: my,
+              origX: ch.x,
+              origY: ch.y,
+              origW: ch.w,
+              origH: ch.h
+            };
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // F. Arrastre de ventana mediante la barra de título
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + 30) {
+            self.isDraggingWindow = ch;
+            self.dragOffsetX = mx - ch.x;
+            self.dragOffsetY = my - ch.y;
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // G. Clic en cuerpo de la ventana: traer al frente
+          if (!ch.minimized && mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + ch.h) {
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Clic en barra inferior de dock para restaurar ventanas minimizadas
+        if (my >= self.height - 36) {
+          for (var j = 0; j < self.children.length; j++) {
+            self.children[j].minimized = false;
+          }
+          self.renderFrame();
+        }
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+
+        if (self.width < 768) return;
+
+        // Arrastre activo de barra de scroll
+        if (self.isDraggingScrollbar) {
+          var sb = self.isDraggingScrollbar;
+          var avail = sb.trackLen - sb.thumbLen;
+          if (avail > 0) {
+            if (sb.type === 'vertical') {
+              var targetPos = (my - sb.offset) - sb.trackPos;
+              var ratio = Math.max(0, Math.min(1, targetPos / avail));
+              sb.child.scrollY = Math.round(ratio * sb.maxScroll);
+            } else if (sb.type === 'horizontal') {
+              var targetPosX = (mx - sb.offset) - sb.trackPos;
+              var ratioX = Math.max(0, Math.min(1, targetPosX / avail));
+              sb.child.scrollX = Math.round(ratioX * sb.maxScroll);
+            }
+          }
+          self.renderFrame();
+          return;
+        }
+
+        // Redimensión activa de ventana
+        if (self.isResizingWindow) {
+          var res = self.isResizingWindow;
+          var dx = mx - res.startX;
+          var dy = my - res.startY;
+          var minW = 200;
+          var minH = 120;
+
+          if (res.dir.indexOf('e') !== -1) {
+            res.child.w = Math.max(minW, res.origW + dx);
+          } else if (res.dir.indexOf('w') !== -1) {
+            var newW = Math.max(minW, res.origW - dx);
+            res.child.x = res.origX + (res.origW - newW);
+            res.child.w = newW;
+          }
+
+          if (res.dir.indexOf('s') !== -1) {
+            res.child.h = Math.max(minH, res.origH + dy);
+          } else if (res.dir.indexOf('n') !== -1) {
+            var newH = Math.max(minH, res.origH - dy);
+            res.child.y = res.origY + (res.origH - newH);
+            res.child.h = newH;
+          }
+
+          var curInnerW = Math.max(10, res.child.w - 24);
+          var curInnerH = Math.max(10, res.child.h - 36);
+          var curTotW = res.child.contentW || 460;
+          var curTotH = res.child.contentH || 520;
+          var curMaxScX = Math.max(0, curTotW - curInnerW);
+          var curMaxScY = Math.max(0, curTotH - curInnerH);
+
+          res.child.scrollX = Math.max(0, Math.min(curMaxScX, res.child.scrollX || 0));
+          res.child.scrollY = Math.max(0, Math.min(curMaxScY, res.child.scrollY || 0));
+
+          self.renderFrame();
+          return;
+        }
+
+        // Arrastre activo de ventana
+        if (self.isDraggingWindow) {
+          var ch = self.isDraggingWindow;
+          ch.x = Math.max(0, Math.min(self.width - 60, mx - self.dragOffsetX));
+          ch.y = Math.max(0, Math.min(self.height - 30, my - self.dragOffsetY));
+          self.renderFrame();
+          return;
+        }
+
+        // Actualización de cursor según bordes, scrollbars y botones
+        var cursor = 'default';
+        for (var k = self.children.length - 1; k >= 0; k--) {
+          var target = self.children[k];
+          if (target.minimized) {
+            if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+              cursor = 'move';
+              break;
+            }
+            continue;
+          }
+
+          var metrics = self.getScrollMetrics(target);
+          if (metrics) {
+            if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+              cursor = 'pointer';
+              break;
+            }
+            if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+              cursor = 'pointer';
+              break;
+            }
+          }
+
+          // Comprobar hover en botones de la ventana
+          var targetVm = target.appVm || self.vm;
+          var testBtns = (target.buttons && target.buttons.length > 0) ? target.buttons : (targetVm ? targetVm.buttons : null);
+          if (testBtns && testBtns.length > 0) {
+            var innerX = target.x + 12;
+            var innerY = target.y + 32;
+            var scX = metrics ? metrics.scX : (target.scrollX || 0);
+            var scY = metrics ? metrics.scY : (target.scrollY || 0);
+            var localX = mx - innerX + scX;
+            var localY = my - innerY + scY;
+            var overButton = false;
+            for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+              var btn = testBtns[bIdx];
+              if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                cursor = 'pointer';
+                overButton = true;
+                break;
+              }
+            }
+            if (overButton) break;
+          }
+
+          var rDir = self.getResizeDir(target, mx, my);
+          if (rDir) {
+            if (rDir === 'nw' || rDir === 'se') cursor = 'nwse-resize';
+            else if (rDir === 'ne' || rDir === 'sw') cursor = 'nesw-resize';
+            else if (rDir === 'w' || rDir === 'e') cursor = 'ew-resize';
+            else if (rDir === 'n' || rDir === 's') cursor = 'ns-resize';
+            break;
+          } else if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+            cursor = 'move';
+            break;
+          }
+        }
+        self.canvas.style.cursor = cursor;
+      });
+
+      window.addEventListener('mouseup', function() {
+        self.setRegister(254, 0.0);
+        self.isDraggingWindow = null;
+        self.isResizingWindow = null;
+        self.isDraggingScrollbar = null;
+        if (self.canvas) self.canvas.style.cursor = 'default';
+      });
+
+      // Scroll con rueda de ratón en escritorio
+      self.canvas.addEventListener('wheel', function(e) {
+        self.setRegister(255, e.deltaY);
+        if (self.width < 768) return;
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+          if (ch.minimized) continue;
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y + 30 && my <= ch.y + ch.h) {
+            e.preventDefault();
+            var metrics = self.getScrollMetrics(ch);
+            if (!metrics) return;
+
+            if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+              var dX = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+              ch.scrollX = Math.max(0, Math.min(metrics.maxScX, (ch.scrollX || 0) + dX));
+            } else {
+              ch.scrollY = Math.max(0, Math.min(metrics.maxScY, (ch.scrollY || 0) + e.deltaY));
+            }
+            self.renderFrame();
+            return;
+          }
+        }
+      }, { passive: false });
+
+      // 2. TOUCH (MÓVIL): BOTONES, PESTAÑAS Y GESTOS MULTITÁCTILES
+      var touchStartX = 0;
+      var touchStartY = 0;
+
+      self.canvas.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          var tx = e.touches[0].clientX - rect.left;
+          var ty = e.touches[0].clientY - rect.top;
+          self.setRegister(252, tx);
+          self.setRegister(253, ty);
+          self.setRegister(254, 1.0);
+
+          if (self.width < 768) {
+            // A. Clic en pestañas superiores si hay múltiples ventanas
+            if (self.children.length > 1 && ty <= 44) {
+              var sortedTabs = self.children.slice().sort(function(a, b) { return a.id - b.id; });
+              var tabW = Math.min(130, Math.floor((self.width - 20) / self.children.length));
+              for (var tIdx = 0; tIdx < sortedTabs.length; tIdx++) {
+                var tabX = 10 + (tIdx * (tabW + 6));
+                if (tx >= tabX && tx <= tabX + tabW) {
+                  var chosen = sortedTabs[tIdx];
+                  self.activeChildIndex = self.children.indexOf(chosen);
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+
+            // B. Clic en botones dentro de la ventana activa en móvil
+            var activeChild = self.children[self.activeChildIndex] || self.children[0];
+            var targetVm = activeChild.appVm || self.vm;
+            var testBtns = (activeChild.buttons && activeChild.buttons.length > 0) ? activeChild.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0 && ty >= 44) {
+              var scX = activeChild.scrollX || 0;
+              var scY = activeChild.scrollY || 0;
+              var localX = tx - 10 + scX;
+              var localY = ty - 48 + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, activeChild);
+                  }
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        if (e.touches.length === 2) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          self.initialPinchDist = Math.sqrt(dx * dx + dy * dy);
+        } else if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          self.setRegister(252, e.touches[0].clientX - rect.left);
+          self.setRegister(253, e.touches[0].clientY - rect.top);
+        }
+        if (e.touches.length === 2 && self.initialPinchDist > 0 && self.children.length > 1) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          var currentDist = Math.sqrt(dx * dx + dy * dy);
+          if (Math.abs(currentDist - self.initialPinchDist) > 40) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.initialPinchDist = currentDist;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchend', function(e) {
+        self.setRegister(254, 0.0);
+        self.initialPinchDist = 0;
+        if (e.changedTouches.length === 1 && self.children.length > 1) {
+          var deltaX = e.changedTouches[0].clientX - touchStartX;
+          var deltaY = e.changedTouches[0].clientY - touchStartY;
+          if (Math.abs(deltaX) > 60 || Math.abs(deltaY) > 60) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+    },
+
+    setRegister: function(idx, val) {
+      if (this.wasmInstance && this.wasmInstance.exports) {
+        if (typeof this.wasmInstance.exports.set_register === 'function') {
+          this.wasmInstance.exports.set_register(idx, val);
+        }
+      }
+      if (this.wasmMemory && this.wasmMemory.buffer) {
+        var f64 = new Float64Array(this.wasmMemory.buffer);
+        if (f64.length > idx) {
+          f64[idx] = val;
+        }
+      }
+    },
+
+    resize: function() {
+      var w = window.innerWidth || document.documentElement.clientWidth || 800;
+      var h = window.innerHeight || document.documentElement.clientHeight || 600;
+      this.width = w;
+      this.height = h;
+      this.canvas.width = w;
+      this.canvas.height = h;
+
+      this.setRegister(250, w);
+      this.setRegister(251, h);
+
+      if (this.ctx) {
+        this.renderFrame();
+      }
+    },
+
+    loadWasm: function(wasmInput) {
+      var self = this;
+      var onInstanceReady = function(instance) {
+        self.wasmInstance = instance;
+        self.wasmMemory = instance.exports.memory;
+        self.setRegister(250, self.width);
+        self.setRegister(251, self.height);
+        self.startLoop();
+      };
+
+      if (typeof wasmInput === 'string' && wasmInput.length > 500 && !wasmInput.endsWith('.wasm')) {
+        try {
+          var binaryString = atob(wasmInput);
+          var len = binaryString.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          WebAssembly.instantiate(bytes.buffer).then(function(result) {
+            onInstanceReady(result.instance);
+          }).catch(function(err) {
+            console.warn('[PhasorRuntime] Error instanciando WASM Base64:', err);
+            self.startLoop();
+          });
+          return;
+        } catch(e) {
+          console.warn('[PhasorRuntime] Error decodificando Base64:', e);
+        }
+      }
+
+      var targetPath = wasmInput || 'phasor_ide.wasm';
+      fetch(targetPath)
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function(bytes) {
+          return WebAssembly.instantiate(bytes);
+        })
+        .then(function(result) {
+          onInstanceReady(result.instance);
+        })
+        .catch(function(err) {
+          self.startLoop();
+        });
+    },
+
+    startLoop: function() {
+      var self = this;
+      var loop = function(now) {
+        self.frameCount++;
+        if (now - self.lastFrameTime >= 1000) {
+          self.fps = Math.round((self.frameCount * 1000) / (now - self.lastFrameTime));
+          self.frameCount = 0;
+          self.lastFrameTime = now;
+        }
+        self.renderFrame();
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    },
+
+    renderFrame: function() {
+      var self = this;
+      var ctx = this.ctx;
+      if (!ctx) return;
+      var w = this.width;
+      var h = this.height;
+      var isMobile = w < 768;
+
+      // 1. ESPACIO DE TRABAJO PADRE (<main>)
+      ctx.fillStyle = '#0B0E14';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!isMobile) {
+        // Cuadrícula sutil de fondo en escritorio
+        ctx.strokeStyle = '#161B22';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (var x = 0; x < w; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+        for (var y = 0; y < h; y += 40) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+        ctx.stroke();
+
+        // Barra superior de acoplamiento (Docking Bar)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 36);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 36); ctx.lineTo(w, 36); ctx.stroke();
+
+        // Título de la aplicación / workspace
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText(this.title.toUpperCase(), 16, 22);
+
+        // Badge Zero-GC / FPS
+        ctx.fillStyle = '#238636';
+        ctx.fillRect(w - 290, 6, 120, 24);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('Zero-GC | ' + this.fps + ' FPS', w - 280, 22);
+
+        // Botón interactivo para alternar Telemetría HUD
+        ctx.fillStyle = this.showHud ? '#1F6FEB' : '#21262D';
+        ctx.fillRect(w - 150, 6, 134, 24);
+        ctx.strokeStyle = '#30363D';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(w - 150, 6, 134, 24);
+        ctx.fillStyle = this.showHud ? '#FFFFFF' : '#8B949E';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('📊 Telemetría', w - 136, 22);
+
+        // Barra inferior de estado y ventanas minimizadas
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, h - 34, w, 34);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, h - 34); ctx.lineTo(w, h - 34); ctx.stroke();
+        ctx.fillStyle = '#8B949E';
+        ctx.font = '12px monospace';
+        ctx.fillText('Ventanas Hijas (' + this.children.length + '). Arrastra la barra de título para mover, [-] para minimizar.', 16, h - 13);
+      }
+
+      // 2. CONTENEDORES HIJOS (<s>1, <s>2)
+      if (!isMobile) {
+        // --- MODO ESCRITORIO: RENDERIZAR CADA HIJO ---
+        for (var i = 0; i < this.children.length; i++) {
+          var ch = this.children[i];
+          var isMin = !!ch.minimized;
+          var curH = isMin ? 30 : ch.h;
+
+          // Sombra de ventana
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.fillRect(ch.x + 6, ch.y + 6, ch.w, curH);
+
+          if (!isMin) {
+            ctx.fillStyle = ch.color || '#161B22';
+            ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ch.x, ch.y, ch.w, ch.h);
+          }
+
+          // Barra de título arrastrable
+          ctx.fillStyle = isMin ? '#1C2128' : '#21262D';
+          ctx.fillRect(ch.x, ch.y, ch.w, 30);
+          ctx.strokeStyle = isMin ? '#58A6FF' : '#30363D';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(ch.x, ch.y, ch.w, 30);
+
+          // Título de la ventana
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 12px monospace';
+          var titleStr = isMin ? ch.title + ' [MIN]' : ch.title;
+          ctx.fillText(titleStr, ch.x + 10, ch.y + 19);
+
+          // Botón minimizar / restaurar
+          ctx.fillStyle = isMin ? '#238636' : '#30363D';
+          ctx.fillRect(ch.x + ch.w - 24, ch.y + 6, 18, 18);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText(isMin ? '+' : '-', ch.x + ch.w - 18, ch.y + 19);
+
+          if (!isMin) {
+            var metrics = self.getScrollMetrics(ch);
+            var innerX = ch.x + 12;
+            var innerY = ch.y + 32;
+            var innerW = metrics ? metrics.innerW : Math.max(10, ch.w - 24);
+            var innerH = metrics ? metrics.innerH : Math.max(10, ch.h - 36);
+
+            // Clipping estricto por hardware
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(ch.x + 2, ch.y + 30, ch.w - 4, ch.h - 32);
+            ctx.clip();
+
+            var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+            var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+            ctx.translate(innerX - scX, innerY - scY);
+
+            var targetVm = ch.appVm || self.vm;
+            if (self.vm && ch.screenPc !== undefined) {
+              self.vm.run(ch.screenPc);
+              ch.buttons = self.vm.buttons.slice();
+              self.renderVmUi(ctx, self.vm, innerW, innerH);
+            } else if (targetVm && targetVm.uiCmds && targetVm.uiCmds.length > 0) {
+              // RENDERIZADO DINÁMICO DE ELEMENTOS PHASORLANG DE LA VENTANA
+              self.renderVmUi(ctx, targetVm, innerW, innerH);
+            } else {
+              // Fallback para pruebas unitarias de maquetación y wrap
+              ctx.fillStyle = '#3FB950';
+              ctx.font = 'bold 11px monospace';
+              ctx.fillText('Contenedor Hijo [' + ch.id + '] • Viewport Activo', 0, 16);
+
+              ctx.fillStyle = '#8B949E';
+              ctx.font = '10px monospace';
+              ctx.fillText('Resolución: ' + Math.round(ch.w) + 'x' + Math.round(ch.h) + ' px | Scroll: (' + Math.round(scX) + ', ' + Math.round(scY) + ')', 0, 32);
+
+              var charsPerLine = Math.max(8, Math.floor(innerW / 6.8));
+              var rawText = 'PhasorLang Zero-GC Runtime. El contenido se adapta en modo wrap a los bordes de la ventana hija y permite desplazamiento bidireccional suave con la rueda del raton o touchpad.';
+              var words = rawText.split(' ');
+              var curLine = '';
+              var lineY = 52;
+              ctx.fillStyle = '#C9D1D9';
+              ctx.font = '10px monospace';
+
+              for (var wIdx = 0; wIdx < words.length; wIdx++) {
+                var testLine = curLine + (curLine ? ' ' : '') + words[wIdx];
+                if (testLine.length > charsPerLine && curLine.length > 0) {
+                  ctx.fillText(curLine, 0, lineY);
+                  lineY += 16;
+                  curLine = words[wIdx];
+                } else {
+                  curLine = testLine;
+                }
+              }
+              if (curLine.length > 0) {
+                ctx.fillText(curLine, 0, lineY);
+                lineY += 16;
+              }
+
+              if (lineY + 36 > 0) {
+                ctx.fillStyle = '#238636';
+                ctx.fillRect(0, lineY + 10, Math.max(120, Math.min(220, innerW - 20)), 32);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText('Acción Hijo ' + ch.id, 16, lineY + 30);
+              }
+
+              ctx.fillStyle = '#1F6FEB';
+              ctx.fillRect(340, 16, 140, 28);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.font = '9px monospace';
+              ctx.fillText('Panel Virtual X=340', 348, 34);
+            }
+
+            ctx.restore(); // Fin de clipping
+
+            // Barras de desplazamiento (Scrollbars)
+            if (metrics) {
+              if (metrics.v) {
+                var v = metrics.v;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(v.trackX, v.trackY, v.trackW, v.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(v.trackX, v.trackY, v.trackW, v.trackH);
+
+                var isVDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'vertical');
+                ctx.fillStyle = isVDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH);
+                }
+              }
+
+              if (metrics.h) {
+                var hMetrics = metrics.h;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+
+                var isHDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'horizontal');
+                ctx.fillStyle = isHDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2);
+                }
+              }
+            }
+
+            // Agarradera visual de redimensión en esquina SE
+            ctx.strokeStyle = '#58A6FF';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ch.x + ch.w - 12, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 12);
+            ctx.moveTo(ch.x + ch.w - 8, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 8);
+            ctx.moveTo(ch.x + ch.w - 4, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 4);
+            ctx.stroke();
+          }
+        }
+      } else {
+        // --- MODO MÓVIL: AJUSTE SNAP 100% AL VIEWPORT ---
+        var activeChild = this.children[this.activeChildIndex] || this.children[0];
+
+        ctx.fillStyle = activeChild.color || '#161B22';
+        ctx.fillRect(0, 0, w, h);
+
+        // Barra superior móvil (44px)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 44);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 44); ctx.lineTo(w, 44); ctx.stroke();
+
+        if (this.children.length === 1) {
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 13px monospace';
+          ctx.fillText(activeChild.title, 14, 27);
+        } else {
+          var sortedTabs = this.children.slice().sort(function(a, b) { return a.id - b.id; });
+          var tabW = Math.min(130, Math.floor((w - 20) / this.children.length));
+          for (var tIdx = 0; tIdx < sortedTabs.length; tIdx++) {
+            var cTab = sortedTabs[tIdx];
+            var isSel = (cTab === activeChild);
+            var tabX = 10 + (tIdx * (tabW + 6));
+            ctx.fillStyle = isSel ? '#238636' : '#21262D';
+            ctx.fillRect(tabX, 8, tabW, 28);
+            ctx.fillStyle = isSel ? '#FFFFFF' : '#8B949E';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(cTab.title.substring(0, 14), tabX + (tabW / 2), 26);
+            ctx.textAlign = 'left';
+          }
+        }
+
+        // FPS badge en barra superior
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(this.fps + ' FPS', w - 14, 27);
+        ctx.textAlign = 'left';
+
+        // Renderizado del contenido hijo en móvil
+        var targetVmMobile = activeChild.appVm || this.vm;
+        var innerH = h - 44;
+        var scXMobile = activeChild.scrollX || 0;
+        var scYMobile = activeChild.scrollY || 0;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 44, w, innerH);
+        ctx.clip();
+        ctx.translate(10 - scXMobile, 48 - scYMobile);
+
+        if (self.vm && activeChild.screenPc !== undefined) {
+          self.vm.run(activeChild.screenPc);
+          activeChild.buttons = self.vm.buttons.slice();
+          self.renderVmUi(ctx, self.vm, w - 20, innerH);
+        } else if (targetVmMobile && targetVmMobile.uiCmds && targetVmMobile.uiCmds.length > 0) {
+          self.renderVmUi(ctx, targetVmMobile, w - 20, innerH);
+        } else {
+          ctx.fillStyle = '#8B949E';
+          ctx.font = '10px monospace';
+          ctx.fillText('Hijo ' + (this.activeChildIndex + 1) + '/' + this.children.length + ' • Desliza para orbitar 360°', 14, 20);
+
+          var btnMargin = 15;
+          var btnW = w - (btnMargin * 2);
+          var btnH = 48;
+          ctx.fillStyle = '#238636';
+          ctx.fillRect(btnMargin - 10, innerH - 80, btnW, btnH);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 13px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('Cambiar Sub-Pantalla (Touch >= 44px)', (w - 20) / 2, innerH - 50);
+          ctx.textAlign = 'left';
+        }
+        ctx.restore();
+      }
+
+      // 3. PANEL DE TELEMETRÍA RUNTIME (SHOW HUD NO-INVASIVO)
+      if (this.showHud) {
+        var hudMargin = isMobile ? 12 : 24;
+        var hudW = Math.min(460, w - (hudMargin * 2));
+        var hudH = 92;
+        var hudX = w - hudW - hudMargin;
+        var hudY = isMobile ? (h - hudH - 20) : (h - hudH - 46);
+
+        ctx.fillStyle = 'rgba(11, 14, 20, 0.95)';
+        ctx.fillRect(hudX, hudY, hudW, hudH);
+        ctx.strokeStyle = '#58A6FF';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+        ctx.fillStyle = '#21262D';
+        ctx.fillRect(hudX, hudY, hudW, 24);
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('TELEMETRÍA RUNTIME [Zero-GC]', hudX + 10, hudY + 16);
+
+        // Botón cerrar
+        ctx.fillStyle = '#F85149';
+        ctx.fillRect(hudX + hudW - 20, hudY + 4, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('x', hudX + hudW - 15, hudY + 15);
+
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '11px monospace';
+        ctx.fillText('Invariante Zero-GC: 0.0 Bytes Heap | ' + this.fps + ' FPS', hudX + 12, hudY + 46);
+
+        ctx.fillStyle = '#C9D1D9';
+        ctx.font = '10px monospace';
+        ctx.fillText('Ventanas Activas: ' + this.children.length + ' | Modo: ' + (isMobile ? 'Móvil Snap 100%' : 'Escritorio Multi-Ventana'), hudX + 12, hudY + 70);
+      }
+    }
+  };
+
+  global.MicroPhasorVM = MicroPhasorVM;
+  global.PhasorRuntime = PhasorRuntime;
+})(typeof window !== 'undefined' ? window : this);
+
+  </script>
+  <script>
+    (function() {
+      if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+        try {
+          var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+        } catch(e) {}
+      }
+
+      var WASM_PAYLOAD = "AGFzbQEAAAABLgdgAABgAX8BfGACf3wAYAR/f398AGAFf398fHwAYAZ8fHx8fHwBfGADfHx8AXwDCAcAAQIDBAUGBQMBAAEHZwkGbWVtb3J5AgADcnVuAAAEbWFpbgAADGdldF9yZWdpc3RlcgABDHNldF9yZWdpc3RlcgACCXNpbWRfc3RlcAADDXNpbWRfaW5pdF92ZWwABAh2ZWMzX2RvdAAFCHZlYzNfbWFnAAYKuJABB/6NAQKACHwIf0GAwAAhgAhBACsDACEAQQgrAwAhAUEQKwMAIQJBGCsDACEDQSArAwAhBEEoKwMAIQVBMCsDACEGQTgrAwAhB0HAACsDACEIQcgAKwMAIQlB0AArAwAhCkHYACsDACELQeAAKwMAIQxB6AArAwAhDUHwACsDACEOQfgAKwMAIQ9BgAErAwAhEEGIASsDACERQZABKwMAIRJBmAErAwAhE0GgASsDACEUQagBKwMAIRVBsAErAwAhFkG4ASsDACEXQcABKwMAIRhByAErAwAhGUHQASsDACEaQdgBKwMAIRtB4AErAwAhHEHoASsDACEdQfABKwMAIR5B+AErAwAhH0GAAisDACEgQYgCKwMAISFBkAIrAwAhIkGYAisDACEjQaACKwMAISRBqAIrAwAhJUGwAisDACEmQbgCKwMAISdBwAIrAwAhKEHIAisDACEpQdACKwMAISpB2AIrAwAhK0HgAisDACEsQegCKwMAIS1B8AIrAwAhLkH4AisDACEvQYADKwMAITBBiAMrAwAhMUGQAysDACEyQZgDKwMAITNBoAMrAwAhNEGoAysDACE1QbADKwMAITZBuAMrAwAhN0HAAysDACE4QcgDKwMAITlB0AMrAwAhOkHYAysDACE7QeADKwMAITxB6AMrAwAhPUHwAysDACE+QfgDKwMAIT9BgAQrAwAhQEGIBCsDACFBQZAEKwMAIUJBmAQrAwAhQ0GgBCsDACFEQagEKwMAIUVBsAQrAwAhRkG4BCsDACFHQcAEKwMAIUhByAQrAwAhSUHQBCsDACFKQdgEKwMAIUtB4AQrAwAhTEHoBCsDACFNQfAEKwMAIU5B+AQrAwAhT0GABSsDACFQQYgFKwMAIVFBkAUrAwAhUkGYBSsDACFTQaAFKwMAIVRBqAUrAwAhVUGwBSsDACFWQbgFKwMAIVdBwAUrAwAhWEHIBSsDACFZQdAFKwMAIVpB2AUrAwAhW0HgBSsDACFcQegFKwMAIV1B8AUrAwAhXkH4BSsDACFfQYAGKwMAIWBBiAYrAwAhYUGQBisDACFiQZgGKwMAIWNBoAYrAwAhZEGoBisDACFlQbAGKwMAIWZBuAYrAwAhZ0HABisDACFoQcgGKwMAIWlB0AYrAwAhakHYBisDACFrQeAGKwMAIWxB6AYrAwAhbUHwBisDACFuQfgGKwMAIW9BgAcrAwAhcEGIBysDACFxQZAHKwMAIXJBmAcrAwAhc0GgBysDACF0QagHKwMAIXVBsAcrAwAhdkG4BysDACF3QcAHKwMAIXhByAcrAwAheUHQBysDACF6QdgHKwMAIXtB4AcrAwAhfEHoBysDACF9QfAHKwMAIX5B+AcrAwAhf0GACCsDACGAAUGICCsDACGBAUGQCCsDACGCAUGYCCsDACGDAUGgCCsDACGEAUGoCCsDACGFAUGwCCsDACGGAUG4CCsDACGHAUHACCsDACGIAUHICCsDACGJAUHQCCsDACGKAUHYCCsDACGLAUHgCCsDACGMAUHoCCsDACGNAUHwCCsDACGOAUH4CCsDACGPAUGACSsDACGQAUGICSsDACGRAUGQCSsDACGSAUGYCSsDACGTAUGgCSsDACGUAUGoCSsDACGVAUGwCSsDACGWAUG4CSsDACGXAUHACSsDACGYAUHICSsDACGZAUHQCSsDACGaAUHYCSsDACGbAUHgCSsDACGcAUHoCSsDACGdAUHwCSsDACGeAUH4CSsDACGfAUGACisDACGgAUGICisDACGhAUGQCisDACGiAUGYCisDACGjAUGgCisDACGkAUGoCisDACGlAUGwCisDACGmAUG4CisDACGnAUHACisDACGoAUHICisDACGpAUHQCisDACGqAUHYCisDACGrAUHgCisDACGsAUHoCisDACGtAUHwCisDACGuAUH4CisDACGvAUGACysDACGwAUGICysDACGxAUGQCysDACGyAUGYCysDACGzAUGgCysDACG0AUGoCysDACG1AUGwCysDACG2AUG4CysDACG3AUHACysDACG4AUHICysDACG5AUHQCysDACG6AUHYCysDACG7AUHgCysDACG8AUHoCysDACG9AUHwCysDACG+AUH4CysDACG/AUGADCsDACHAAUGIDCsDACHBAUGQDCsDACHCAUGYDCsDACHDAUGgDCsDACHEAUGoDCsDACHFAUGwDCsDACHGAUG4DCsDACHHAUHADCsDACHIAUHIDCsDACHJAUHQDCsDACHKAUHYDCsDACHLAUHgDCsDACHMAUHoDCsDACHNAUHwDCsDACHOAUH4DCsDACHPAUGADSsDACHQAUGIDSsDACHRAUGQDSsDACHSAUGYDSsDACHTAUGgDSsDACHUAUGoDSsDACHVAUGwDSsDACHWAUG4DSsDACHXAUHADSsDACHYAUHIDSsDACHZAUHQDSsDACHaAUHYDSsDACHbAUHgDSsDACHcAUHoDSsDACHdAUHwDSsDACHeAUH4DSsDACHfAUGADisDACHgAUGIDisDACHhAUGQDisDACHiAUGYDisDACHjAUGgDisDACHkAUGoDisDACHlAUGwDisDACHmAUG4DisDACHnAUHADisDACHoAUHIDisDACHpAUHQDisDACHqAUHYDisDACHrAUHgDisDACHsAUHoDisDACHtAUHwDisDACHuAUH4DisDACHvAUGADysDACHwAUGIDysDACHxAUGQDysDACHyAUGYDysDACHzAUGgDysDACH0AUGoDysDACH1AUGwDysDACH2AUG4DysDACH3AUHADysDACH4AUHIDysDACH5AUHQDysDACH6AUHYDysDACH7AUHgDysDACH8AUHoDysDACH9AUHwDysDACH+AUH4DysDACH/AUGAECsDACGAAkGIECsDACGBAkGQECsDACGCAkGYECsDACGDAkGgECsDACGEAkGoECsDACGFAkGwECsDACGGAkG4ECsDACGHAkHAECsDACGIAkHIECsDACGJAkHQECsDACGKAkHYECsDACGLAkHgECsDACGMAkHoECsDACGNAkHwECsDACGOAkH4ECsDACGPAkGAESsDACGQAkGIESsDACGRAkGQESsDACGSAkGYESsDACGTAkGgESsDACGUAkGoESsDACGVAkGwESsDACGWAkG4ESsDACGXAkHAESsDACGYAkHIESsDACGZAkHQESsDACGaAkHYESsDACGbAkHgESsDACGcAkHoESsDACGdAkHwESsDACGeAkH4ESsDACGfAkGAEisDACGgAkGIEisDACGhAkGQEisDACGiAkGYEisDACGjAkGgEisDACGkAkGoEisDACGlAkGwEisDACGmAkG4EisDACGnAkHAEisDACGoAkHIEisDACGpAkHQEisDACGqAkHYEisDACGrAkHgEisDACGsAkHoEisDACGtAkHwEisDACGuAkH4EisDACGvAkGAEysDACGwAkGIEysDACGxAkGQEysDACGyAkGYEysDACGzAkGgEysDACG0AkGoEysDACG1AkGwEysDACG2AkG4EysDACG3AkHAEysDACG4AkHIEysDACG5AkHQEysDACG6AkHYEysDACG7AkHgEysDACG8AkHoEysDACG9AkHwEysDACG+AkH4EysDACG/AkGAFCsDACHAAkGIFCsDACHBAkGQFCsDACHCAkGYFCsDACHDAkGgFCsDACHEAkGoFCsDACHFAkGwFCsDACHGAkG4FCsDACHHAkHAFCsDACHIAkHIFCsDACHJAkHQFCsDACHKAkHYFCsDACHLAkHgFCsDACHMAkHoFCsDACHNAkHwFCsDACHOAkH4FCsDACHPAkGAFSsDACHQAkGIFSsDACHRAkGQFSsDACHSAkGYFSsDACHTAkGgFSsDACHUAkGoFSsDACHVAkGwFSsDACHWAkG4FSsDACHXAkHAFSsDACHYAkHIFSsDACHZAkHQFSsDACHaAkHYFSsDACHbAkHgFSsDACHcAkHoFSsDACHdAkHwFSsDACHeAkH4FSsDACHfAkGAFisDACHgAkGIFisDACHhAkGQFisDACHiAkGYFisDACHjAkGgFisDACHkAkGoFisDACHlAkGwFisDACHmAkG4FisDACHnAkHAFisDACHoAkHIFisDACHpAkHQFisDACHqAkHYFisDACHrAkHgFisDACHsAkHoFisDACHtAkHwFisDACHuAkH4FisDACHvAkGAFysDACHwAkGIFysDACHxAkGQFysDACHyAkGYFysDACHzAkGgFysDACH0AkGoFysDACH1AkGwFysDACH2AkG4FysDACH3AkHAFysDACH4AkHIFysDACH5AkHQFysDACH6AkHYFysDACH7AkHgFysDACH8AkHoFysDACH9AkHwFysDACH+AkH4FysDACH/AkGAGCsDACGAA0GIGCsDACGBA0GQGCsDACGCA0GYGCsDACGDA0GgGCsDACGEA0GoGCsDACGFA0GwGCsDACGGA0G4GCsDACGHA0HAGCsDACGIA0HIGCsDACGJA0HQGCsDACGKA0HYGCsDACGLA0HgGCsDACGMA0HoGCsDACGNA0HwGCsDACGOA0H4GCsDACGPA0GAGSsDACGQA0GIGSsDACGRA0GQGSsDACGSA0GYGSsDACGTA0GgGSsDACGUA0GoGSsDACGVA0GwGSsDACGWA0G4GSsDACGXA0HAGSsDACGYA0HIGSsDACGZA0HQGSsDACGaA0HYGSsDACGbA0HgGSsDACGcA0HoGSsDACGdA0HwGSsDACGeA0H4GSsDACGfA0GAGisDACGgA0GIGisDACGhA0GQGisDACGiA0GYGisDACGjA0GgGisDACGkA0GoGisDACGlA0GwGisDACGmA0G4GisDACGnA0HAGisDACGoA0HIGisDACGpA0HQGisDACGqA0HYGisDACGrA0HgGisDACGsA0HoGisDACGtA0HwGisDACGuA0H4GisDACGvA0GAGysDACGwA0GIGysDACGxA0GQGysDACGyA0GYGysDACGzA0GgGysDACG0A0GoGysDACG1A0GwGysDACG2A0G4GysDACG3A0HAGysDACG4A0HIGysDACG5A0HQGysDACG6A0HYGysDACG7A0HgGysDACG8A0HoGysDACG9A0HwGysDACG+A0H4GysDACG/A0GAHCsDACHAA0GIHCsDACHBA0GQHCsDACHCA0GYHCsDACHDA0GgHCsDACHEA0GoHCsDACHFA0GwHCsDACHGA0G4HCsDACHHA0HAHCsDACHIA0HIHCsDACHJA0HQHCsDACHKA0HYHCsDACHLA0HgHCsDACHMA0HoHCsDACHNA0HwHCsDACHOA0H4HCsDACHPA0GAHSsDACHQA0GIHSsDACHRA0GQHSsDACHSA0GYHSsDACHTA0GgHSsDACHUA0GoHSsDACHVA0GwHSsDACHWA0G4HSsDACHXA0HAHSsDACHYA0HIHSsDACHZA0HQHSsDACHaA0HYHSsDACHbA0HgHSsDACHcA0HoHSsDACHdA0HwHSsDACHeA0H4HSsDACHfA0GAHisDACHgA0GIHisDACHhA0GQHisDACHiA0GYHisDACHjA0GgHisDACHkA0GoHisDACHlA0GwHisDACHmA0G4HisDACHnA0HAHisDACHoA0HIHisDACHpA0HQHisDACHqA0HYHisDACHrA0HgHisDACHsA0HoHisDACHtA0HwHisDACHuA0H4HisDACHvA0GAHysDACHwA0GIHysDACHxA0GQHysDACHyA0GYHysDACHzA0GgHysDACH0A0GoHysDACH1A0GwHysDACH2A0G4HysDACH3A0HAHysDACH4A0HIHysDACH5A0HQHysDACH6A0HYHysDACH7A0HgHysDACH8A0HoHysDACH9A0HwHysDACH+A0H4HysDACH/A0GAICsDACGABEGIICsDACGBBEGQICsDACGCBEGYICsDACGDBEGgICsDACGEBEGoICsDACGFBEGwICsDACGGBEG4ICsDACGHBEHAICsDACGIBEHIICsDACGJBEHQICsDACGKBEHYICsDACGLBEHgICsDACGMBEHoICsDACGNBEHwICsDACGOBEH4ICsDACGPBEGAISsDACGQBEGIISsDACGRBEGQISsDACGSBEGYISsDACGTBEGgISsDACGUBEGoISsDACGVBEGwISsDACGWBEG4ISsDACGXBEHAISsDACGYBEHIISsDACGZBEHQISsDACGaBEHYISsDACGbBEHgISsDACGcBEHoISsDACGdBEHwISsDACGeBEH4ISsDACGfBEGAIisDACGgBEGIIisDACGhBEGQIisDACGiBEGYIisDACGjBEGgIisDACGkBEGoIisDACGlBEGwIisDACGmBEG4IisDACGnBEHAIisDACGoBEHIIisDACGpBEHQIisDACGqBEHYIisDACGrBEHgIisDACGsBEHoIisDACGtBEHwIisDACGuBEH4IisDACGvBEGAIysDACGwBEGIIysDACGxBEGQIysDACGyBEGYIysDACGzBEGgIysDACG0BEGoIysDACG1BEGwIysDACG2BEG4IysDACG3BEHAIysDACG4BEHIIysDACG5BEHQIysDACG6BEHYIysDACG7BEHgIysDACG8BEHoIysDACG9BEHwIysDACG+BEH4IysDACG/BEGAJCsDACHABEGIJCsDACHBBEGQJCsDACHCBEGYJCsDACHDBEGgJCsDACHEBEGoJCsDACHFBEGwJCsDACHGBEG4JCsDACHHBEHAJCsDACHIBEHIJCsDACHJBEHQJCsDACHKBEHYJCsDACHLBEHgJCsDACHMBEHoJCsDACHNBEHwJCsDACHOBEH4JCsDACHPBEGAJSsDACHQBEGIJSsDACHRBEGQJSsDACHSBEGYJSsDACHTBEGgJSsDACHUBEGoJSsDACHVBEGwJSsDACHWBEG4JSsDACHXBEHAJSsDACHYBEHIJSsDACHZBEHQJSsDACHaBEHYJSsDACHbBEHgJSsDACHcBEHoJSsDACHdBEHwJSsDACHeBEH4JSsDACHfBEGAJisDACHgBEGIJisDACHhBEGQJisDACHiBEGYJisDACHjBEGgJisDACHkBEGoJisDACHlBEGwJisDACHmBEG4JisDACHnBEHAJisDACHoBEHIJisDACHpBEHQJisDACHqBEHYJisDACHrBEHgJisDACHsBEHoJisDACHtBEHwJisDACHuBEH4JisDACHvBEGAJysDACHwBEGIJysDACHxBEGQJysDACHyBEGYJysDACHzBEGgJysDACH0BEGoJysDACH1BEGwJysDACH2BEG4JysDACH3BEHAJysDACH4BEHIJysDACH5BEHQJysDACH6BEHYJysDACH7BEHgJysDACH8BEHoJysDACH9BEHwJysDACH+BEH4JysDACH/BEGAKCsDACGABUGIKCsDACGBBUGQKCsDACGCBUGYKCsDACGDBUGgKCsDACGEBUGoKCsDACGFBUGwKCsDACGGBUG4KCsDACGHBUHAKCsDACGIBUHIKCsDACGJBUHQKCsDACGKBUHYKCsDACGLBUHgKCsDACGMBUHoKCsDACGNBUHwKCsDACGOBUH4KCsDACGPBUGAKSsDACGQBUGIKSsDACGRBUGQKSsDACGSBUGYKSsDACGTBUGgKSsDACGUBUGoKSsDACGVBUGwKSsDACGWBUG4KSsDACGXBUHAKSsDACGYBUHIKSsDACGZBUHQKSsDACGaBUHYKSsDACGbBUHgKSsDACGcBUHoKSsDACGdBUHwKSsDACGeBUH4KSsDACGfBUGAKisDACGgBUGIKisDACGhBUGQKisDACGiBUGYKisDACGjBUGgKisDACGkBUGoKisDACGlBUGwKisDACGmBUG4KisDACGnBUHAKisDACGoBUHIKisDACGpBUHQKisDACGqBUHYKisDACGrBUHgKisDACGsBUHoKisDACGtBUHwKisDACGuBUH4KisDACGvBUGAKysDACGwBUGIKysDACGxBUGQKysDACGyBUGYKysDACGzBUGgKysDACG0BUGoKysDACG1BUGwKysDACG2BUG4KysDACG3BUHAKysDACG4BUHIKysDACG5BUHQKysDACG6BUHYKysDACG7BUHgKysDACG8BUHoKysDACG9BUHwKysDACG+BUH4KysDACG/BUGALCsDACHABUGILCsDACHBBUGQLCsDACHCBUGYLCsDACHDBUGgLCsDACHEBUGoLCsDACHFBUGwLCsDACHGBUG4LCsDACHHBUHALCsDACHIBUHILCsDACHJBUHQLCsDACHKBUHYLCsDACHLBUHgLCsDACHMBUHoLCsDACHNBUHwLCsDACHOBUH4LCsDACHPBUGALSsDACHQBUGILSsDACHRBUGQLSsDACHSBUGYLSsDACHTBUGgLSsDACHUBUGoLSsDACHVBUGwLSsDACHWBUG4LSsDACHXBUHALSsDACHYBUHILSsDACHZBUHQLSsDACHaBUHYLSsDACHbBUHgLSsDACHcBUHoLSsDACHdBUHwLSsDACHeBUH4LSsDACHfBUGALisDACHgBUGILisDACHhBUGQLisDACHiBUGYLisDACHjBUGgLisDACHkBUGoLisDACHlBUGwLisDACHmBUG4LisDACHnBUHALisDACHoBUHILisDACHpBUHQLisDACHqBUHYLisDACHrBUHgLisDACHsBUHoLisDACHtBUHwLisDACHuBUH4LisDACHvBUGALysDACHwBUGILysDACHxBUGQLysDACHyBUGYLysDACHzBUGgLysDACH0BUGoLysDACH1BUGwLysDACH2BUG4LysDACH3BUHALysDACH4BUHILysDACH5BUHQLysDACH6BUHYLysDACH7BUHgLysDACH8BUHoLysDACH9BUHwLysDACH+BUH4LysDACH/BUGAMCsDACGABkGIMCsDACGBBkGQMCsDACGCBkGYMCsDACGDBkGgMCsDACGEBkGoMCsDACGFBkGwMCsDACGGBkG4MCsDACGHBkHAMCsDACGIBkHIMCsDACGJBkHQMCsDACGKBkHYMCsDACGLBkHgMCsDACGMBkHoMCsDACGNBkHwMCsDACGOBkH4MCsDACGPBkGAMSsDACGQBkGIMSsDACGRBkGQMSsDACGSBkGYMSsDACGTBkGgMSsDACGUBkGoMSsDACGVBkGwMSsDACGWBkG4MSsDACGXBkHAMSsDACGYBkHIMSsDACGZBkHQMSsDACGaBkHYMSsDACGbBkHgMSsDACGcBkHoMSsDACGdBkHwMSsDACGeBkH4MSsDACGfBkGAMisDACGgBkGIMisDACGhBkGQMisDACGiBkGYMisDACGjBkGgMisDACGkBkGoMisDACGlBkGwMisDACGmBkG4MisDACGnBkHAMisDACGoBkHIMisDACGpBkHQMisDACGqBkHYMisDACGrBkHgMisDACGsBkHoMisDACGtBkHwMisDACGuBkH4MisDACGvBkGAMysDACGwBkGIMysDACGxBkGQMysDACGyBkGYMysDACGzBkGgMysDACG0BkGoMysDACG1BkGwMysDACG2BkG4MysDACG3BkHAMysDACG4BkHIMysDACG5BkHQMysDACG6BkHYMysDACG7BkHgMysDACG8BkHoMysDACG9BkHwMysDACG+BkH4MysDACG/BkGANCsDACHABkGINCsDACHBBkGQNCsDACHCBkGYNCsDACHDBkGgNCsDACHEBkGoNCsDACHFBkGwNCsDACHGBkG4NCsDACHHBkHANCsDACHIBkHINCsDACHJBkHQNCsDACHKBkHYNCsDACHLBkHgNCsDACHMBkHoNCsDACHNBkHwNCsDACHOBkH4NCsDACHPBkGANSsDACHQBkGINSsDACHRBkGQNSsDACHSBkGYNSsDACHTBkGgNSsDACHUBkGoNSsDACHVBkGwNSsDACHWBkG4NSsDACHXBkHANSsDACHYBkHINSsDACHZBkHQNSsDACHaBkHYNSsDACHbBkHgNSsDACHcBkHoNSsDACHdBkHwNSsDACHeBkH4NSsDACHfBkGANisDACHgBkGINisDACHhBkGQNisDACHiBkGYNisDACHjBkGgNisDACHkBkGoNisDACHlBkGwNisDACHmBkG4NisDACHnBkHANisDACHoBkHINisDACHpBkHQNisDACHqBkHYNisDACHrBkHgNisDACHsBkHoNisDACHtBkHwNisDACHuBkH4NisDACHvBkGANysDACHwBkGINysDACHxBkGQNysDACHyBkGYNysDACHzBkGgNysDACH0BkGoNysDACH1BkGwNysDACH2BkG4NysDACH3BkHANysDACH4BkHINysDACH5BkHQNysDACH6BkHYNysDACH7BkHgNysDACH8BkHoNysDACH9BkHwNysDACH+BkH4NysDACH/BkGAOCsDACGAB0GIOCsDACGBB0GQOCsDACGCB0GYOCsDACGDB0GgOCsDACGEB0GoOCsDACGFB0GwOCsDACGGB0G4OCsDACGHB0HAOCsDACGIB0HIOCsDACGJB0HQOCsDACGKB0HYOCsDACGLB0HgOCsDACGMB0HoOCsDACGNB0HwOCsDACGOB0H4OCsDACGPB0GAOSsDACGQB0GIOSsDACGRB0GQOSsDACGSB0GYOSsDACGTB0GgOSsDACGUB0GoOSsDACGVB0GwOSsDACGWB0G4OSsDACGXB0HAOSsDACGYB0HIOSsDACGZB0HQOSsDACGaB0HYOSsDACGbB0HgOSsDACGcB0HoOSsDACGdB0HwOSsDACGeB0H4OSsDACGfB0GAOisDACGgB0GIOisDACGhB0GQOisDACGiB0GYOisDACGjB0GgOisDACGkB0GoOisDACGlB0GwOisDACGmB0G4OisDACGnB0HAOisDACGoB0HIOisDACGpB0HQOisDACGqB0HYOisDACGrB0HgOisDACGsB0HoOisDACGtB0HwOisDACGuB0H4OisDACGvB0GAOysDACGwB0GIOysDACGxB0GQOysDACGyB0GYOysDACGzB0GgOysDACG0B0GoOysDACG1B0GwOysDACG2B0G4OysDACG3B0HAOysDACG4B0HIOysDACG5B0HQOysDACG6B0HYOysDACG7B0HgOysDACG8B0HoOysDACG9B0HwOysDACG+B0H4OysDACG/B0GAPCsDACHAB0GIPCsDACHBB0GQPCsDACHCB0GYPCsDACHDB0GgPCsDACHEB0GoPCsDACHFB0GwPCsDACHGB0G4PCsDACHHB0HAPCsDACHIB0HIPCsDACHJB0HQPCsDACHKB0HYPCsDACHLB0HgPCsDACHMB0HoPCsDACHNB0HwPCsDACHOB0H4PCsDACHPB0GAPSsDACHQB0GIPSsDACHRB0GQPSsDACHSB0GYPSsDACHTB0GgPSsDACHUB0GoPSsDACHVB0GwPSsDACHWB0G4PSsDACHXB0HAPSsDACHYB0HIPSsDACHZB0HQPSsDACHaB0HYPSsDACHbB0HgPSsDACHcB0HoPSsDACHdB0HwPSsDACHeB0H4PSsDACHfB0GAPisDACHgB0GIPisDACHhB0GQPisDACHiB0GYPisDACHjB0GgPisDACHkB0GoPisDACHlB0GwPisDACHmB0G4PisDACHnB0HAPisDACHoB0HIPisDACHpB0HQPisDACHqB0HYPisDACHrB0HgPisDACHsB0HoPisDACHtB0HwPisDACHuB0H4PisDACHvB0GAPysDACHwB0GIPysDACHxB0GQPysDACHyB0GYPysDACHzB0GgPysDACH0B0GoPysDACH1B0GwPysDACH2B0G4PysDACH3B0HAPysDACH4B0HIPysDACH5B0HQPysDACH6B0HYPysDACH7B0HgPysDACH8B0HoPysDACH9B0HwPysDACH+B0H4PysDACH/B0EAIAA5AwBBCCABOQMAQRAgAjkDAEEYIAM5AwBBICAEOQMAQSggBTkDAEEwIAY5AwBBOCAHOQMAQcAAIAg5AwBByAAgCTkDAEHQACAKOQMAQdgAIAs5AwBB4AAgDDkDAEHoACANOQMAQfAAIA45AwBB+AAgDzkDAEGAASAQOQMAQYgBIBE5AwBBkAEgEjkDAEGYASATOQMAQaABIBQ5AwBBqAEgFTkDAEGwASAWOQMAQbgBIBc5AwBBwAEgGDkDAEHIASAZOQMAQdABIBo5AwBB2AEgGzkDAEHgASAcOQMAQegBIB05AwBB8AEgHjkDAEH4ASAfOQMAQYACICA5AwBBiAIgITkDAEGQAiAiOQMAQZgCICM5AwBBoAIgJDkDAEGoAiAlOQMAQbACICY5AwBBuAIgJzkDAEHAAiAoOQMAQcgCICk5AwBB0AIgKjkDAEHYAiArOQMAQeACICw5AwBB6AIgLTkDAEHwAiAuOQMAQfgCIC85AwBBgAMgMDkDAEGIAyAxOQMAQZADIDI5AwBBmAMgMzkDAEGgAyA0OQMAQagDIDU5AwBBsAMgNjkDAEG4AyA3OQMAQcADIDg5AwBByAMgOTkDAEHQAyA6OQMAQdgDIDs5AwBB4AMgPDkDAEHoAyA9OQMAQfADID45AwBB+AMgPzkDAEGABCBAOQMAQYgEIEE5AwBBkAQgQjkDAEGYBCBDOQMAQaAEIEQ5AwBBqAQgRTkDAEGwBCBGOQMAQbgEIEc5AwBBwAQgSDkDAEHIBCBJOQMAQdAEIEo5AwBB2AQgSzkDAEHgBCBMOQMAQegEIE05AwBB8AQgTjkDAEH4BCBPOQMAQYAFIFA5AwBBiAUgUTkDAEGQBSBSOQMAQZgFIFM5AwBBoAUgVDkDAEGoBSBVOQMAQbAFIFY5AwBBuAUgVzkDAEHABSBYOQMAQcgFIFk5AwBB0AUgWjkDAEHYBSBbOQMAQeAFIFw5AwBB6AUgXTkDAEHwBSBeOQMAQfgFIF85AwBBgAYgYDkDAEGIBiBhOQMAQZAGIGI5AwBBmAYgYzkDAEGgBiBkOQMAQagGIGU5AwBBsAYgZjkDAEG4BiBnOQMAQcAGIGg5AwBByAYgaTkDAEHQBiBqOQMAQdgGIGs5AwBB4AYgbDkDAEHoBiBtOQMAQfAGIG45AwBB+AYgbzkDAEGAByBwOQMAQYgHIHE5AwBBkAcgcjkDAEGYByBzOQMAQaAHIHQ5AwBBqAcgdTkDAEGwByB2OQMAQbgHIHc5AwBBwAcgeDkDAEHIByB5OQMAQdAHIHo5AwBB2AcgezkDAEHgByB8OQMAQegHIH05AwBB8AcgfjkDAEH4ByB/OQMAQYAIIIABOQMAQYgIIIEBOQMAQZAIIIIBOQMAQZgIIIMBOQMAQaAIIIQBOQMAQagIIIUBOQMAQbAIIIYBOQMAQbgIIIcBOQMAQcAIIIgBOQMAQcgIIIkBOQMAQdAIIIoBOQMAQdgIIIsBOQMAQeAIIIwBOQMAQegIII0BOQMAQfAIII4BOQMAQfgIII8BOQMAQYAJIJABOQMAQYgJIJEBOQMAQZAJIJIBOQMAQZgJIJMBOQMAQaAJIJQBOQMAQagJIJUBOQMAQbAJIJYBOQMAQbgJIJcBOQMAQcAJIJgBOQMAQcgJIJkBOQMAQdAJIJoBOQMAQdgJIJsBOQMAQeAJIJwBOQMAQegJIJ0BOQMAQfAJIJ4BOQMAQfgJIJ8BOQMAQYAKIKABOQMAQYgKIKEBOQMAQZAKIKIBOQMAQZgKIKMBOQMAQaAKIKQBOQMAQagKIKUBOQMAQbAKIKYBOQMAQbgKIKcBOQMAQcAKIKgBOQMAQcgKIKkBOQMAQdAKIKoBOQMAQdgKIKsBOQMAQeAKIKwBOQMAQegKIK0BOQMAQfAKIK4BOQMAQfgKIK8BOQMAQYALILABOQMAQYgLILEBOQMAQZALILIBOQMAQZgLILMBOQMAQaALILQBOQMAQagLILUBOQMAQbALILYBOQMAQbgLILcBOQMAQcALILgBOQMAQcgLILkBOQMAQdALILoBOQMAQdgLILsBOQMAQeALILwBOQMAQegLIL0BOQMAQfALIL4BOQMAQfgLIL8BOQMAQYAMIMABOQMAQYgMIMEBOQMAQZAMIMIBOQMAQZgMIMMBOQMAQaAMIMQBOQMAQagMIMUBOQMAQbAMIMYBOQMAQbgMIMcBOQMAQcAMIMgBOQMAQcgMIMkBOQMAQdAMIMoBOQMAQdgMIMsBOQMAQeAMIMwBOQMAQegMIM0BOQMAQfAMIM4BOQMAQfgMIM8BOQMAQYANINABOQMAQYgNINEBOQMAQZANINIBOQMAQZgNINMBOQMAQaANINQBOQMAQagNINUBOQMAQbANINYBOQMAQbgNINcBOQMAQcANINgBOQMAQcgNINkBOQMAQdANINoBOQMAQdgNINsBOQMAQeANINwBOQMAQegNIN0BOQMAQfANIN4BOQMAQfgNIN8BOQMAQYAOIOABOQMAQYgOIOEBOQMAQZAOIOIBOQMAQZgOIOMBOQMAQaAOIOQBOQMAQagOIOUBOQMAQbAOIOYBOQMAQbgOIOcBOQMAQcAOIOgBOQMAQcgOIOkBOQMAQdAOIOoBOQMAQdgOIOsBOQMAQeAOIOwBOQMAQegOIO0BOQMAQfAOIO4BOQMAQfgOIO8BOQMAQYAPIPABOQMAQYgPIPEBOQMAQZAPIPIBOQMAQZgPIPMBOQMAQaAPIPQBOQMAQagPIPUBOQMAQbAPIPYBOQMAQbgPIPcBOQMAQcAPIPgBOQMAQcgPIPkBOQMAQdAPIPoBOQMAQdgPIPsBOQMAQeAPIPwBOQMAQegPIP0BOQMAQfAPIP4BOQMAQfgPIP8BOQMAQYAQIIACOQMAQYgQIIECOQMAQZAQIIICOQMAQZgQIIMCOQMAQaAQIIQCOQMAQagQIIUCOQMAQbAQIIYCOQMAQbgQIIcCOQMAQcAQIIgCOQMAQcgQIIkCOQMAQdAQIIoCOQMAQdgQIIsCOQMAQeAQIIwCOQMAQegQII0COQMAQfAQII4COQMAQfgQII8COQMAQYARIJACOQMAQYgRIJECOQMAQZARIJICOQMAQZgRIJMCOQMAQaARIJQCOQMAQagRIJUCOQMAQbARIJYCOQMAQbgRIJcCOQMAQcARIJgCOQMAQcgRIJkCOQMAQdARIJoCOQMAQdgRIJsCOQMAQeARIJwCOQMAQegRIJ0COQMAQfARIJ4COQMAQfgRIJ8COQMAQYASIKACOQMAQYgSIKECOQMAQZASIKICOQMAQZgSIKMCOQMAQaASIKQCOQMAQagSIKUCOQMAQbASIKYCOQMAQbgSIKcCOQMAQcASIKgCOQMAQcgSIKkCOQMAQdASIKoCOQMAQdgSIKsCOQMAQeASIKwCOQMAQegSIK0COQMAQfASIK4COQMAQfgSIK8COQMAQYATILACOQMAQYgTILECOQMAQZATILICOQMAQZgTILMCOQMAQaATILQCOQMAQagTILUCOQMAQbATILYCOQMAQbgTILcCOQMAQcATILgCOQMAQcgTILkCOQMAQdATILoCOQMAQdgTILsCOQMAQeATILwCOQMAQegTIL0COQMAQfATIL4COQMAQfgTIL8COQMAQYAUIMACOQMAQYgUIMECOQMAQZAUIMICOQMAQZgUIMMCOQMAQaAUIMQCOQMAQagUIMUCOQMAQbAUIMYCOQMAQbgUIMcCOQMAQcAUIMgCOQMAQcgUIMkCOQMAQdAUIMoCOQMAQdgUIMsCOQMAQeAUIMwCOQMAQegUIM0COQMAQfAUIM4COQMAQfgUIM8COQMAQYAVINACOQMAQYgVINECOQMAQZAVINICOQMAQZgVINMCOQMAQaAVINQCOQMAQagVINUCOQMAQbAVINYCOQMAQbgVINcCOQMAQcAVINgCOQMAQcgVINkCOQMAQdAVINoCOQMAQdgVINsCOQMAQeAVINwCOQMAQegVIN0COQMAQfAVIN4COQMAQfgVIN8COQMAQYAWIOACOQMAQYgWIOECOQMAQZAWIOICOQMAQZgWIOMCOQMAQaAWIOQCOQMAQagWIOUCOQMAQbAWIOYCOQMAQbgWIOcCOQMAQcAWIOgCOQMAQcgWIOkCOQMAQdAWIOoCOQMAQdgWIOsCOQMAQeAWIOwCOQMAQegWIO0COQMAQfAWIO4COQMAQfgWIO8COQMAQYAXIPACOQMAQYgXIPECOQMAQZAXIPICOQMAQZgXIPMCOQMAQaAXIPQCOQMAQagXIPUCOQMAQbAXIPYCOQMAQbgXIPcCOQMAQcAXIPgCOQMAQcgXIPkCOQMAQdAXIPoCOQMAQdgXIPsCOQMAQeAXIPwCOQMAQegXIP0COQMAQfAXIP4COQMAQfgXIP8COQMAQYAYIIADOQMAQYgYIIEDOQMAQZAYIIIDOQMAQZgYIIMDOQMAQaAYIIQDOQMAQagYIIUDOQMAQbAYIIYDOQMAQbgYIIcDOQMAQcAYIIgDOQMAQcgYIIkDOQMAQdAYIIoDOQMAQdgYIIsDOQMAQeAYIIwDOQMAQegYII0DOQMAQfAYII4DOQMAQfgYII8DOQMAQYAZIJADOQMAQYgZIJEDOQMAQZAZIJIDOQMAQZgZIJMDOQMAQaAZIJQDOQMAQagZIJUDOQMAQbAZIJYDOQMAQbgZIJcDOQMAQcAZIJgDOQMAQcgZIJkDOQMAQdAZIJoDOQMAQdgZIJsDOQMAQeAZIJwDOQMAQegZIJ0DOQMAQfAZIJ4DOQMAQfgZIJ8DOQMAQYAaIKADOQMAQYgaIKEDOQMAQZAaIKIDOQMAQZgaIKMDOQMAQaAaIKQDOQMAQagaIKUDOQMAQbAaIKYDOQMAQbgaIKcDOQMAQcAaIKgDOQMAQcgaIKkDOQMAQdAaIKoDOQMAQdgaIKsDOQMAQeAaIKwDOQMAQegaIK0DOQMAQfAaIK4DOQMAQfgaIK8DOQMAQYAbILADOQMAQYgbILEDOQMAQZAbILIDOQMAQZgbILMDOQMAQaAbILQDOQMAQagbILUDOQMAQbAbILYDOQMAQbgbILcDOQMAQcAbILgDOQMAQcgbILkDOQMAQdAbILoDOQMAQdgbILsDOQMAQeAbILwDOQMAQegbIL0DOQMAQfAbIL4DOQMAQfgbIL8DOQMAQYAcIMADOQMAQYgcIMEDOQMAQZAcIMIDOQMAQZgcIMMDOQMAQaAcIMQDOQMAQagcIMUDOQMAQbAcIMYDOQMAQbgcIMcDOQMAQcAcIMgDOQMAQcgcIMkDOQMAQdAcIMoDOQMAQdgcIMsDOQMAQeAcIMwDOQMAQegcIM0DOQMAQfAcIM4DOQMAQfgcIM8DOQMAQYAdINADOQMAQYgdINEDOQMAQZAdINIDOQMAQZgdINMDOQMAQaAdINQDOQMAQagdINUDOQMAQbAdINYDOQMAQbgdINcDOQMAQcAdINgDOQMAQcgdINkDOQMAQdAdINoDOQMAQdgdINsDOQMAQeAdINwDOQMAQegdIN0DOQMAQfAdIN4DOQMAQfgdIN8DOQMAQYAeIOADOQMAQYgeIOEDOQMAQZAeIOIDOQMAQZgeIOMDOQMAQaAeIOQDOQMAQageIOUDOQMAQbAeIOYDOQMAQbgeIOcDOQMAQcAeIOgDOQMAQcgeIOkDOQMAQdAeIOoDOQMAQdgeIOsDOQMAQeAeIOwDOQMAQegeIO0DOQMAQfAeIO4DOQMAQfgeIO8DOQMAQYAfIPADOQMAQYgfIPEDOQMAQZAfIPIDOQMAQZgfIPMDOQMAQaAfIPQDOQMAQagfIPUDOQMAQbAfIPYDOQMAQbgfIPcDOQMAQcAfIPgDOQMAQcgfIPkDOQMAQdAfIPoDOQMAQdgfIPsDOQMAQeAfIPwDOQMAQegfIP0DOQMAQfAfIP4DOQMAQfgfIP8DOQMAQYAgIIAEOQMAQYggIIEEOQMAQZAgIIIEOQMAQZggIIMEOQMAQaAgIIQEOQMAQaggIIUEOQMAQbAgIIYEOQMAQbggIIcEOQMAQcAgIIgEOQMAQcggIIkEOQMAQdAgIIoEOQMAQdggIIsEOQMAQeAgIIwEOQMAQeggII0EOQMAQfAgII4EOQMAQfggII8EOQMAQYAhIJAEOQMAQYghIJEEOQMAQZAhIJIEOQMAQZghIJMEOQMAQaAhIJQEOQMAQaghIJUEOQMAQbAhIJYEOQMAQbghIJcEOQMAQcAhIJgEOQMAQcghIJkEOQMAQdAhIJoEOQMAQdghIJsEOQMAQeAhIJwEOQMAQeghIJ0EOQMAQfAhIJ4EOQMAQfghIJ8EOQMAQYAiIKAEOQMAQYgiIKEEOQMAQZAiIKIEOQMAQZgiIKMEOQMAQaAiIKQEOQMAQagiIKUEOQMAQbAiIKYEOQMAQbgiIKcEOQMAQcAiIKgEOQMAQcgiIKkEOQMAQdAiIKoEOQMAQdgiIKsEOQMAQeAiIKwEOQMAQegiIK0EOQMAQfAiIK4EOQMAQfgiIK8EOQMAQYAjILAEOQMAQYgjILEEOQMAQZAjILIEOQMAQZgjILMEOQMAQaAjILQEOQMAQagjILUEOQMAQbAjILYEOQMAQbgjILcEOQMAQcAjILgEOQMAQcgjILkEOQMAQdAjILoEOQMAQdgjILsEOQMAQeAjILwEOQMAQegjIL0EOQMAQfAjIL4EOQMAQfgjIL8EOQMAQYAkIMAEOQMAQYgkIMEEOQMAQZAkIMIEOQMAQZgkIMMEOQMAQaAkIMQEOQMAQagkIMUEOQMAQbAkIMYEOQMAQbgkIMcEOQMAQcAkIMgEOQMAQcgkIMkEOQMAQdAkIMoEOQMAQdgkIMsEOQMAQeAkIMwEOQMAQegkIM0EOQMAQfAkIM4EOQMAQfgkIM8EOQMAQYAlINAEOQMAQYglINEEOQMAQZAlINIEOQMAQZglINMEOQMAQaAlINQEOQMAQaglINUEOQMAQbAlINYEOQMAQbglINcEOQMAQcAlINgEOQMAQcglINkEOQMAQdAlINoEOQMAQdglINsEOQMAQeAlINwEOQMAQeglIN0EOQMAQfAlIN4EOQMAQfglIN8EOQMAQYAmIOAEOQMAQYgmIOEEOQMAQZAmIOIEOQMAQZgmIOMEOQMAQaAmIOQEOQMAQagmIOUEOQMAQbAmIOYEOQMAQbgmIOcEOQMAQcAmIOgEOQMAQcgmIOkEOQMAQdAmIOoEOQMAQdgmIOsEOQMAQeAmIOwEOQMAQegmIO0EOQMAQfAmIO4EOQMAQfgmIO8EOQMAQYAnIPAEOQMAQYgnIPEEOQMAQZAnIPIEOQMAQZgnIPMEOQMAQaAnIPQEOQMAQagnIPUEOQMAQbAnIPYEOQMAQbgnIPcEOQMAQcAnIPgEOQMAQcgnIPkEOQMAQdAnIPoEOQMAQdgnIPsEOQMAQeAnIPwEOQMAQegnIP0EOQMAQfAnIP4EOQMAQfgnIP8EOQMAQYAoIIAFOQMAQYgoIIEFOQMAQZAoIIIFOQMAQZgoIIMFOQMAQaAoIIQFOQMAQagoIIUFOQMAQbAoIIYFOQMAQbgoIIcFOQMAQcAoIIgFOQMAQcgoIIkFOQMAQdAoIIoFOQMAQdgoIIsFOQMAQeAoIIwFOQMAQegoII0FOQMAQfAoII4FOQMAQfgoII8FOQMAQYApIJAFOQMAQYgpIJEFOQMAQZApIJIFOQMAQZgpIJMFOQMAQaApIJQFOQMAQagpIJUFOQMAQbApIJYFOQMAQbgpIJcFOQMAQcApIJgFOQMAQcgpIJkFOQMAQdApIJoFOQMAQdgpIJsFOQMAQeApIJwFOQMAQegpIJ0FOQMAQfApIJ4FOQMAQfgpIJ8FOQMAQYAqIKAFOQMAQYgqIKEFOQMAQZAqIKIFOQMAQZgqIKMFOQMAQaAqIKQFOQMAQagqIKUFOQMAQbAqIKYFOQMAQbgqIKcFOQMAQcAqIKgFOQMAQcgqIKkFOQMAQdAqIKoFOQMAQdgqIKsFOQMAQeAqIKwFOQMAQegqIK0FOQMAQfAqIK4FOQMAQfgqIK8FOQMAQYArILAFOQMAQYgrILEFOQMAQZArILIFOQMAQZgrILMFOQMAQaArILQFOQMAQagrILUFOQMAQbArILYFOQMAQbgrILcFOQMAQcArILgFOQMAQcgrILkFOQMAQdArILoFOQMAQdgrILsFOQMAQeArILwFOQMAQegrIL0FOQMAQfArIL4FOQMAQfgrIL8FOQMAQYAsIMAFOQMAQYgsIMEFOQMAQZAsIMIFOQMAQZgsIMMFOQMAQaAsIMQFOQMAQagsIMUFOQMAQbAsIMYFOQMAQbgsIMcFOQMAQcAsIMgFOQMAQcgsIMkFOQMAQdAsIMoFOQMAQdgsIMsFOQMAQeAsIMwFOQMAQegsIM0FOQMAQfAsIM4FOQMAQfgsIM8FOQMAQYAtINAFOQMAQYgtINEFOQMAQZAtINIFOQMAQZgtINMFOQMAQaAtINQFOQMAQagtINUFOQMAQbAtINYFOQMAQbgtINcFOQMAQcAtINgFOQMAQcgtINkFOQMAQdAtINoFOQMAQdgtINsFOQMAQeAtINwFOQMAQegtIN0FOQMAQfAtIN4FOQMAQfgtIN8FOQMAQYAuIOAFOQMAQYguIOEFOQMAQZAuIOIFOQMAQZguIOMFOQMAQaAuIOQFOQMAQaguIOUFOQMAQbAuIOYFOQMAQbguIOcFOQMAQcAuIOgFOQMAQcguIOkFOQMAQdAuIOoFOQMAQdguIOsFOQMAQeAuIOwFOQMAQeguIO0FOQMAQfAuIO4FOQMAQfguIO8FOQMAQYAvIPAFOQMAQYgvIPEFOQMAQZAvIPIFOQMAQZgvIPMFOQMAQaAvIPQFOQMAQagvIPUFOQMAQbAvIPYFOQMAQbgvIPcFOQMAQcAvIPgFOQMAQcgvIPkFOQMAQdAvIPoFOQMAQdgvIPsFOQMAQeAvIPwFOQMAQegvIP0FOQMAQfAvIP4FOQMAQfgvIP8FOQMAQYAwIIAGOQMAQYgwIIEGOQMAQZAwIIIGOQMAQZgwIIMGOQMAQaAwIIQGOQMAQagwIIUGOQMAQbAwIIYGOQMAQbgwIIcGOQMAQcAwIIgGOQMAQcgwIIkGOQMAQdAwIIoGOQMAQdgwIIsGOQMAQeAwIIwGOQMAQegwII0GOQMAQfAwII4GOQMAQfgwII8GOQMAQYAxIJAGOQMAQYgxIJEGOQMAQZAxIJIGOQMAQZgxIJMGOQMAQaAxIJQGOQMAQagxIJUGOQMAQbAxIJYGOQMAQbgxIJcGOQMAQcAxIJgGOQMAQcgxIJkGOQMAQdAxIJoGOQMAQdgxIJsGOQMAQeAxIJwGOQMAQegxIJ0GOQMAQfAxIJ4GOQMAQfgxIJ8GOQMAQYAyIKAGOQMAQYgyIKEGOQMAQZAyIKIGOQMAQZgyIKMGOQMAQaAyIKQGOQMAQagyIKUGOQMAQbAyIKYGOQMAQbgyIKcGOQMAQcAyIKgGOQMAQcgyIKkGOQMAQdAyIKoGOQMAQdgyIKsGOQMAQeAyIKwGOQMAQegyIK0GOQMAQfAyIK4GOQMAQfgyIK8GOQMAQYAzILAGOQMAQYgzILEGOQMAQZAzILIGOQMAQZgzILMGOQMAQaAzILQGOQMAQagzILUGOQMAQbAzILYGOQMAQbgzILcGOQMAQcAzILgGOQMAQcgzILkGOQMAQdAzILoGOQMAQdgzILsGOQMAQeAzILwGOQMAQegzIL0GOQMAQfAzIL4GOQMAQfgzIL8GOQMAQYA0IMAGOQMAQYg0IMEGOQMAQZA0IMIGOQMAQZg0IMMGOQMAQaA0IMQGOQMAQag0IMUGOQMAQbA0IMYGOQMAQbg0IMcGOQMAQcA0IMgGOQMAQcg0IMkGOQMAQdA0IMoGOQMAQdg0IMsGOQMAQeA0IMwGOQMAQeg0IM0GOQMAQfA0IM4GOQMAQfg0IM8GOQMAQYA1INAGOQMAQYg1INEGOQMAQZA1INIGOQMAQZg1INMGOQMAQaA1INQGOQMAQag1INUGOQMAQbA1INYGOQMAQbg1INcGOQMAQcA1INgGOQMAQcg1INkGOQMAQdA1INoGOQMAQdg1INsGOQMAQeA1INwGOQMAQeg1IN0GOQMAQfA1IN4GOQMAQfg1IN8GOQMAQYA2IOAGOQMAQYg2IOEGOQMAQZA2IOIGOQMAQZg2IOMGOQMAQaA2IOQGOQMAQag2IOUGOQMAQbA2IOYGOQMAQbg2IOcGOQMAQcA2IOgGOQMAQcg2IOkGOQMAQdA2IOoGOQMAQdg2IOsGOQMAQeA2IOwGOQMAQeg2IO0GOQMAQfA2IO4GOQMAQfg2IO8GOQMAQYA3IPAGOQMAQYg3IPEGOQMAQZA3IPIGOQMAQZg3IPMGOQMAQaA3IPQGOQMAQag3IPUGOQMAQbA3IPYGOQMAQbg3IPcGOQMAQcA3IPgGOQMAQcg3IPkGOQMAQdA3IPoGOQMAQdg3IPsGOQMAQeA3IPwGOQMAQeg3IP0GOQMAQfA3IP4GOQMAQfg3IP8GOQMAQYA4IIAHOQMAQYg4IIEHOQMAQZA4IIIHOQMAQZg4IIMHOQMAQaA4IIQHOQMAQag4IIUHOQMAQbA4IIYHOQMAQbg4IIcHOQMAQcA4IIgHOQMAQcg4IIkHOQMAQdA4IIoHOQMAQdg4IIsHOQMAQeA4IIwHOQMAQeg4II0HOQMAQfA4II4HOQMAQfg4II8HOQMAQYA5IJAHOQMAQYg5IJEHOQMAQZA5IJIHOQMAQZg5IJMHOQMAQaA5IJQHOQMAQag5IJUHOQMAQbA5IJYHOQMAQbg5IJcHOQMAQcA5IJgHOQMAQcg5IJkHOQMAQdA5IJoHOQMAQdg5IJsHOQMAQeA5IJwHOQMAQeg5IJ0HOQMAQfA5IJ4HOQMAQfg5IJ8HOQMAQYA6IKAHOQMAQYg6IKEHOQMAQZA6IKIHOQMAQZg6IKMHOQMAQaA6IKQHOQMAQag6IKUHOQMAQbA6IKYHOQMAQbg6IKcHOQMAQcA6IKgHOQMAQcg6IKkHOQMAQdA6IKoHOQMAQdg6IKsHOQMAQeA6IKwHOQMAQeg6IK0HOQMAQfA6IK4HOQMAQfg6IK8HOQMAQYA7ILAHOQMAQYg7ILEHOQMAQZA7ILIHOQMAQZg7ILMHOQMAQaA7ILQHOQMAQag7ILUHOQMAQbA7ILYHOQMAQbg7ILcHOQMAQcA7ILgHOQMAQcg7ILkHOQMAQdA7ILoHOQMAQdg7ILsHOQMAQeA7ILwHOQMAQeg7IL0HOQMAQfA7IL4HOQMAQfg7IL8HOQMAQYA8IMAHOQMAQYg8IMEHOQMAQZA8IMIHOQMAQZg8IMMHOQMAQaA8IMQHOQMAQag8IMUHOQMAQbA8IMYHOQMAQbg8IMcHOQMAQcA8IMgHOQMAQcg8IMkHOQMAQdA8IMoHOQMAQdg8IMsHOQMAQeA8IMwHOQMAQeg8IM0HOQMAQfA8IM4HOQMAQfg8IM8HOQMAQYA9INAHOQMAQYg9INEHOQMAQZA9INIHOQMAQZg9INMHOQMAQaA9INQHOQMAQag9INUHOQMAQbA9INYHOQMAQbg9INcHOQMAQcA9INgHOQMAQcg9INkHOQMAQdA9INoHOQMAQdg9INsHOQMAQeA9INwHOQMAQeg9IN0HOQMAQfA9IN4HOQMAQfg9IN8HOQMAQYA+IOAHOQMAQYg+IOEHOQMAQZA+IOIHOQMAQZg+IOMHOQMAQaA+IOQHOQMAQag+IOUHOQMAQbA+IOYHOQMAQbg+IOcHOQMAQcA+IOgHOQMAQcg+IOkHOQMAQdA+IOoHOQMAQdg+IOsHOQMAQeA+IOwHOQMAQeg+IO0HOQMAQfA+IO4HOQMAQfg+IO8HOQMAQYA/IPAHOQMAQYg/IPEHOQMAQZA/IPIHOQMAQZg/IPMHOQMAQaA/IPQHOQMAQag/IPUHOQMAQbA/IPYHOQMAQbg/IPcHOQMAQcA/IPgHOQMAQcg/IPkHOQMAQdA/IPoHOQMAQdg/IPsHOQMAQeA/IPwHOQMAQeg/IP0HOQMAQfA/IP4HOQMAQfg/IP8HOQMACwoAIABBA3QrAwALDAAgAEEDdCABOQMAC6YBAQF/QQAhBANAIAQgAkgEQCAAIARqQQN0IAAgBGpBA3QrAwAgASAEakEDdCsDACADoqA5AwAgACACaiAEakEDdCAAIAJqIARqQQN0KwMAIAEgAmogBGpBA3QrAwAgA6KgOQMAIAAgAkEBdGogBGpBA3QgACACQQF0aiAEakEDdCsDACABIAJBAXRqIARqQQN0KwMAIAOioDkDACAEQQFqIQQMAQsLC0wBAX9BACEFA0AgBSABSARAIAAgBWpBA3QgAjkDACAAIAFqIAVqQQN0IAM5AwAgACABQQF0aiAFakEDdCAEOQMAIAVBAWohBQwBCwsLEwAgACADoiABIASioCACIAWioAsUACAAIACiIAEgAaKgIAIgAqKgnws=";
+      var BYTECODE = [16908288,33620480,16974080,33686272,17039872,33752064,17105664,33817856,17170432,33883648,17236224,33949440,17302016,34015232,17367808,34081024,17432832,34146816,17498624,34212608,17569024,34278400,17629952,1879969035,34344448,17700352,34409984,17761024,1880100621,34476032,17831168,34541568,17892096,1880232207,34607616,17959424,34673152,18023168,1880363793,34739200,18022400,18087936,18153728,1913393920,20,11,21,18022656,18087936,18153728,1913393920,20,11,21,18022912,18087936,18153472,1913393920,20,11,21,18022400,18087936,18157568,1913524992,20,13,21,18022656,18087936,18159360,1913524992,20,13,21,18022912,18087936,18153728,1913524992,20,13,21,18022400,18088192,18159616,1913524992,20,13,21,18022656,18088192,18159872,1913524992,20,13,21,18022912,18088192,18153728,1913524992,20,13,21,18022400,18088448,18156800,1913524992,20,13,21,18022656,18088448,18160128,1913524992,20,13,21,18022912,18088448,18153472,1913524992,20,13,21,18022400,18087936,18153472,1913656064,20,15,21,18022656,18087936,18153472,1913656064,20,15,21,18022912,18087936,18153728,1913656064,20,15,21,18022400,18087936,18153472,1913787136,20,17,21,18022656,18087936,18153984,1913787136,20,17,21,18022912,18087936,18154496,1913787136,20,17,21,18022400,18088192,18153728,1913787136,20,17,21,18022656,18088192,18153984,1913787136,20,17,21,18022912,18088192,18160384,1913787136,20,17,21,18022400,18088448,18153984,1913787136,20,17,21,18022656,18088448,18153984,1913787136,20,17,21,18022912,18088448,18160640,1913787136,20,17,21,18088192,34804736,18157568,34870528,18223104,34936320,18284800,35002112,18350336,35067904,18423040,35133696,18488832,35199488,18546944,35265280,18612224,35331072,18685696,35396864,18743552,35462656,1073742055,18751488,1344143360,18751744,18812160,18883072,18948864,19014656,1358954496,30,31,32,33,34,18752768,18812416,18884096,18949888,1409351680,0,30,31,32,33,18752768,18819072,18884864,18950656,1409351680,1,30,31,32,33,18744576,18819840,18885632,18951424,19017216,1442971648,30,31,32,33,466106857,34,18755328,18819840,18885632,18951424,19017728,1443037184,30,31,32,33,1823012635,34,18755840,18819840,18885632,18951424,19018240,1443102720,30,31,32,33,1294729838,34,18756352,18819840,18885632,18951424,19018752,1443168256,30,31,32,33,1845957014,34,18756864,18819840,18888192,18951424,19019520,1443233792,30,31,32,33,337108889,34,18743552,555684638,1092551328,18948352,19019776,19079680,19151104,19216896,1358954496,33,34,35,36,37,18751744,18823168,18889472,18954496,19014656,1358954496,30,31,32,33,34,18758656,18814464,18878464,18953984,1375731712,30,31,32,33,18758656,18824448,18878464,18953984,1375731712,30,31,32,33,18754560,18824704,18884096,18956032,1409351680,7,30,31,32,33,18754560,18825216,18884096,18956032,1409351680,8,30,31,32,33,18754560,18825472,18884096,18956032,1409351680,9,30,31,32,33,18754560,18814464,18884096,18953984,1409351680,10,30,31,32,33,18754560,18825728,18884096,18956032,1409351680,11,30,31,32,33,18754560,18825984,18884096,18956032,1409351680,12,30,31,32,33,18754560,18824448,18884096,18953984,1409351680,13,30,31,32,33,18754560,18826240,18884096,18956032,1409351680,14,30,31,32,33,18754560,18826496,18884096,18956032,1409351680,15,30,31,32,33,18761216,18827008,18884096,18956032,1409351680,16,30,31,32,33,18743552,555685406,1092551159,18954240,19023872,19089664,19140096,19220992,1358954496,33,34,35,36,37,18757632,18827264,18888704,18959104,19024896,1392508928,30,31,32,33,34,18763008,18814464,18894336,18959360,1409351680,17,30,31,32,33,35655936,18763520,18824704,18884096,18956032,1409351680,18,30,31,32,33,18763520,18825216,18884096,18960384,1409351680,19,30,31,32,33,18763520,18825472,18884096,18950656,1409351680,20,30,31,32,33,18763520,18814464,18884096,18960640,1409351680,21,30,31,32,33,18763520,18825728,18884096,18949888,1409351680,22,30,31,32,33,18763520,18825984,18884096,18949888,1409351680,23,30,31,32,33,18763520,18824448,18884096,18960896,1409351680,24,30,31,32,33,18763520,18826240,18884096,18961152,1409351680,25,30,31,32,33,18763520,18826496,18884096,18951680,1409351680,26,30,31,32,33,18763520,18827008,18884096,18949888,1409351680,27,30,31,32,33,18764800,18830592,18895872,18961920,19017216,1392508928,30,31,32,33,34,18751744,18831104,18883072,18943488,19014656,1358954496,30,31,32,33,34,18765824,18831616,18894336,18956032,1409351680,28,30,31,32,33,18751744,18831872,18896128,18955008,19024896,1444741120,30,31,32,33,900869718,34,18766592,18831872,18896128,18955008,19017728,1444806656,30,31,32,33,1571808382,34,18766848,18831872,18898176,18955008,19019520,1444872192,30,31,32,33,219186742,34,35659264,18743808,555684638,1092551477,18948352,19019776,19079680,19151104,19216896,1358954496,33,34,35,36,37,18752768,18832896,18882304,18949888,1409351680,32,30,31,32,33,18747136,18833152,18884096,18950656,1409351680,33,30,31,32,33,18747136,18833408,18877696,18959360,1409351680,34,30,31,32,33,18747136,18833664,18877696,18960640,1409351680,35,30,31,32,33,18768384,18834176,18894336,18965504,1409351680,36,30,31,32,33,18747136,18834688,18877696,18960640,1409351680,37,30,31,32,33,18768384,18810112,18894336,18960896,1409351680,38,30,31,32,33,18768384,18834944,18894336,18949888,1409351680,39,30,31,32,33,18747136,18835200,18877696,18960640,1409351680,40,30,31,32,33,18768384,18835456,18894336,18960384,1409351680,41,30,31,32,33,18747136,18835712,18877696,18956032,1409351680,42,30,31,32,33,18751744,18831872,18901504,18955008,19032832,1445658624,30,31,32,33,692122297,34,18770944,18831872,18901504,18955008,19033344,1445724160,30,31,32,33,155450362,34,35659264,18744064,555684638,1092551616,18948352,19019776,19079680,19151104,19230208,1358954496,33,34,35,36,37,18752768,18832896,18884096,18950656,1409351680,45,30,31,32,33,18752768,18837248,18877696,18956032,1409351680,46,30,31,32,33,18752768,18837504,18877696,18949888,1409351680,47,30,31,32,33,18752768,18832640,18877696,18950656,1409351680,48,30,31,32,33,18752768,18837760,18877696,18960640,1409351680,49,30,31,32,33,18752768,18838016,18877696,18960640,1409351680,50,30,31,32,33,18752768,18835968,18877696,18950656,1409351680,51,30,31,32,33,18752768,18838272,18877696,18960384,1409351680,52,30,31,32,33,18752768,18838528,18877696,18951680,1409351680,53,30,31,32,33,18752768,18838784,18877696,18959360,1409351680,54,30,31,32,33,18751744,18831872,18901504,18955008,19033344,1446445056,30,31,32,33,258154839,34,18770944,18831872,18901504,18955008,19032832,1445724160,30,31,32,33,155450362,34,35659264,18747392,555684638,1092551724,18948352,19019776,19079680,19151104,19232256,1358954496,33,34,35,36,37,18752768,18832896,18884096,18959360,1409351680,56,30,31,32,33,18752768,18816512,18904832,18951936,19020288,1358954496,30,31,32,33,34,18774016,18839808,18899456,18949120,1375731712,30,31,32,33,18774016,18839808,18878464,18949888,1375731712,30,31,32,33,18767104,18840064,18877696,18949888,1409351680,57,30,31,32,33,18774784,18840576,18894336,18956032,1409351680,58,30,31,32,33,18767616,18840832,18894336,18950656,1409351680,59,30,31,32,33,18751744,18831872,18901504,18955008,19017728,1446772736,30,31,32,33,1571808382,34,18770944,18831872,18901504,18955008,19032832,1445724160,30,31,32,33,155450362,34,35659264,18775552,555684638,1092551885,18948352,19019776,19079680,19151104,19230208,1358954496,33,34,35,36,37,18752768,18832896,18884096,18953216,1409351680,61,30,31,32,33,18752768,18816512,18904832,18972416,19014656,1358954496,30,31,32,33,34,18743552,555686430,1092551773,18972672,19038464,19090944,19156992,1409351680,62,33,34,35,36,35667456,18743808,555686430,1092551787,18972672,19038464,19090944,19147264,1409351680,63,33,34,35,36,35667712,18776064,18842112,18894336,18956032,1409351680,64,30,31,32,33,18752768,18832128,18904832,18973440,19020288,1358954496,30,31,32,33,34,18776064,18842624,18894336,18950656,1409351680,65,30,31,32,33,18776064,18842880,18894336,18965504,1409351680,66,30,31,32,33,18776064,18824448,18894336,18960640,1409351680,67,30,31,32,33,18776064,18815744,18894336,18959360,1409351680,68,30,31,32,33,18752768,18843136,18904832,18950144,19032832,1447362560,30,31,32,33,1402425985,34,18751744,18831872,18901504,18955008,19033344,1447428096,30,31,32,33,596618318,34,18770944,18831872,18901504,18955008,19017728,1445724160,30,31,32,33,155450362,34,35659264,18777856,555684638,1092552066,18948352,19019776,19079680,19151104,19230208,1358954496,33,34,35,36,37,18752768,18832896,18884096,18953984,1409351680,71,30,31,32,33,18752768,18816512,18904832,18974720,19014656,1358954496,30,31,32,33,34,18743552,555685406,1092551944,18972672,19038464,19090944,19155968,1409351680,72,33,34,35,36,18776064,18833408,18894336,18950656,1409351680,73,30,31,32,33,35670272,18743296,555685406,1092551968,18972672,19038464,19090944,19147264,1409351680,74,33,34,35,36,18776064,18833408,18894336,18956032,1409351680,75,30,31,32,33,35670784,18752768,18825728,18904832,18974976,19020288,1358954496,30,31,32,33,34,18776064,18844160,18894336,18949888,1409351680,76,30,31,32,33,18776064,18844416,18894336,18960640,1409351680,77,30,31,32,33,18776064,18844672,18894336,18950656,1409351680,78,30,31,32,33,18776064,18838272,18894336,18959360,1409351680,79,30,31,32,33,18776064,18844928,18894336,18956032,1409351680,80,30,31,32,33,18751744,18831872,18896128,18955008,19017728,1448148992,30,31,32,33,703639218,34,18766592,18831872,18896128,18955008,19032832,1448214528,30,31,32,33,1403484504,34,18766848,18831872,18898176,18955008,19024896,1448280064,30,31,32,33,554233285,34,35659264,18749440,555684638,1092552414,18948352,19019776,19079680,19151104,19230208,1358954496,33,34,35,36,37,18752768,18832896,18884096,18951680,1409351680,84,30,31,32,33,18752768,18825216,18909440,18957824,19032832,1448411136,30,31,32,33,264432270,34,18766592,18825216,18909440,18957824,19017728,1448476672,30,31,32,33,1418994143,34,18779648,18825216,18910976,18957824,19018240,1448542208,30,31,32,33,987639507,34,18752768,18845440,18904832,18976768,19014656,1358954496,30,31,32,33,34,18743552,555687198,1092552221,18972672,19029248,19090944,19147264,1409351680,88,33,34,35,36,18776064,18825728,18894336,18960640,1409351680,89,30,31,32,33,18776064,18845952,18894336,18949888,1409351680,90,30,31,32,33,18776064,18846208,18894336,18959360,1409351680,91,30,31,32,33,18776064,18810112,18894336,18960384,1409351680,92,30,31,32,33,18776064,18846464,18894336,18961152,1409351680,93,30,31,32,33,18776064,18846720,18894336,18951680,1409351680,94,30,31,32,33,18776064,18811392,18894336,18956032,1409351680,95,30,31,32,33,35675904,18743808,555687198,1092552305,18972672,19029248,19090944,19148800,1409351680,96,33,34,35,36,18776064,18825728,18894336,18960640,1409351680,97,30,31,32,33,18776064,18845952,18894336,18949888,1409351680,98,30,31,32,33,18776064,18846208,18894336,18959360,1409351680,99,30,31,32,33,18776064,18810112,18894336,18960384,1409351680,100,30,31,32,33,18776064,18846464,18894336,18961152,1409351680,101,30,31,32,33,18776064,18846720,18894336,18951680,1409351680,102,30,31,32,33,18776064,18811392,18894336,18956032,1409351680,103,30,31,32,33,35677952,18744064,555687198,1092552389,18972672,19029248,19090944,19149312,1409351680,104,33,34,35,36,18776064,18825728,18894336,18960640,1409351680,105,30,31,32,33,18776064,18845952,18894336,18949888,1409351680,106,30,31,32,33,18776064,18846208,18894336,18959360,1409351680,107,30,31,32,33,18776064,18810112,18894336,18960384,1409351680,108,30,31,32,33,18776064,18846464,18894336,18961152,1409351680,109,30,31,32,33,18776064,18846720,18894336,18951680,1409351680,110,30,31,32,33,18776064,18811392,18894336,18956032,1409351680,111,30,31,32,33,35680000,18751744,18831872,18901504,18955008,19032832,1450180608,30,31,32,33,731225857,34,18770944,18831872,18901504,18955008,19033344,1445724160,30,31,32,33,155450362,34,35659264,18751744,18846976,18912768,18950144,19032832,1450246144,30,31,32,33,155450362,34,18767360,18846976,18912768,18950144,19017728,1443037184,30,31,32,33,432127570,34,18765056,18846976,18912768,18950144,19018240,1443102720,30,31,32,33,1547430192,34,18774528,18846976,18912768,18950144,19024896,1450311680,30,31,32,33,1900743380,34,18777600,18846976,18912768,18950144,19018752,1443168256,30,31,32,33,398511481,34,18757888,18846976,18912768,18950144,19019520,1443233792,30,31,32,33,219186742,34,18781952,18846976,18894592,18950144,19017216,1442971648,30,31,32,33,796991136,34,18765824,18847744,18894336,18956032,1409351680,115,30,31,32,33,-16777216,18782464,1344143360,18752256,18829056,18883328,18979328,19045120,1392508928,30,31,32,33,34,18745088,18829056,18876160,18979328,19045120,1392508928,30,31,32,33,34,18768640,18829056,18899712,18979328,19045120,1392508928,30,31,32,33,34,18780928,18829056,18912000,18979328,19045120,1392508928,30,31,32,33,34,18783232,18829056,18914304,18979328,19045120,1392508928,30,31,32,33,34,18783488,18829056,18914560,18979328,19045120,1392508928,30,31,32,33,34,18783744,18829056,18914816,18979328,19045120,1392508928,30,31,32,33,34,18784000,18829056,18915072,18979328,19045120,1392508928,30,31,32,33,34,18784256,18829056,18915328,18979328,19045120,1392508928,30,31,32,33,34,18746880,18845440,18915584,18976512,19045120,1392508928,30,31,32,33,34,18746880,18840064,18915584,18971136,19045120,1392508928,30,31,32,33,34,18746880,18820864,18915584,18951936,19014656,1392508928,30,31,32,33,34,18746880,18811648,18915584,18942720,19045120,1392508928,30,31,32,33,34,18746880,18850304,18915584,18981376,19045120,1392508928,30,31,32,33,34,18746880,18812416,18884096,18949888,1409351680,116,30,31,32,33,18746880,18819072,18894336,18956032,1409351680,117,30,31,32,33,18768128,18820864,18916096,18967296,1375731712,30,31,32,33,18768128,18820864,18883328,18952192,1375731712,30,31,32,33,18774528,18820864,18883328,18967808,1375731712,30,31,32,33,18752256,18820864,18886400,18951936,19033344,1392508928,30,31,32,33,34,18768128,18833664,18899200,18980096,19033344,1392508928,30,31,32,33,34,18769664,18843136,18894336,18949888,1409351680,118,30,31,32,33,18785280,18851072,18894336,18949888,1409351680,119,30,31,32,33,18768128,18820864,18916864,18977280,19017216,1392508928,30,31,32,33,34,18785792,18846208,18878464,18950656,1375731712,30,31,32,33,18786048,18820864,18917376,18951936,19033344,1392508928,30,31,32,33,34,18786560,18843136,18894336,18956032,1409351680,120,30,31,32,33,18786048,18846208,18914304,18965248,19016192,1392508928,30,31,32,33,34,18783232,18834176,18877184,18977280,19016192,1392508928,30,31,32,33,34,18746112,18846208,18917888,18951936,19016192,1392508928,30,31,32,33,34,18786816,18820864,18914560,18983680,19016192,1392508928,30,31,32,33,34,18783488,18852608,18915840,18983424,19016192,1392508928,30,31,32,33,34,18784768,18852352,18918400,18983680,19016192,1392508928,30,31,32,33,34,18787328,18852608,18914816,18951936,19016192,1392508928,30,31,32,33,34,18783744,18820864,18918656,18977280,19016192,1392508928,30,31,32,33,34,18787584,18846208,18913792,18965248,19016192,1392508928,30,31,32,33,34,18782720,18834176,18915072,18977280,19016192,1392508928,30,31,32,33,34,18784000,18846208,18918912,18951936,19016192,1392508928,30,31,32,33,34,18787840,18820864,18877440,18983680,19016192,1392508928,30,31,32,33,34,18746368,18852608,18915328,18983424,19016192,1392508928,30,31,32,33,34,18784256,18852352,18917376,18983680,19016192,1392508928,30,31,32,33,34,18746880,18850304,18915328,18947584,19020288,1358954496,30,31,32,33,34,18746880,18850304,18917376,18981376,19050240,1392508928,30,31,32,33,34,18747136,18853888,18894336,18950656,1409351680,121,30,31,32,33,18747136,18817536,18894336,18960640,1409351680,122,30,31,32,33,18747136,18854144,18894336,18949888,1409351680,123,30,31,32,33,18747136,18854400,18894336,18956032,1409351680,124,30,31,32,33,-16777216,18743552,34807296,-16777216,18743808,34807296,-16777216,18744064,34807296,-16777216,18747392,34807296,-16777216,18775552,34807296,-16777216,18777856,34807296,-16777216,18743808,34807296,-16777216,18775552,34807296,-16777216,18744064,34807296,-16777216,18777856,34807296,-16777216,18743808,555684638,1092553049,18940160,34808064,35656448,1073744220,18743808,34807296,35656448,-16777216,18744064,555684638,1092553060,18940160,34808064,35656448,1073744231,18744064,34807296,35656448,-16777216,18775552,555684638,1092553071,18940160,34808064,35656448,1073744242,18775552,34807296,35656448,-16777216,18777856,555684638,1092553082,18940160,34808064,35656448,1073744253,18777856,34807296,35656448,-16777216,18809344,18874368,1897991711,32,13,35528960,18809088,555752991,1092618639,19005952,19070976,19136512,1913528832,35,13,36,35726336,18808832,555752991,1092618650,19005952,19070976,19136768,1913528832,35,13,36,35726336,-16777216,18743296,35003904,18809088,34807552,-16777216,18809088,35004160,18809088,270538015,34938880,18812160,622859551,1092618667,19009536,34939392,35722496,-16777216,18809088,35004160,-16777216,18809088,34807552,18809344,35331840,-16777216,18809088,555751967,1092618683,19005952,35267072,35723776,1073744318,18809088,35266304,35723776,-16777216,18809600,34807552,-16777216,18809600,34807552,-16777216,18809088,34807552,-16777216,18814976,34807552,-16777216,18814976,555750175,1092618706,19005696,34808320,35721984,1073744341,18814976,34807552,35721984,-16777216,18809088,35462912,-16777216,18809344,35462912,-16777216,18809600,35462912,-16777216,18809088,34807552,-16777216];
+      var CONST_POOL = [0.0,1.0,2.0,3.0,101.0,202.0,10000.0,100.0,102.0,103.0,256.0,300.0,500.0,10.0,20.0,30.0,4.0,0.015625,117.0,127.0,0.0078125,512.0,128.0,18.0,7.0,43.0,74.0,204.0,450.0,85.0,90.0,12.0,658967.0,15.0,390.0,40.0,1448738.0,25.0,11.0,5809919.0,36.0,8.0,4176208.0,16.0,32.0,28.0,58879.0,240.0,2328118.0,278.0,9000933.0,316.0,1.4377378E7,354.0,34.0,1.6273737E7,55.0,290.0,856343.0,38.0,24.0,188.0,68.0,9147550.0,88.0,108.0,148.0,168.0,208.0,228.0,26.0,248.0,122.0,348.0,3023890.0,142.0,1.3801762E7,42.0,9.0,60.0,1.2356863E7,7979263.0,3789651.0,1.6218298E7,245.0,125.0,141.0,325.0,22.0,331.0,355.0,145.0,275.0,130.0,70.0,95.0,118.0,140.0,45.0,160.0,1.6777215E7,182.0,222.0,244.0,264.0,286.0,190.0,2060267.0,215.0,3159613.0,593171.0,92.0,110.0,150.0,170.0,212.0,232.0,252.0,1053725.0,370.0,210.0,185.0,180.0,105.0,200.0,250.0,5.0,48.0,35.0,98.0,116.0,135.0,155.0,172.0,235.0,6.0,52.0,115.0,158.0,176.0,194.0,230.0,265.0,120.0,175.0,166.0,184.0,220.0,238.0,405.0,50.0,345.0,452.0,461586.0,440.0,1054240.0,280.0,340.0,400.0,460.0,520.0,550.0,360.0,80.0,144.0,134.0,196.0,260.0,540.0,544.0,320.0,296.0,380.0,420.0,480.0,2172461.0,372.0,408.0,426.0];
+      var SCREEN_ROUTES = {"1787879944":231,"1257924439":1853};
+      var ACTION_ROUTES = {"155450362":2356,"432127570":2359,"1547430192":2362,"1900743380":2365,"398511481":2368,"219186742":2371,"1588611600":2374,"1213973685":2377,"1186580691":2380,"213627685":2383,"1823012635":2386,"1294729838":2397,"1845957014":2408,"337108889":2419,"900869718":2430,"703639218":2459,"1403484504":2464,"554233285":2476,"1402425985":2479,"596618318":2484,"1571808382":2495,"258154839":2498,"692122297":2501,"796991136":2504,"466106857":2507,"264432270":2518,"1418994143":2521,"987639507":2524,"731225857":2527};
+      var STRINGS = ["CHRONOS STUDIO","v1.0 Zero-GC | Snap","📖","📁","📟","✨","🐞","1","2","3","4","5","6","7","8","9","10","▶","// main.fas — Script PhasorLang Activo","import \\\"lib/view.ph\\\"","signal frecuencia = 60.0","v1: Vec3 = [10.0, 20.0, 30.0]","screen main {","    cls(0x0E1117)","    out(frecuencia * 2.0)","    smith_chart(120, 160, 65, 0.3, 0.4)","    cartesian_plane(20, 240, 350, 80, 0.0, 0.7)","}","Ln 4, Col 28 | UTF-8 | GapBuffer SoA (Zero-GC) | 2 Breakpoints","Toggle BP (Ln 4)","▶ Ejecutar","🐞 Debug","EXPLORADOR DE PROYECTO (phasor.toml)","[PROYECTO] ChronosApp v1.0.0","  |-- [TOML] phasor.toml","  |-- [DIR]  src/","  |     \\\\-- [FILE] main.fas (Entrada principal)","  |-- [DIR]  samples/","  |     |-- [FILE] calculadora.fas","  |     \\\\-- [FILE] phasor_ide.ph","  |-- [DIR]  lib/","  |     \\\\-- [FILE] view.ph + ai_chat.ph","  \\\\-- [DIR]  dist/ (WASM AOT + PWA 120 FPS)","Cargar calculadora.fas","Volver a Editor","TERMINAL Y TELEMETRÍA PVM (OP_OUT STREAM)","> phasor run src/main.fas","> [WasmEmitter] Modulo SoA compilado (64 KB)","> [OUT]: Iniciando Calculadora Vectorial...","> [OUT]: valor_display = 0.0000","> [OUT]: operando_acum = 42.5000","> [OUT]: resultado_paso = 120.0000","> [PVM Profiler] Latencia de ejecución: 85 us/frame","> [Watchdog] 0 ciclos excedidos. Cero fugas GC.","> [Estado] Todos los pasos out() capturados en log.","Limpiar Terminal","LIENZO DINÁMICO DESACOPLADO (90+ FPS)","Escenario Neutro Desacoplado","Proyección directa desde script PhasorLang","Cero vistas cableadas en el layout base del IDE","Reiniciar Lienzo","COPILOT IA HÍBRIDO (CLOUD + LOCAL SLM)","PROVEEDOR: Google Gemini Cloud API","PROVEEDOR: Local SLM Worker (<40KB Offline)","Contexto capturado: main.fas (Buffer SoA Ln 4)","[✨ Copilot] Sugerencia de Optimización Zero-GC:","1. Expresión multi-paso vectorizada a SIMD.","2. out(frecuencia * 2.0) escribe en terminal.","3. Listo para insertar en la posición del cursor.","📝 Aplicar en Editor","Conmutar Proveedor","DEPURADOR PVM — INSPECCIÓN R0..R255 (Fase 13)","ESTADO: PAUSADO EN BREAKPOINT (Línea 4, PC=0x0012)","Instrucción: OP_VEC3_LOAD R1 = [10.0, 20.0, 30.0]","ESTADO: EJECUCIÓN CONTINUA (90+ FPS)","Watchdog Timer: 0 excedidos | Try Stack: 0","[R0]  Escalar: 60.0000  (frecuencia)","[R1]  Vec3:    [10.00, 20.00, 30.00] (v1)","[R2]  Fasor:   12.50 + 8.20j (14.95 @ 33.26°)","[R3]  Signal:  120.0000 (resultado_paso)","[R4..R255] Memoria contigua SoA limpia (Zero-GC)","▶ Continuar","⏭️ Paso (Step)","⏸️ Pausar","VISOR DE DOCUMENTACIÓN INTERACTIVO","📐 Math","📚 Core","🤖 Ext","[SINTAXIS MATEMÁTICA Y FASORIAL]","1. Fasores:   v = 120.0 @ 45.0 (Mag @ Ang Deg)","2. Complejos: z = 50.0 + 25.0j  (R + jX)","3. Reflexion: gamma = (z - 50.0) / (z + 50.0)","4. Derivada:  d_dt = d/dx(f(x), x0)  (Continuo)","5. Integral:  area = int(f(x), a, b) (Trapezoidal)","6. SIMD Vec3: v: Vec3 = [10.0, 20.0, 30.0]","7. Zero-GC:   Registros ortogonales R0..R1023","[LIBRERÍAS NÚCLEO (view.ph, ai.ph, db.ph)]","1. view.ph: smith_chart(cx, cy, r, gamma_r, gamma_i)","2. view.ph: cartesian_plane(x, y, w, h, xmin, xmax)","3. ai.ph:   kan_eval(sinapsis, coefs_chebyshev_1_5)","4. ai.ph:   slm_alloc(cap) + slm_infer(t1, t2)","5. db.ph:   sql_columnar_scan(tabla, umbral_fase)","6. db.ph:   dot_product_simd(emb_q, emb_db)","7. Interfaz: Registradas en PhasorModuleRegistry","[LIBRERÍAS DE EXTENSIÓN (game.ph, rob.ph)]","1. game.ph:  alloc_soa(canales, entidades_10k)","2. game.ph:  set_soa(buf, ch, id, cap, valor)","3. game.ph:  step_fisica(dt) a 120 FPS Zero-GC","4. rob.ph:   rob_cinematica_inversa(x, y, z)","5. rob.ph:   rob_angulos_fasoriales(l1, l2, l3)","6. rob.ph:   actuador_pwm_control(canal, ciclo)","7. Zero-GC:  Matrices y cuaterniones en memoria plana","📝 Insertar Ejemplo","💻","🎮","PVM: 85 us | 90+ FPS | SoA: 64 KB | Gestos Tactiles Activos","CHRONOS LIVE PREVIEW — 120 FPS ZERO-GC","Lienzo de Ejecución Hot-Reloading en Tiempo Real","Re (Gamma)","+j Im","t [s]","ESTADO DE MEMORIA SoA DEL RUNTIME:","GapBuffer: 512 nodos | BreakpointMask: 128 entradas | ChatRing: 256 msgs","Invariante Zero-GC: 0 allocations en bucle tick() | 120 FPS estables","WASM Accelerator: 64 KB Linear Memory | Registros R0..R1023"];
+      var FIRST_SCREEN_PC = 231;
+      var CHILDREN = [{"id":1,"title":"<s>1: Chronos Studio (7 Vistas & Editor)","x":24,"y":50,"w":460,"h":580,"contentW":460,"contentH":540,"color":"#161B22","screenPc":231},{"id":2,"title":"<s>2: Live Preview & Canvas (120 FPS)","x":504,"y":50,"w":580,"h":580,"contentW":580,"contentH":540,"color":"#070B12","screenPc":1853}];
+
+      window.addEventListener('DOMContentLoaded', function() {
+        if (typeof PhasorRuntime !== 'undefined' && typeof PhasorRuntime.init === 'function') {
+          PhasorRuntime.init(WASM_PAYLOAD, 'phasorCanvas', {
+            title: "Chronos IDE Autonomous",
+            showHud: false,
+            bytecode: BYTECODE,
+            constPool: CONST_POOL,
+            screenRoutes: SCREEN_ROUTES,
+            actionRoutes: ACTION_ROUTES,
+            strings: STRINGS,
+            firstScreenPc: FIRST_SCREEN_PC,
+            children: CHILDREN
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

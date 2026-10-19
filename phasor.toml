@@ -1,0 +1,40 @@
+# ===============================================================
+# PhasorLang Project Manifest (phasor.toml)
+# Motor Fasorial de Alto Rendimiento — Chronos IDE
+# KoraDevs (https://github.com/koradevsorg)
+# ===============================================================
+
+[project]
+name = "phasorlang"
+version = "1.0.0"
+description = "Lenguaje de Dominio Específico (DSL) vectorial, cuántico y de ultra-alto rendimiento (Zero-GC 120 FPS)"
+organization = "KoraDevs"
+homepage = "https://github.com/koradevsorg"
+repository = "https://github.com/koradevsorg/phasorlang"
+license = "MIT"
+target = "web" # web, native, android, wasm, pwa
+
+[runtime]
+engine = "pvm"
+zero_gc = true
+target_fps = 120
+viewport_width = 1280
+viewport_height = 720
+
+[modules]
+ui = true
+math = true
+color = true
+quantum = true
+game = true
+rob = true
+audio = true
+ai = true
+media = true
+
+[build]
+compiler = "compiler/phasor.jar"
+runtime = "runtime/phasor_runtime.js"
+bundler = "tools/phasor_bundler.js"
+dist_dir = "dist"
+

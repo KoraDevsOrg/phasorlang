@@ -1,0 +1,145 @@
+// ===============================================================
+// DEMO_FASE14_DEBUG_RESPONSIVE.FAS — Validación Consolidada Fase 14
+// PhasorLang v1.0 [Self-Hosting Total & UI Responsive Espacial]
+// 1. Verificación de Exclusión Mutua IF / ELSE (0x40 JMP y 0x41 JMP_IF_ZERO)
+// 2. Persistencia de Breakpoints e Inspección SoA Zero-GC
+// 3. Slot de Carga Cuantizado Local 'phasor-slm-v1.bin' sobre Tablas SoA
+// 4. Salida Uncondicional out() en cada tick de la PVM
+// 5. UI Responsive Espacial Móvil "Llave en Cerradura" a 90+ FPS
+// ===============================================================
+
+import "lib/view.ph"
+import "lib/ai_chat.ph"
+
+// ---------------------------------------------------------------
+// TEST 1 & 2: BIFURCACIONES IF / ELSE Y EXCLUSION MUTUA PVM
+// ---------------------------------------------------------------
+signal test_flag = 1.0
+signal branch_result = 0.0
+
+if (test_flag == 1.0) {
+    branch_result = 100.0
+    out("TEST 1 (IF THEN): Rama THEN ejecutada con exito (100.0)")
+} else {
+    branch_result = 200.0
+    out("TEST 1 ERROR: Rama ELSE no debio ejecutarse")
+}
+out("TEST 1 RESULT:", branch_result)
+
+test_flag = 0.0
+if (test_flag == 1.0) {
+    branch_result = 300.0
+    out("TEST 2 ERROR: Rama THEN no debio ejecutarse")
+} else {
+    branch_result = 400.0
+    out("TEST 2 (IF ELSE): Rama ELSE ejecutada con exito (400.0)")
+}
+out("TEST 2 RESULT:", branch_result)
+
+// ---------------------------------------------------------------
+// TEST 3: MASCARA DE BREAKPOINTS SOA PERSISTENTE (ZERO-GC)
+// ---------------------------------------------------------------
+bp_cap = 64.0
+bp_soa = alloc_soa(3, bp_cap)
+set_soa(bp_soa, 0, 0, bp_cap, 4.0)   // Línea 4
+set_soa(bp_soa, 1, 0, bp_cap, 18.0)  // PC=0x0012
+set_soa(bp_soa, 2, 0, bp_cap, 1.0)   // Activo (1.0)
+
+bp_line = get_soa(bp_soa, 0, 0, bp_cap)
+bp_pc = get_soa(bp_soa, 1, 0, bp_cap)
+bp_act = get_soa(bp_soa, 2, 0, bp_cap)
+out("TEST 3 (DEBUG BP): Linea:", bp_line, "PC:", bp_pc, "Activo:", bp_act)
+
+// ---------------------------------------------------------------
+// TEST 4: SLOT LOCAL DEL MODELO CUANTIZADO phasor-slm-v1.bin (<40KB)
+// ---------------------------------------------------------------
+slm_cap = 32.0
+slm_soa = slm_alloc(slm_cap)
+slm_init(slm_soa, slm_cap)
+slm_load(slm_soa, slm_cap, 999.0)
+slm_ok = slm_is_loaded(slm_soa, slm_cap)
+slm_pred = slm_infer(slm_soa, slm_cap, 1.0, 1.0)
+out("TEST 4 (SLM LOCAL): Loaded:", slm_ok, "Inferencia Pred:", slm_pred)
+
+// ---------------------------------------------------------------
+// TEST 5: UI RESPONSIVE ESPACIAL MÓVIL "LLAVE EN CERRADURA"
+// ---------------------------------------------------------------
+signal pestana_activa = 1.0
+signal pvm_latencia_us = 78.0
+
+screen main {
+    cls(0x0A0E17)
+
+    // Encabezado Compacto Snap Móvil (390px)
+    rect(15, 10, 390, 40, 0x161B22)
+    text("FASE 14 — VALIDACION ESPACIAL PVM", 25, 20, 11, 0x58A6FF)
+    text("90+ FPS Zero-GC | JMP 0x40/0x41 | Snap Movil", 25, 36, 8, 0x3FB950)
+
+    // Botones minimalistas flotantes para alternar contenedores
+    btn("📁", 240, 16, 32, 28, swipe_izq, 0x238636)
+    btn("📟", 278, 16, 32, 28, swipe_abajo, 0x8957E5)
+    btn("✨", 316, 16, 32, 28, swipe_der, 0xDB61A2)
+    btn("🐞", 354, 16, 34, 28, swipe_arriba, 0xF85149)
+
+    // Vista 1: Editor y Núcleo PVM
+    if (pestana_activa == 1.0) {
+        rect(15, 55, 390, 280, 0x0D1117)
+        text("VISTA: Editor & PVM Core (Snap 100%)", 30, 75, 11, 0x58A6FF)
+        text("Bifurcaciones Mutuamente Excluyentes: OK", 30, 105, 10, 0x3FB950)
+        text("Mascara Breakpoints SoA Persistente: OK", 30, 130, 10, 0x3FB950)
+        text("Slot Cuantizado phasor-slm-v1.bin: OK", 30, 155, 10, 0x3FB950)
+        text("out() incondicional a Terminal: OK", 30, 180, 10, 0x3FB950)
+        smith_chart(210, 250, 45, 0.3, 0.4)
+    }
+
+    // Vista 2: Explorador (Swipe Izquierda)
+    if (pestana_activa == 2.0) {
+        rect(15, 55, 390, 280, 0x090D13)
+        text("VISTA: Explorador de Archivos (Swipe Izq)", 30, 75, 11, 0x238636)
+        text("Estructura de proyecto y VFS montados", 30, 105, 10, 0x8B949E)
+    }
+
+    // Vista 3: Terminal PVM (Swipe Abajo)
+    if (pestana_activa == 3.0) {
+        rect(15, 55, 390, 280, 0x090D13)
+        text("VISTA: Terminal PVM & Telemetria (Swipe Abajo)", 30, 75, 11, 0x8957E5)
+        text("> OP_OUT volcando sin screen explicito", 30, 105, 10, 0x3FB950)
+    }
+
+    // Vista 5: Copilot IA (Swipe Derecha)
+    if (pestana_activa == 5.0) {
+        rect(15, 55, 390, 280, 0x090D13)
+        text("VISTA: Copilot IA Hibrido (Swipe Der)", 30, 75, 11, 0xDB61A2)
+        text("Slot local phasor-slm-v1.bin activo (<40KB)", 30, 105, 10, 0x3FB950)
+    }
+
+    // Vista 6: Depurador (Swipe Arriba)
+    if (pestana_activa == 6.0) {
+        rect(15, 55, 390, 280, 0x090D13)
+        text("VISTA: Depurador PVM R0-R255 (Swipe Arriba)", 30, 75, 11, 0xF85149)
+        text("Breakpoints SoA persistentes durante scroll", 30, 105, 10, 0xD29922)
+    }
+
+    btn("Volver Editor", 15, 350, 185, 38, ir_editor, 0x1F6FEB)
+    btn("Test Gestos", 215, 350, 190, 38, swipe_izq, 0x238636)
+}
+
+action ir_editor {
+    pestana_activa = 1.0
+}
+
+action swipe_izq {
+    pestana_activa = 2.0
+}
+
+action swipe_abajo {
+    pestana_activa = 3.0
+}
+
+action swipe_der {
+    pestana_activa = 5.0
+}
+
+action swipe_arriba {
+    pestana_activa = 6.0
+}

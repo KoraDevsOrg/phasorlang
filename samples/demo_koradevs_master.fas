@@ -1,0 +1,254 @@
+// ===============================================================
+// DEMO_KORADEVS_MASTER.FAS — Demostrador Maestro de Consolidación y Autonomía
+// PhasorLang v1.0 [KoraDevs Ecosystem — Chronos IDE]
+//
+// Integra de forma unificada:
+// 1. Detección automática de dispositivo y Viewport PVM R250/R251
+// 2. Motor físico de colores en Hertz (400-750 THz), RGB, Hex y nombres
+// 3. Renderizado SoA y curvas factoriales Gamma(z) para nubes y horizontes
+// 4. Mecánicas completas de plataformas: saltar, correr, caminar, chocar y vidas
+// 5. Componentes fractales: Julia escape grid y curvas de Koch espectrales
+// 6. Síntesis de video procedural en vivo (0 Bytes storage): océano, chimenea y rostro IA
+// 7. Síntesis formántica de voz a 44.1 kHz PCM y asistente Full-Duplex con Barge-In O(1)
+// 8. Hub Políglota KoraDevs (PhasorLang, Python, C++, Rust, JS, Java) y seguridad de red
+// ===============================================================
+
+import "lib/ui.ph"
+import "lib/color.ph"
+import "lib/lowlevel_render.ph"
+import "lib/platformer.ph"
+import "lib/fractal_ui.ph"
+import "lib/procedural_video.ph"
+import "lib/audio.ph"
+import "lib/tts_speech.ph"
+import "lib/barge_in_assistant.ph"
+
+// ---------------------------------------------------------------
+// 1. TELEMETRÍA Y SEÑALES DEL SISTEMA
+// ---------------------------------------------------------------
+signal tab_activa = 1.0
+signal t_sim = 1.2
+signal vidas_jugador = 3.0
+signal talking_energy = 0.65
+signal eco_cancelado = 0.0
+
+// Detección inicial de dispositivo
+is_mobile_dev = auto_is_mobile()
+touch_h = touch_min_height()
+
+// Conversiones del motor de color en Hertz
+f_rojo = color_name_to_hz(1.0) // 4.4e14 Hz
+f_verde = color_name_to_hz(4.0) // 5.6e14 Hz
+f_azul = color_name_to_hz(6.0) // 6.6e14 Hz
+hex_rojo = hz_to_hex(f_rojo)
+hex_verde = hz_to_hex(f_verde)
+hex_azul = hz_to_hex(f_azul)
+
+out("=== CHRONOS IDE & KORADEVS — MASTER CONSOLIDATION ===")
+out("[PVM Viewport] Deteccion de dispositivo:", is_mobile_dev)
+out("[PVM Touch] Altura ergonomica minima:", touch_h)
+out("[Color Engine] 4.4e14 Hz (Rojo) Hex:", hex_rojo)
+out("[Color Engine] 5.6e14 Hz (Verde) Hex:", hex_verde)
+out("[Color Engine] 6.6e14 Hz (Azul) Hex:", hex_azul)
+
+// ---------------------------------------------------------------
+// 2. PRUEBAS FÍSICAS DE PLATAFORMAS EN MEMORIA CONTINUA SoA
+// ---------------------------------------------------------------
+// Reserva en heap contiguo para 512 entidades
+soa_plat = alloc_soa(8, 512)
+init_platformer_player(soa_plat, 0.0, 512.0, 40.0, 150.0, 3.0)
+
+// Ejecución de cinemática de plataforma
+correr(soa_plat, 0.0, 1.0, 6.5)
+saltar(soa_plat, 0.0, 11.0)
+vidas_jugador = gestionar_vidas(soa_plat, 0.0, 0.0)
+out("[Platformer SoA] Vidas iniciales del jugador:", vidas_jugador)
+
+// ---------------------------------------------------------------
+// 3. SÍNTESIS DE AUDIO FORMÁNTICO & BARGE-IN
+// ---------------------------------------------------------------
+// Buffer PCM contiguo de 1024 muestras
+soa_pcm = alloc_soa(1, 1024)
+soa_state = alloc_soa(4, 4)
+init_assistant_state(soa_state, 0.0, 4.0)
+
+// Simular muestra de micrófono y eco emitido
+mic_in = 0.45
+spk_out = 0.38
+eco_cancelado = phase_cancel_echo(mic_in, soa_pcm, 0.0, 0.85, 1024.0)
+interrupcion = barge_in_detect(eco_cancelado, 0.20)
+if (interrupcion == 1.0) {
+    assistant_interrupt_tts(soa_state, 0.0, 4.0)
+    out("[Full-Duplex Barge-In] Interrupcion de voz detectada en O(1) - TTS silenciado.")
+} else {
+    1.0
+}
+
+// ---------------------------------------------------------------
+// 4. INTERFAZ GRÁFICA MAESTRA (CANVAS DECLARATIVO ZERO-GC)
+// ---------------------------------------------------------------
+screen main {
+    // 1. Contenedor adaptativo 100% de la pantalla
+    screen_auto(0x0A0E14)
+
+    // 2. Barra de Navegación Superior
+    header_auto(1.0, 0x161B22, 0x30363D)
+
+    // Botones de Selector de Pestañas (Mínimo ergonómico táctil de 44px)
+    btn("🌐 Hub", 15, 60, 75, 44, ir_tab_hub, 0x1F6FEB)
+    btn("🎨 Hertz", 95, 60, 75, 44, ir_tab_color, 0x238636)
+    btn("🎬 Video", 175, 60, 75, 44, ir_tab_video, 0xDB61A2)
+    btn("🎙️ TTS", 255, 60, 75, 44, ir_tab_audio, 0x8957E5)
+    btn("🕹️ Game", 335, 60, 75, 44, ir_tab_game, 0xF85149)
+
+    // -----------------------------------------------------------
+    // PESTAÑA 1: HUB POLÍGLOTA KORADEVS Y DETECCIÓN RESPONSIVE
+    // -----------------------------------------------------------
+    if (tab_activa == 1.0) {
+        rect(15, 115, 400, 310, 0x0D1117)
+        text("HUB POLÍGLOTA KORADEVS & DISPOSITIVO AUTO", 25, 128, 11, 0x58A6FF)
+        
+        card_auto(25, 148, 380, 165, 0x161B22, 0x30363D)
+        text("ESTADO DEL RUNTIME Y DISPOSITIVO:", 35, 160, 9, 0x3FB950)
+        text("Viewport Inyectado : R250 (W), R251 (H)", 35, 178, 9, 0x79C0FF)
+        text("Deteccion Movil    : auto_is_mobile() = 1.0", 35, 196, 9, 0x58A6FF)
+        text("Touch Zone Min     : 44px (Ergonomia Movil)", 35, 214, 9, 0x3FB950)
+        text("Seguridad de Red   : NetworkSecurityManager Activo", 35, 232, 9, 0xD29922)
+        text("Apps Donadas Kora  : Python, C++, Rust, JS, Java", 35, 250, 9, 0xBC8CFF)
+        text("Tasa de Refresco   : 90+ FPS Zero-GC Garantizado", 35, 268, 9, 0x3FB950)
+        text("LSP Signature Help : PhasorLSP O(1) Activo", 35, 286, 9, 0x00E5FF)
+
+        btn_auto(1.0, 25, 330, 180, 501.0, 0x238636)
+        btn_auto(2.0, 220, 330, 185, 502.0, 0x1F6FEB)
+    }
+
+    // -----------------------------------------------------------
+    // PESTAÑA 2: MOTOR DE COLOR EN HERTZ Y FRACTAL UI
+    // -----------------------------------------------------------
+    if (tab_activa == 2.0) {
+        rect(15, 115, 400, 310, 0x0D1117)
+        text("ESPECTRO ÓPTICO EN HERTZ Y FRACTALES", 25, 128, 11, 0x58A6FF)
+
+        // Muestras de bandas cromáticas en Hertz
+        rect(25, 150, 45, 30, hex_rojo)
+        text("4.4e14 Hz (Rojo)", 78, 158, 9, 0xF85149)
+
+        rect(25, 185, 45, 30, hex_verde)
+        text("5.6e14 Hz (Verde)", 78, 193, 9, 0x3FB950)
+
+        rect(25, 220, 45, 30, hex_azul)
+        text("6.6e14 Hz (Azul)", 78, 228, 9, 0x58A6FF)
+
+        // Panel Fractal de Julia interactivo
+        render_julia_panel(220, 150, 180, 110, -0.7, 0.27, 8.0)
+        text("Julia Set (-0.7 + 0.27j)", 230, 270, 8, 0xBC8CFF)
+
+        // Curva de Koch espectral en el borde inferior
+        koch_curve_hz(25, 310, 395, 310, 2.0, 5.5e14)
+        text("Curva de Koch Mapeada en Hz", 25, 320, 8, 0x79C0FF)
+
+        fractal_button(10.0, 25, 345, 380, 44, 503.0, 5.8e14)
+    }
+
+    // -----------------------------------------------------------
+    // PESTAÑA 3: VIDEO PROCEDURAL (OCÉANO, CHIMENEA, ROSTRO IA)
+    // -----------------------------------------------------------
+    if (tab_activa == 3.0) {
+        rect(15, 115, 400, 310, 0x05080C)
+        text("VIDEO PROCEDURAL EN VIVO (0 BYTES STORAGE)", 25, 128, 11, 0x58A6FF)
+
+        // 1. Océano Gerstner en miniatura
+        procedural_ocean(t_sim, 200.0, 180.0, 1.2)
+
+        // 2. Chimenea y Fuego convectivo
+        procedural_chimney(t_sim, 310.0, 240.0, 15.0)
+
+        // 3. Rostro Sintético Vectorial de IA con Sincronización Labial
+        procedural_ai_face(t_sim, 210.0, 330.0, talking_energy, 2.0)
+    }
+
+    // -----------------------------------------------------------
+    // PESTAÑA 4: SÍNTESIS FORMÁNTICA & BARGE-IN ASSISTANT
+    // -----------------------------------------------------------
+    if (tab_activa == 4.0) {
+        rect(15, 115, 400, 310, 0x0D1117)
+        text("SÍNTESIS FORMÁNTICA 44.1 kHz Y FULL-DUPLEX", 25, 128, 11, 0x58A6FF)
+
+        card_auto(25, 150, 380, 180, 0x161B22, 0x30363D)
+        text("FORMANTES ACÚSTICOS (F0, F1, F2, F3):", 35, 165, 9, 0x3FB950)
+        text("Vocal 'A' : F1=800Hz,  F2=1200Hz, F3=2500Hz", 35, 185, 9, 0x79C0FF)
+        text("Vocal 'E' : F1=400Hz,  F2=2000Hz, F3=2800Hz", 35, 202, 9, 0x79C0FF)
+        text("Vocal 'I' : F1=280Hz,  F2=2300Hz, F3=3000Hz", 35, 219, 9, 0x79C0FF)
+        text("Vocal 'O' : F1=500Hz,  F2=900Hz,  F3=2400Hz", 35, 236, 9, 0x79C0FF)
+        text("Vocal 'U' : F1=320Hz,  F2=800Hz,  F3=2200Hz", 35, 253, 9, 0x79C0FF)
+        text("Full-Duplex AEC  : Cancelacion de Eco en O(1)", 35, 275, 9, 0x3FB950)
+        text("Barge-In Status  : Corte Inmediato Activo", 35, 295, 9, 0xDB61A2)
+
+        btn_auto(11.0, 25, 345, 180, 504.0, 0x8957E5)
+        btn_auto(12.0, 220, 345, 185, 505.0, 0xF85149)
+    }
+
+    // -----------------------------------------------------------
+    // PESTAÑA 5: FÍSICAS DE PLATAFORMAS & NUBES GAMMA(z)
+    // -----------------------------------------------------------
+    if (tab_activa == 5.0) {
+        rect(15, 115, 400, 310, 0x0B1220)
+        text("PLATAFORMAS SoA Y CURVAS GAMMA(z)", 25, 128, 11, 0x58A6FF)
+
+        // Nube atmosférica renderizada con Gamma(z)
+        render_cloud_gamma(140.0, 180.0, 35.0, 2.2, 5.5e14)
+        render_cloud_gamma(300.0, 165.0, 28.0, 2.8, 5.5e14)
+
+        // Suelo estático de plataforma
+        rect(25, 340, 380, 20, 0x238636)
+        line(25, 340, 405, 340, 0x3FB950)
+
+        // Renderizado del personaje jugador
+        render_platformer_character(soa_plat, 0.0, 16.0, 0x1F6FEB)
+
+        // Panel de controles de física
+        text("Vidas: 3.0 | Estado: Suelo + Movimiento SoA", 25, 230, 9, 0x3FB950)
+        btn_auto(20.0, 25, 250, 115, act_saltar, 0x238636)
+        btn_auto(21.0, 150, 250, 120, act_correr, 0x1F6FEB)
+        btn_auto(22.0, 280, 250, 125, act_dano, 0xF85149)
+    }
+
+    // Barra de Estado Inferior Global
+    line(15, 435, 415, 435, 0x30363D)
+    text("KORADEVS CONSOLIDATION | 90+ FPS ZERO-GC | WASM | PWA READY", 25, 442, 8, 0x8B949E)
+}
+
+// ---------------------------------------------------------------
+// 5. ACCIONES REACTIVAS
+// ---------------------------------------------------------------
+action ir_tab_hub {
+    tab_activa = 1.0
+}
+
+action ir_tab_color {
+    tab_activa = 2.0
+}
+
+action ir_tab_video {
+    tab_activa = 3.0
+}
+
+action ir_tab_audio {
+    tab_activa = 4.0
+}
+
+action ir_tab_game {
+    tab_activa = 5.0
+}
+
+action act_saltar {
+    saltar(soa_plat, 0.0, 12.0)
+}
+
+action act_correr {
+    correr(soa_plat, 0.0, 1.0, 7.0)
+}
+
+action act_dano {
+    gestionar_vidas(soa_plat, 0.0, -1.0)
+}

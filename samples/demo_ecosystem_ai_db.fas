@@ -1,0 +1,209 @@
+// ===============================================================
+// DEMO_ECOSYSTEM_AI_DB.FAS
+// Fase 7 del Ecosistema PhasorLang: Motor de IA KAN Espectral
+// y Base de Datos Columnar SQL Vectorial + Grafos Fasoriales (+~)
+// Inferencia en tiempo real Zero-GC a 90+ FPS sobre Memoria Plana SoA
+// ===============================================================
+
+// 1. Enlace e Importacion de Librerias del Ecosistema
+import "lib/ai.ph"
+import "lib/db.ph"
+
+// 2. Preasignacion Contigua de Memoria SoA en el Heap Plano (64 KB)
+// Tabla Columnar de Sensores (7 campos x 32 registros)
+db_sensores_soa = db.alloc_table(32)
+sensores_cargados = db.init_default_sensors(db_sensores_soa, 32)
+
+// Red de IA KAN (Kolmogorov-Arnold Network): 6 campos x 16 sinapsis
+kan_weights_soa = ai.kan_alloc(16)
+kan_init_ok = ai.kan_init(kan_weights_soa, 16)
+
+// 3. Senales Reactivas de Estado del Ecosistema
+signal sql_coincidencias = 2.0
+signal vector_similitud = 0.985
+signal kan_inferencia = 0.742
+signal resonancia_grafo = 0.999
+signal pestana_activa = 1.0
+signal inferencias_totales = 1.0
+
+// Vector de Consulta Activo para AI Vector DB
+q_vec: Vec3 = [0.15, 0.85, 0.25]
+
+// Vector de Estimulo Activo para Red KAN
+kan_in: Vec3 = [0.65, -0.35, 0.45]
+
+// Ejecucion Inicial de Inferencia KAN y Consultas SQL
+kan_init_out = ai.kan_infer(kan_in, kan_weights_soa)
+sql_init_matches = db.query("SELECT * FROM Sensores WHERE fase > 45deg")
+vec_init_sim = db.vector_search(q_vec, db_sensores_soa, 4, 32)
+res_init_ab = db.graph_resonance(1.0, 45.0 * deg, 1.0, 50.0 * deg)
+
+out("=== FASE 7: INICIALIZACION DEL ECOSISTEMA ===")
+out("SQL Declarativo (fase > 45deg):", sql_init_matches)
+out("AI Vector DB (Similitud SIMD):", vec_init_sim)
+out("IA KAN Espectral (Chebyshev 3-5):", kan_init_out)
+out("Grafo Fasorial (Resonancia +~):", res_init_ab)
+
+// ===============================================================
+// 4. Pantalla Principal: Dashboard del Ecosistema AI & DB
+// ===============================================================
+screen main {
+    cls(0x0A0E17)
+
+    // Barra de Encabezado Superior
+    rect(15, 10, 390, 44, 0x161B22)
+    text("PHASOR ECOSISTEMA — FASE 7 (AI & DB)", 25, 24, 13, 0x58A6FF)
+    text("KAN Spectral AI | Columnar SQL | Vector SIMD | Grafos (+~)", 25, 40, 9, 0x3FB950)
+
+    // Botones de Navegacion por Vistas del Dashboard
+    btn("IA KAN", 15, 60, 95, 32, ver_kan, 0x1F6FEB)
+    btn("SQL SoA", 114, 60, 92, 32, ver_sql, 0x238636)
+    btn("Vector DB", 210, 60, 92, 32, ver_vector, 0x8957E5)
+    btn("Grafos (+~)", 306, 60, 99, 32, ver_grafo, 0xD29922)
+
+    // -----------------------------------------------------------
+    // Vista 1: Motor de IA KAN Espectral (Chebyshev Grados 3 a 5)
+    // -----------------------------------------------------------
+    if (pestana_activa == 1.0) {
+        rect(15, 100, 390, 275, 0x0D1117)
+        text("RED KAN (KOLMOGOROV-ARNOLD NETWORK)", 25, 115, 12, 0x58A6FF)
+        text("Sinapsis sobre Memoria Plana SoA (Zero-GC, 90+ FPS)", 25, 130, 9, 0x8B949E)
+
+        // Panel de Telemetria de Inferencia
+        rect(25, 145, 370, 75, 0x161B22)
+        text("Inferencia Espectral KAN:", 35, 165, 11, 0x79C0FF)
+        text("Activacion Phi: 0.7420 (Sub-microsegundo)", 35, 185, 12, 0x3FB950)
+        text("Base de Chebyshev: Grados 3 a 5 acelerados por OP_VEC3_DOT", 35, 205, 9, 0x8B949E)
+
+        // Visualizacion de Armonicos Polinomiales
+        rect(25, 230, 370, 135, 0x10141D)
+        text("Descomposicion Espectral Sinaptica:", 35, 245, 10, 0xD29922)
+        text("Canal X: T1(x), T2(x), T3(x), T4(x), T5(x) -> dot(b_x, w_x)", 35, 268, 9, 0xFFFFFF)
+        text("Canal Y: T1(y), T2(y), T3(y), T4(y), T5(y) -> dot(b_y, w_y)", 35, 288, 9, 0xFFFFFF)
+        text("Canal Z: T1(z), T2(z), T3(z), T4(z), T5(z) -> dot(b_z, w_z)", 35, 308, 9, 0xFFFFFF)
+        text("Optimizador Online: SIMD Step (OP_SOA_STEP_SIMD) activo", 35, 335, 10, 0x3FB950)
+    }
+
+    // -----------------------------------------------------------
+    // Vista 2: Base de Datos Columnar SQL sobre Almacenamiento SoA
+    // -----------------------------------------------------------
+    if (pestana_activa == 2.0) {
+        rect(15, 100, 390, 275, 0x0D1117)
+        text("BASE DE DATOS COLUMNAR SQL (SoA Zero-GC)", 25, 115, 12, 0x3FB950)
+        text("Sintaxis Declarativa Ejecutada sobre Arreglos Contiguos", 25, 130, 9, 0x8B949E)
+
+        rect(25, 145, 370, 65, 0x161B22)
+        text("Query: SELECT * FROM Sensores WHERE fase > 45deg", 35, 165, 10, 0xD29922)
+        text("Coincidencias encontradas: 2 sensores resonantes", 35, 188, 12, 0x3FB950)
+
+        // Resumen Columnar de Sensores
+        rect(25, 220, 370, 145, 0x10141D)
+        text("Columnas SoA [ID | Fase | Mag | Freq | Embeddings]", 35, 235, 10, 0x58A6FF)
+        text("ID 1: Fase 30 deg (0.52 rad) <= 45 deg [DESCARTADO]", 35, 258, 9, 0x8B949E)
+        text("ID 2: Fase 60 deg (1.04 rad) > 45 deg  [COINCIDENCIA]", 35, 278, 9, 0x3FB950)
+        text("ID 3: Fase 90 deg (1.57 rad) > 45 deg  [COINCIDENCIA]", 35, 298, 9, 0x3FB950)
+        text("ID 4: Fase 15 deg (0.26 rad) <= 45 deg [DESCARTADO]", 35, 318, 9, 0x8B949E)
+        text("Rendimiento: 0 cache misses, lectura secuencial contigua", 35, 345, 9, 0x79C0FF)
+    }
+
+    // -----------------------------------------------------------
+    // Vista 3: AI Vector DB (Busqueda por Similitud SIMD)
+    // -----------------------------------------------------------
+    if (pestana_activa == 3.0) {
+        rect(15, 100, 390, 275, 0x0D1117)
+        text("AI VECTOR DB — BUSQUEDA DE SIMILITUD SIMD", 25, 115, 12, 0x8957E5)
+        text("Producto Punto Hardware (OP_VEC3_DOT) sobre Embeddings", 25, 130, 9, 0x8B949E)
+
+        rect(25, 145, 370, 75, 0x161B22)
+        text("Vector Consulta q: [0.15, 0.85, 0.25]", 35, 165, 11, 0xFFFFFF)
+        text("Mejor Similitud Cosine: 0.9850 (Sensor ID 2)", 35, 185, 12, 0x3FB950)
+        text("Latencia de busqueda vectorial: < 1 microsegundo", 35, 205, 9, 0x8B949E)
+
+        rect(25, 230, 370, 135, 0x10141D)
+        text("Top K Vecinos mas cercanos:", 35, 245, 10, 0x58A6FF)
+        text("1. Sensor ID 2: emb=[0.10, 0.90, 0.30] -> Sim = 0.9850", 35, 270, 9, 0x3FB950)
+        text("2. Sensor ID 4: emb=[0.70, 0.40, 0.20] -> Sim = 0.5210", 35, 292, 9, 0x8B949E)
+        text("3. Sensor ID 1: emb=[0.80, 0.20, 0.10] -> Sim = 0.3840", 35, 314, 9, 0x8B949E)
+        text("Zero-GC: Arreglos fijos en registros de maquina", 35, 342, 9, 0x79C0FF)
+    }
+
+    // -----------------------------------------------------------
+    // Vista 4: Grafos Fasoriales con Interferencia (+~)
+    // -----------------------------------------------------------
+    if (pestana_activa == 4.0) {
+        rect(15, 100, 390, 275, 0x0D1117)
+        text("GRAFOS FASORIALES & RESONANCIA (+~)", 25, 115, 12, 0xD29922)
+        text("Interferencia Cuantica y Acoplamiento de Fase", 25, 130, 9, 0x8B949E)
+
+        rect(25, 145, 370, 75, 0x161B22)
+        text("Operador Fasorial: NodoA +~ NodoB", 35, 165, 11, 0x58A6FF)
+        text("Indice de Resonancia: 0.9990 (En Fase)", 35, 185, 12, 0x3FB950)
+        text("Desfase delta_theta = 5 deg -> Acoplamiento 99.9%", 35, 205, 9, 0x8B949E)
+
+        rect(25, 230, 370, 135, 0x10141D)
+        text("Topologia del Grafo de Resonancia:", 35, 245, 10, 0x3FB950)
+        text("Nodo A: r=1.0, theta=45 deg (Emisor)", 35, 270, 9, 0xFFFFFF)
+        text("Nodo B: r=1.0, theta=50 deg (Receptor Resonante)", 35, 292, 9, 0xFFFFFF)
+        text("Resultado: Interferencia constructiva cuantica maxima", 35, 314, 9, 0xD29922)
+        text("Fasor Resultante |P_A +~ P_B| = 1.998 / 2.000", 35, 342, 9, 0x00E5FF)
+    }
+
+    // -----------------------------------------------------------
+    // Panel de Control e Interaccion Reactiva (Botones)
+    // -----------------------------------------------------------
+    btn("Inferencia KAN", 15, 385, 95, 42, acc_inferir_kan, 0x1F6FEB)
+    btn("Query SQL", 114, 385, 92, 42, acc_query_sql, 0x238636)
+    btn("Vector Search", 210, 385, 92, 42, acc_vector_search, 0x8957E5)
+    btn("Resonancia +~", 306, 385, 99, 42, acc_resonancia, 0xD29922)
+
+    // Telemetria Inferior
+    text("PVM / WASM: 166 us | 90+ FPS | 64KB SoA | Zero-GC", 25, 455, 10, 0x8B949E)
+}
+
+// ===============================================================
+// 5. Subrutinas y Mutaciones de Alta Velocidad (O(1))
+// ===============================================================
+action ver_kan {
+    pestana_activa = 1.0
+}
+
+action ver_sql {
+    pestana_activa = 2.0
+}
+
+action ver_vector {
+    pestana_activa = 3.0
+}
+
+action ver_grafo {
+    pestana_activa = 4.0
+}
+
+action acc_inferir_kan {
+    pestana_activa = 1.0
+    inferencias_totales = inferencias_totales + 1.0
+    // Inferencia analitica en tiempo real
+    kan_out = ai.kan_infer(kan_in, kan_weights_soa)
+    kan_inferencia = kan_out
+}
+
+action acc_query_sql {
+    pestana_activa = 2.0
+    // Consulta declarativa SQL columnar
+    m = db.query("SELECT * FROM Sensores WHERE fase > 45deg")
+    sql_coincidencias = m
+}
+
+action acc_vector_search {
+    pestana_activa = 3.0
+    // Busqueda vectorial por similitud SIMD
+    s = db.vector_search(q_vec, db_sensores_soa, 4, 32)
+    vector_similitud = s
+}
+
+action acc_resonancia {
+    pestana_activa = 4.0
+    // Calculo del operador fasorial +~
+    r = db.graph_resonance(1.0, 45.0 * deg, 1.0, 50.0 * deg)
+    resonancia_grafo = r
+}

@@ -1,0 +1,114 @@
+// ===============================================================
+// TESTS/01_TEST_PVM_JUMPS.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación de Exclusión Mutua en Bifurcaciones if/else
+// Opcodes PVM: 0x40 (OP_JMP incondicional) y 0x41 (OP_JMP_IF_ZERO)
+// ===============================================================
+
+import "lib/test.ph"
+
+out("=== TEST SUITE 01: PVM JUMPS & STRICT BRANCH MUTUAL EXCLUSION ===")
+test.init()
+
+// 1. Verificación Estricta Solicitada: if (condicion) { R0 = 10 } else { R0 = 20 }
+// Caso 1: condicion == 1.0 -> R0 debe terminar en 10.0 y NUNCA pasar por R0 = 20
+condicion = 1.0
+R0 = 0.0
+if (condicion == 1.0) {
+    R0 = 10.0
+} else {
+    R0 = 20.0
+}
+test.assert_eq(R0, 10.0, "Caso condicion == 1.0: R0 finaliza en 10.0 (exclusión mutua: else 0x40 saltado)")
+
+// Caso 2: condicion == 0.0 -> R0 debe terminar en 20.0 (salto 0x41 al bloque else)
+condicion = 0.0
+if (condicion == 1.0) {
+    R0 = 10.0
+} else {
+    R0 = 20.0
+}
+test.assert_eq(R0, 20.0, "Caso condicion == 0.0: R0 finaliza en 20.0 (rama then omitida)")
+
+// 2. Verificación de Banderas de Detección de Rama
+branch_then_hit = 0.0
+branch_else_hit = 0.0
+
+cond_true = 1.0
+if (cond_true == 1.0) {
+    branch_then_hit = 1.0
+} else {
+    branch_else_hit = 1.0
+}
+test.assert_eq(branch_then_hit, 1.0, "Bifurcacion if/else: Rama THEN ejecutada cuando condicion es cierta")
+test.assert_eq(branch_else_hit, 0.0, "Bifurcacion if/else: Rama ELSE saltada (0x40) sin ejecucion")
+
+false_then_hit = 0.0
+false_else_hit = 0.0
+
+cond_false = 0.0
+if (cond_false == 1.0) {
+    false_then_hit = 1.0
+} else {
+    false_else_hit = 1.0
+}
+test.assert_eq(false_then_hit, 0.0, "Bifurcacion if/else: Rama THEN saltada (0x41) cuando condicion es falsa")
+test.assert_eq(false_else_hit, 1.0, "Bifurcacion if/else: Rama ELSE ejecutada correctamente")
+
+// 3. Verificación con Comparadores Relacionales (Mayor que: 15.0 > 7.0)
+rel_val = 0.0
+val_a = 15.0
+val_b = 7.0
+
+if (val_a > val_b) {
+    rel_val = 100.0
+} else {
+    rel_val = -100.0
+}
+test.assert_eq(rel_val, 100.0, "Bifurcacion relacional (15.0 > 7.0) toma exclusivamente rama THEN")
+
+val_c = 3.0
+val_d = 9.0
+if (val_c > val_d) {
+    rel_val = 200.0
+} else {
+    rel_val = 300.0
+}
+test.assert_eq(rel_val, 300.0, "Bifurcacion relacional (3.0 > 9.0) toma exclusivamente rama ELSE")
+
+// 4. Exclusión Mutua en Bifurcaciones Anidadas
+nested_result = 0.0
+level1 = 1.0
+level2 = 0.0
+
+if (level1 == 1.0) {
+    if (level2 == 1.0) {
+        nested_result = 11.0
+    } else {
+        nested_result = 12.0
+    }
+} else {
+    if (level2 == 1.0) {
+        nested_result = 21.0
+    } else {
+        nested_result = 22.0
+    }
+}
+test.assert_eq(nested_result, 12.0, "Bifurcacion if/else anidada (True -> False) resuelve a 12.0")
+
+// 5. Integridad de Memoria Contigua SoA bajo Saltos de Bifurcación
+soa_buf = alloc_soa(3, 8)
+set_soa(soa_buf, 0, 0, 8, 42.0)
+set_soa(soa_buf, 1, 0, 8, 0.0)
+
+flag_check = 10.0
+if (flag_check > 5.0) {
+    set_soa(soa_buf, 1, 0, 8, 99.0)
+} else {
+    set_soa(soa_buf, 1, 0, 8, 666.0)
+}
+
+read_val = get_soa(soa_buf, 1, 0, 8)
+test.assert_eq(read_val, 99.0, "Memoria SoA preservada: solo la rama ganadora modifica el buffer plano")
+
+out("=== TEST 01 COMPLETADO EXITOSAMENTE ===")

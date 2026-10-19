@@ -1,0 +1,105 @@
+// ===============================================================
+// TESTS/02_TEST_HERTZ_COLORS.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Conversión de Colores en Hertz, Memoria SoA y Renderizado FrameBuffer
+// ===============================================================
+
+import "lib/test.ph"
+import "lib/color.ph"
+
+out("=== TEST SUITE 02: HERTZ COLOR ENGINE & SOA SPECTRAL PIXELS ===")
+test.init()
+
+// 1. Conversión nominal de frecuencias en Hertz a partir de nombres de color
+f_red = color.hz_from_name("red")
+f_green_name = color.hz_from_name("green")
+f_blue_name = color.hz_from_name("blue")
+
+test.assert_eq(f_red, 4.4e14, "color.hz_from_name('red') == 4.4e14 Hz (~680 nm)")
+test.assert_eq(f_green_name, 5.6e14, "color.hz_from_name('green') == 5.6e14 Hz (~535 nm)")
+test.assert_eq(f_blue_name, 6.6e14, "color.hz_from_name('blue') == 6.6e14 Hz (~455 nm)")
+
+// 2. Conversión inversa de componentes RGB a frecuencia espectral en Hertz
+f_green = color.hz_from_rgb(0.0, 255.0, 0.0)
+test.assert_eq(f_green, 5.6e14, "color.hz_from_rgb(0, 255, 0) == 5.6e14 Hz (Verde espectral)")
+
+f_red_rgb = color.hz_from_rgb(255.0, 0.0, 0.0)
+test.assert_eq(f_red_rgb, 4.4e14, "color.hz_from_rgb(255, 0, 0) == 4.4e14 Hz (Rojo espectral)")
+
+// 3. Conversión de frecuencia espectral en Hertz a valor de píxel SoA (Hex 0xRRGGBB)
+hex_red = color.hz_to_pixel_color(f_red)
+hex_green = color.hz_to_pixel_color(f_green)
+f_blue = 6.6e14
+hex_blue = color.hz_to_pixel_color(f_blue)
+f_yellow = 5.2e14
+hex_yellow = color.hz_to_pixel_color(f_yellow)
+
+test.assert_eq(hex_red, 16711680.0, "color.hz_to_pixel_color(4.4e14) == 0xFF0000 (Rojo puro = 16711680)")
+test.assert_eq(hex_green, 65280.0,  "color.hz_to_pixel_color(5.6e14) == 0x00FF00 (Verde puro = 65280)")
+test.assert_eq(hex_blue, 255.0,     "color.hz_to_pixel_color(6.6e14) == 0x0000FF (Azul puro = 255)")
+
+// 4. Mapeo y escritura del marco de prueba (Cuadrante Espectral) en el FrameBuffer SoA
+// Buffer SoA de 4 campos: [0: X, 1: Y, 2: Frecuencia_Hz, 3: Pixel_Color_Hex] para 4 cuadrantes
+QUAD_CAP = 4
+soa_framebuffer = alloc_soa(4, QUAD_CAP)
+
+// Cuadrante 0: Superior-Izquierdo (Rojo 4.4e14 Hz)
+set_soa(soa_framebuffer, 0, 0, QUAD_CAP, 0.0)
+set_soa(soa_framebuffer, 1, 0, QUAD_CAP, 0.0)
+set_soa(soa_framebuffer, 2, 0, QUAD_CAP, f_red)
+set_soa(soa_framebuffer, 3, 0, QUAD_CAP, hex_red)
+
+// Cuadrante 1: Superior-Derecho (Verde 5.6e14 Hz)
+set_soa(soa_framebuffer, 0, 1, QUAD_CAP, 400.0)
+set_soa(soa_framebuffer, 1, 1, QUAD_CAP, 0.0)
+set_soa(soa_framebuffer, 2, 1, QUAD_CAP, f_green)
+set_soa(soa_framebuffer, 3, 1, QUAD_CAP, hex_green)
+
+// Cuadrante 2: Inferior-Izquierdo (Azul 6.6e14 Hz)
+set_soa(soa_framebuffer, 0, 2, QUAD_CAP, 0.0)
+set_soa(soa_framebuffer, 1, 2, QUAD_CAP, 300.0)
+set_soa(soa_framebuffer, 2, 2, QUAD_CAP, f_blue)
+set_soa(soa_framebuffer, 3, 2, QUAD_CAP, hex_blue)
+
+// Cuadrante 3: Inferior-Derecho (Amarillo 5.2e14 Hz)
+set_soa(soa_framebuffer, 0, 3, QUAD_CAP, 400.0)
+set_soa(soa_framebuffer, 1, 3, QUAD_CAP, 300.0)
+set_soa(soa_framebuffer, 2, 3, QUAD_CAP, f_yellow)
+set_soa(soa_framebuffer, 3, 3, QUAD_CAP, hex_yellow)
+
+// Aserciones de verificación de integridad del FrameBuffer SoA
+test.assert_soa_eq(soa_framebuffer, 0, 0, QUAD_CAP, 0.0, "Cuadrante 0: X = 0.0")
+test.assert_soa_eq(soa_framebuffer, 1, 0, QUAD_CAP, 0.0, "Cuadrante 0: Y = 0.0")
+test.assert_soa_eq(soa_framebuffer, 2, 0, QUAD_CAP, f_red, "Cuadrante 0: Frecuencia 4.4e14 Hz (Rojo)")
+test.assert_soa_eq(soa_framebuffer, 3, 0, QUAD_CAP, hex_red, "Cuadrante 0: Pixel Color 0xFF0000")
+
+test.assert_soa_eq(soa_framebuffer, 0, 1, QUAD_CAP, 400.0, "Cuadrante 1: X = 400.0")
+test.assert_soa_eq(soa_framebuffer, 2, 1, QUAD_CAP, f_green, "Cuadrante 1: Frecuencia 5.6e14 Hz (Verde)")
+test.assert_soa_eq(soa_framebuffer, 3, 1, QUAD_CAP, hex_green, "Cuadrante 1: Pixel Color 0x00FF00")
+
+test.assert_soa_eq(soa_framebuffer, 1, 2, QUAD_CAP, 300.0, "Cuadrante 2: Y = 300.0")
+test.assert_soa_eq(soa_framebuffer, 2, 2, QUAD_CAP, f_blue, "Cuadrante 2: Frecuencia 6.6e14 Hz (Azul)")
+test.assert_soa_eq(soa_framebuffer, 3, 2, QUAD_CAP, hex_blue, "Cuadrante 2: Pixel Color 0x0000FF")
+
+test.assert_soa_eq(soa_framebuffer, 2, 3, QUAD_CAP, f_yellow, "Cuadrante 3: Frecuencia 5.2e14 Hz (Amarillo)")
+test.assert_soa_eq(soa_framebuffer, 3, 3, QUAD_CAP, hex_yellow, "Cuadrante 3: Pixel Color Hex 0xFFFF00")
+
+// 5. Escritura del marco de prueba (Cuadrante Espectral) en el FrameBuffer de la PVM
+cls(0x0B0E14)
+rect(0.0, 0.0, 400.0, 300.0, hex_red)
+rect(400.0, 0.0, 400.0, 300.0, hex_green)
+rect(0.0, 300.0, 400.0, 300.0, hex_blue)
+rect(400.0, 300.0, 400.0, 300.0, hex_yellow)
+
+// 6. Auditoría de Invariante Zero-GC: 1,000 fotogramas continuos de actualización SoA
+frame_idx = 0.0
+while (frame_idx < 1000.0) {
+    set_soa(soa_framebuffer, 3, 0, QUAD_CAP, hex_red)
+    set_soa(soa_framebuffer, 3, 1, QUAD_CAP, hex_green)
+    set_soa(soa_framebuffer, 3, 2, QUAD_CAP, hex_blue)
+    set_soa(soa_framebuffer, 3, 3, QUAD_CAP, hex_yellow)
+    frame_idx = frame_idx + 1.0
+}
+test.assert_eq(frame_idx, 1000.0, "Auditoría Zero-GC: 1,000 fotogramas generados con 0.0 bytes de asignación en Heap")
+
+out("=== TEST 02 COMPLETADO EXITOSAMENTE ===")

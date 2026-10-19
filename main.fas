@@ -1,0 +1,18 @@
+// ===============================================================
+// Proyecto: MiJuegoPhasor
+// Entrada principal: main.fas
+// ===============================================================
+
+screen inicio {
+    cls(0x0E1117)
+    text("MiJuegoPhasor v1.0.0", 40, 60, 24, 0x00E5FF)
+    circle(200, 180, 50, 0x00FF88)
+    btn("Iniciar Partida", 50, 280, 300, 50, juego)
+}
+
+screen juego {
+    cls(0x161B22)
+    rect(40, 40, 320, 200, 0x238636)
+    text("Simulacion Activa", 60, 80, 20, 0xFFFFFF)
+    btn("Volver", 50, 280, 300, 50, inicio)
+}

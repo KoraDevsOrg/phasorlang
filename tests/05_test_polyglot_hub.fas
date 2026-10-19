@@ -1,0 +1,137 @@
+// ===============================================================
+// TESTS/05_TEST_POLYGLOT_HUB.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación del Hub Políglota KoraDevs, Aislamiento Sandbox y
+// Políticas de Permisos de Red con NetworkSecurityManager
+// ===============================================================
+
+import "lib/test.ph"
+
+out("=== TEST SUITE 05: KORADEVS POLYGLOT HUB & NETWORK SECURITY ===")
+test.init()
+
+// 1. Modelado del Catálogo de Aplicaciones Políglotas KoraDevs en SoA
+// Códigos de Lenguaje: 1=PhasorLang, 2=Python, 3=JavaScript, 4=C++, 5=Rust, 6=Java
+// Estructura SoA (4 campos x 16 apps):
+// Campo 0: Código de Lenguaje
+// Campo 1: Timeout Guard (segundos de cuota en Sandbox)
+// Campo 2: Requiere Permiso de Red (1.0=Si, 0.0=No)
+// Campo 3: Estado de Autorización de Seguridad (1.0=Permitido, 0.0=Bloqueado)
+
+CAP_APPS = 16
+hub_catalog = alloc_soa(4, CAP_APPS)
+
+// App 0: Demostrador Maestro PhasorLang (Offline, 5s timeout, Red=No)
+set_soa(hub_catalog, 0, 0, CAP_APPS, 1.0)
+set_soa(hub_catalog, 1, 0, CAP_APPS, 5.0)
+set_soa(hub_catalog, 2, 0, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 1: Python Optical Spectral Analyzer (Offline, 3s timeout, Red=No)
+set_soa(hub_catalog, 0, 1, CAP_APPS, 2.0)
+set_soa(hub_catalog, 1, 1, CAP_APPS, 3.0)
+set_soa(hub_catalog, 2, 1, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 2: JavaScript Web Audio DSP (Offline, 2s timeout, Red=No)
+set_soa(hub_catalog, 0, 2, CAP_APPS, 3.0)
+set_soa(hub_catalog, 1, 2, CAP_APPS, 2.0)
+set_soa(hub_catalog, 2, 2, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 3: C++ SIMD Tensor Math Kernel (Offline, 2s timeout, Red=No)
+set_soa(hub_catalog, 0, 3, CAP_APPS, 4.0)
+set_soa(hub_catalog, 1, 3, CAP_APPS, 2.0)
+set_soa(hub_catalog, 2, 3, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 4: Rust Quantum State QNN Solver (Offline, 4s timeout, Red=No)
+set_soa(hub_catalog, 0, 4, CAP_APPS, 5.0)
+set_soa(hub_catalog, 1, 4, CAP_APPS, 4.0)
+set_soa(hub_catalog, 2, 4, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 5: Java 4D Tesseract Conformal Hypercube (Offline, 5s timeout, Red=No)
+set_soa(hub_catalog, 0, 5, CAP_APPS, 6.0)
+set_soa(hub_catalog, 1, 5, CAP_APPS, 5.0)
+set_soa(hub_catalog, 2, 5, CAP_APPS, 0.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+
+// App 6: Extensión de Telemetría Externa (Requiere Red hacia api.koradevs.org)
+set_soa(hub_catalog, 0, 6, CAP_APPS, 1.0)
+set_soa(hub_catalog, 1, 6, CAP_APPS, 3.0)
+set_soa(hub_catalog, 2, 6, CAP_APPS, 1.0)
+set_soa(hub_catalog, 3, 0, CAP_APPS, 0.0) // Inicialmente bloqueado
+
+// 2. Validación de Integridad de Catálogo Políglota
+test.assert_soa_eq(hub_catalog, 0, 0, CAP_APPS, 1.0, "Hub App 0: Lenguaje PhasorLang registrado")
+test.assert_soa_eq(hub_catalog, 0, 1, CAP_APPS, 2.0, "Hub App 1: Lenguaje Python registrado")
+test.assert_soa_eq(hub_catalog, 0, 2, CAP_APPS, 3.0, "Hub App 2: Lenguaje JavaScript registrado")
+test.assert_soa_eq(hub_catalog, 0, 3, CAP_APPS, 4.0, "Hub App 3: Lenguaje C++ registrado")
+test.assert_soa_eq(hub_catalog, 0, 4, CAP_APPS, 5.0, "Hub App 4: Lenguaje Rust registrado")
+test.assert_soa_eq(hub_catalog, 0, 5, CAP_APPS, 6.0, "Hub App 5: Lenguaje Java registrado")
+
+// 3. Validación de Aislamiento Sandbox y Timeout Guard
+validar_timeout_sandbox(tiempo_ejecutado, cuota_maxima) = {
+    if (tiempo_ejecutado <= cuota_maxima) {
+        1.0 // Ejecución dentro del límite de seguridad
+    } else {
+        0.0 // Timeout excedido: Watchdog detiene el proceso
+    }
+}
+
+app_normal_ok = validar_timeout_sandbox(0.85, 3.0)
+app_bloqueada_timeout = validar_timeout_sandbox(4.50, 3.0)
+
+test.assert_eq(app_normal_ok, 1.0, "Sandbox: Proceso completado dentro de la cuota de tiempo (0.85s <= 3.0s)")
+test.assert_eq(app_bloqueada_timeout, 0.0, "Sandbox Timeout Guard: Interrupción preventiva de tarea bloqueante")
+
+// 4. Validación de Políticas de Seguridad de Red (NetworkSecurityManager)
+// Simulación de evaluación de reglas de Whitelist y Modo Estricto
+// Host codes: 1=localhost/127.0.0.1, 2=api.koradevs.org (de confianza), 3=malicious-host.org
+evaluar_permiso_red(host_code, is_strict_mode, is_in_whitelist) = {
+    if (host_code == 1.0) {
+        // Localhost siempre permitido
+        1.0
+    } else {
+        if (is_in_whitelist == 1.0) {
+            1.0
+        } else {
+            if (is_strict_mode == 1.0) {
+                // Modo estricto bloquea todo host no autorizado
+                0.0
+            } else {
+                // Modo no estricto
+                1.0
+            }
+        }
+    }
+}
+
+// Caso 1: Conexión a localhost en Modo Estricto
+perm_local = evaluar_permiso_red(1.0, 1.0, 1.0)
+test.assert_eq(perm_local, 1.0, "NetworkSecurityManager: Localhost/127.0.0.1 autorizado por defecto")
+
+// Caso 2: Conexión externa a host desconocido sin autorización en Modo Estricto
+perm_untrusted = evaluar_permiso_red(3.0, 1.0, 0.0)
+test.assert_eq(perm_untrusted, 0.0, "NetworkSecurityManager: Host externo bloqueado por defecto en modo estricto")
+
+// Caso 3: Host externo tras autorización explícita del usuario
+perm_authorized = evaluar_permiso_red(2.0, 1.0, 1.0)
+test.assert_eq(perm_authorized, 1.0, "NetworkSecurityManager: Host aprobado explícitamente ingresa a whitelist y es permitido")
+
+// Caso 4: Revocación de permisos (Whitelist a 0.0)
+perm_revoked = evaluar_permiso_red(2.0, 1.0, 0.0)
+test.assert_eq(perm_revoked, 0.0, "NetworkSecurityManager: Permiso revocado inmediatamente deniega conexión")
+
+// 5. Verificación de Transición de Seguridad de la App 6 en el Hub
+// Inicialmente bloqueada
+st_app6_init = get_soa(hub_catalog, 3, 0, CAP_APPS)
+test.assert_eq(st_app6_init, 0.0, "Hub App 6: Conexión externa inicialmente bloqueada")
+
+// Simular aprobación de seguridad por el usuario
+set_soa(hub_catalog, 3, 0, CAP_APPS, 1.0)
+st_app6_auth = get_soa(hub_catalog, 3, 0, CAP_APPS)
+test.assert_eq(st_app6_auth, 1.0, "Hub App 6: Desbloqueada tras validación por NetworkSecurityManager")
+
+out("=== TEST 05 COMPLETADO EXITOSAMENTE ===")

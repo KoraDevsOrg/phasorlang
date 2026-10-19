@@ -1,0 +1,284 @@
+// ===============================================================
+// CALCULADORA.FAS — Calculadora Simple Vectorial (Zero-GC, 90+ FPS)
+// PhasorLang v1.0 — Proyecto Autónomo para Chronos IDE
+// ===============================================================
+
+signal valor_display = 0.0
+signal operando_acum = 0.0
+signal op_tipo = 0.0         // 0=Ninguna, 1=+, 2=-, 3=*, 4=/
+signal nuevo_ingreso = 1.0
+signal err_flag = 0.0
+
+// Emisión inicial a la consola
+print("Iniciando Calculadora Vectorial PhasorLang v1.0...")
+out(valor_display)
+
+screen main {
+    cls(0x0A0E17)
+
+    // Marco exterior de la calculadora
+    rect(50, 20, 340, 420, 0x161B22)
+    line(50, 20, 390, 20, 0x30363D)
+    line(390, 20, 390, 440, 0x30363D)
+    line(390, 440, 50, 440, 0x30363D)
+    line(50, 440, 50, 20, 0x30363D)
+
+    // Encabezado
+    text("PHASOR CALC — ZERO-GC 90+ FPS", 65, 30, 11, 0x58A6FF)
+
+    // Pantalla digital LCD
+    rect(65, 50, 310, 55, 0x0D1117)
+    line(65, 50, 375, 50, 0x21262D)
+    line(375, 50, 375, 105, 0x21262D)
+    line(375, 105, 65, 105, 0x21262D)
+    line(65, 105, 65, 50, 0x21262D)
+
+    if (err_flag == 1.0) {
+        text("ERR: DIV/0", 80, 68, 18, 0xF85149)
+    }
+    if (err_flag == 0.0) {
+        text(valor_display, 80, 68, 18, 0x3FB950)
+    }
+
+    // Fila 1: Botones Especiales y División
+    btn("C", 65, 120, 68, 48, act_c, 0xDA3633)
+    btn("CE", 145, 120, 68, 48, act_ce, 0x30363D)
+    btn("+/-", 225, 120, 68, 48, act_signo, 0x30363D)
+    btn("/", 305, 120, 70, 48, act_div, 0x1F6FEB)
+
+    // Fila 2: 7, 8, 9, Multiplicación
+    btn("7", 65, 180, 68, 48, act_7, 0x21262D)
+    btn("8", 145, 180, 68, 48, act_8, 0x21262D)
+    btn("9", 225, 180, 68, 48, act_9, 0x21262D)
+    btn("*", 305, 180, 70, 48, act_mul, 0x1F6FEB)
+
+    // Fila 3: 4, 5, 6, Resta
+    btn("4", 65, 240, 68, 48, act_4, 0x21262D)
+    btn("5", 145, 240, 68, 48, act_5, 0x21262D)
+    btn("6", 225, 240, 68, 48, act_6, 0x21262D)
+    btn("-", 305, 240, 70, 48, act_res, 0x1F6FEB)
+
+    // Fila 4: 1, 2, 3, Suma
+    btn("1", 65, 300, 68, 48, act_1, 0x21262D)
+    btn("2", 145, 300, 68, 48, act_2, 0x21262D)
+    btn("3", 225, 300, 68, 48, act_3, 0x21262D)
+    btn("+", 305, 300, 70, 48, act_sum, 0x1F6FEB)
+
+    // Fila 5: 0, Cuadrado x^2, Raiz sqrt, Igual =
+    btn("0", 65, 360, 68, 48, act_0, 0x21262D)
+    btn("x^2", 145, 360, 68, 48, act_sqr, 0x8957E5)
+    btn("sqrt", 225, 360, 68, 48, act_sqrt, 0x8957E5)
+    btn("=", 305, 360, 70, 48, act_igual, 0x238636)
+}
+
+// Subrutinas de Entrada Numérica
+action act_0 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 0.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 0.0
+    }
+    out(valor_display)
+}
+
+action act_1 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 1.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 1.0
+    }
+    out(valor_display)
+}
+
+action act_2 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 2.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 2.0
+    }
+    out(valor_display)
+}
+
+action act_3 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 3.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 3.0
+    }
+    out(valor_display)
+}
+
+action act_4 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 4.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 4.0
+    }
+    out(valor_display)
+}
+
+action act_5 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 5.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 5.0
+    }
+    out(valor_display)
+}
+
+action act_6 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 6.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 6.0
+    }
+    out(valor_display)
+}
+
+action act_7 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 7.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 7.0
+    }
+    out(valor_display)
+}
+
+action act_8 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 8.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 8.0
+    }
+    out(valor_display)
+}
+
+action act_9 {
+    flag = nuevo_ingreso
+    if (flag == 1.0) {
+        valor_display = 9.0
+        nuevo_ingreso = 0.0
+    }
+    if (flag == 0.0) {
+        valor_display = (valor_display * 10.0) + 9.0
+    }
+    out(valor_display)
+}
+
+// Operaciones Aritméticas
+action act_sum {
+    operando_acum = valor_display
+    op_tipo = 1.0
+    nuevo_ingreso = 1.0
+    print("Operación: Suma (+)")
+}
+
+action act_res {
+    operando_acum = valor_display
+    op_tipo = 2.0
+    nuevo_ingreso = 1.0
+    print("Operación: Resta (-)")
+}
+
+action act_mul {
+    operando_acum = valor_display
+    op_tipo = 3.0
+    nuevo_ingreso = 1.0
+    print("Operación: Multiplicación (*)")
+}
+
+action act_div {
+    operando_acum = valor_display
+    op_tipo = 4.0
+    nuevo_ingreso = 1.0
+    print("Operación: División (/)")
+}
+
+action act_sqr {
+    valor_display = valor_display * valor_display
+    nuevo_ingreso = 1.0
+    out(valor_display)
+}
+
+action act_sqrt {
+    valor_display = sqrt(valor_display)
+    nuevo_ingreso = 1.0
+    out(valor_display)
+}
+
+action act_signo {
+    valor_display = valor_display * -1.0
+    out(valor_display)
+}
+
+action act_igual {
+    err_flag = 0.0
+    try {
+        if (op_tipo == 1.0) {
+            valor_display = operando_acum + valor_display
+        }
+        if (op_tipo == 2.0) {
+            valor_display = operando_acum - valor_display
+        }
+        if (op_tipo == 3.0) {
+            valor_display = operando_acum * valor_display
+        }
+        if (op_tipo == 4.0) {
+            if (valor_display == 0.0) {
+                panic("División por cero no permitida")
+            }
+            valor_display = operando_acum / valor_display
+        }
+        nuevo_ingreso = 1.0
+        op_tipo = 0.0
+        print("Resultado calculado:")
+        out(valor_display)
+    } catch (err) {
+        err_flag = 1.0
+        valor_display = 0.0
+        print("Excepción capturada: Error en cálculo aritmético")
+    }
+}
+
+action act_c {
+    valor_display = 0.0
+    operando_acum = 0.0
+    op_tipo = 0.0
+    err_flag = 0.0
+    nuevo_ingreso = 1.0
+    print("Calculadora Reiniciada (C)")
+    out(0.0)
+}
+
+action act_ce {
+    valor_display = 0.0
+    nuevo_ingreso = 1.0
+    out(0.0)
+}

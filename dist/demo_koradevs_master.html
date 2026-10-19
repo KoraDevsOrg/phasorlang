@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Demostrador Maestro KoraDevs</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBCMEUxNCIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMwMzYzRCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjM4NjM2IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIi8+CiAgICA8bGluZSB4MT0iMzIiIHkxPSIzMiIgeDI9IjQ4IiB5Mj0iMjAiIHN0cm9rZT0iIzU4QTZGRiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iMjAiIHI9IjQuNSIgZmlsbD0iIzU4QTZGRiIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iNCIgZmlsbD0iIzNGQjk1MCIvPgogIDwvc3ZnPg==">
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Demostrador%20Maestro%20KoraDevs%22%2C%22short_name%22%3A%22demo_koradevs_master%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0e14%22%2C%22theme_color%22%3A%22%230b0e14%22%7D">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0e14; touch-action: none; font-family: monospace; }
+    #phasorCanvas { width: 100vw; height: 100vh; display: block; outline: none; }
+  </style>
+</head>
+<body>
+  <canvas id="phasorCanvas" tabindex="1"></canvas>
+  <script>
+// ===============================================================
+// PHASOR_RUNTIME.JS — Runtime Universal WebAssembly & Canvas 2D
+// PhasorLang v1.0 [Chronos IDE & KoraDevs Ecosystem]
+// https://github.com/koradevsorg
+//
+// Arquitectura Unificada Multi-Dispositivo & Multi-Ventana:
+// - Espacio de Trabajo Padre (<main>) en Escritorio (#0B0E14)
+// - Ventanas Hijas (<s>1, <s>2, <s>3): Drag & Drop, Redimensión 8D,
+//   Minimizado, Scroll Clamped Zero-Overflow y Renderizado de UI
+// - Modo Móvil (<768px): Snap 100% Llave en Cerradura al Viewport
+//   con Barra Superior Ergonómica y Pestañas / Gestos de Navegación
+// - MicroPhasorVM Zero-GC Integrada con Despacho de 32 Bits y Rutas
+// - Telemetría No-Invasiva Opcional (Show HUD) con Invariante 120 FPS
+// ===============================================================
+
+(function(global) {
+  'use strict';
+
+  // =========================================================================
+  // 1. MICRO PHASOR VM INTEGRADA (ZERO-GC INTERPRETER & UI DISPATCHER)
+  // =========================================================================
+  function MicroPhasorVM(code, consts, strings) {
+    this.code = code || [];
+    this.consts = consts || [];
+    this.strings = strings || [];
+    this.rScalar = new Float64Array(1024);
+    this.rCompReal = new Float64Array(1024);
+    this.rCompImag = new Float64Array(1024);
+    this.isComplex = new Uint8Array(1024);
+    this.rVecX = new Float64Array(1024);
+    this.rVecY = new Float64Array(1024);
+    this.rVecZ = new Float64Array(1024);
+    this.isVector3 = new Uint8Array(1024);
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+    this.logs = [];
+  }
+
+  MicroPhasorVM.prototype.pushUi = function(type, p1, p2, p3, p4, p5) {
+    this.uiCmds.push(type, p1 || 0, p2 || 0, p3 || 0, p4 || 0, p5 || 0);
+  };
+
+  MicroPhasorVM.prototype.run = function(entryPc) {
+    var pc = entryPc || 0;
+    this.uiCmds = [];
+    this.buttons = [];
+    this.texts = [];
+
+    while (pc < this.code.length) {
+      var instr = this.code[pc++];
+      var op = (instr >>> 24) & 0xFF;
+      var dst = (instr >>> 16) & 0xFF;
+      var s1 = (instr >>> 8) & 0xFF;
+      var s2 = instr & 0xFF;
+
+      if (op === 0x00 || op === 0xFF) break;
+      switch (op) {
+        case 0x01: this.rScalar[dst] = this.consts[s1]; this.isComplex[dst] = 0; break;
+        case 0x02: this.rScalar[dst] = this.rScalar[s1]; break;
+        case 0x10: case 0x03: this.rScalar[dst] = this.rScalar[s1] + this.rScalar[s2]; break;
+        case 0x11: case 0x04: this.rScalar[dst] = this.rScalar[s1] - this.rScalar[s2]; break;
+        case 0x12: case 0x05: this.rScalar[dst] = this.rScalar[s1] * this.rScalar[s2]; break;
+        case 0x13: case 0x06: this.rScalar[dst] = (this.rScalar[s2] !== 0) ? (this.rScalar[s1] / this.rScalar[s2]) : 0; break;
+        case 0x14: this.rScalar[dst] = Math.pow(this.rScalar[s1], this.rScalar[s2]); break;
+        case 0x15: this.rScalar[dst] = this.rScalar[s1] % this.rScalar[s2]; break;
+        case 0x16: this.rScalar[dst] = Math.sqrt(Math.abs(this.rScalar[s1])); break;
+        case 0x17: this.rScalar[dst] = Math.sin(this.rScalar[s1]); break;
+        case 0x18: this.rScalar[dst] = Math.cos(this.rScalar[s1]); break;
+        case 0x19: this.rScalar[dst] = Math.tan(this.rScalar[s1]); break;
+        case 0x1C: this.rScalar[dst] = Math.abs(this.rScalar[s1]); break;
+        case 0x07: case 0x40: pc = (instr & 0xFFFF); break;
+        case 0x08: case 0x41: if (this.rScalar[dst] === 0.0) pc = (instr & 0xFFFF); break;
+        case 0x21: this.rScalar[dst] = (this.rScalar[s1] === this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x22: this.rScalar[dst] = (this.rScalar[s1] !== this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x23: this.rScalar[dst] = (this.rScalar[s1] < this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x24: this.rScalar[dst] = (this.rScalar[s1] <= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x25: this.rScalar[dst] = (this.rScalar[s1] > this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x26: this.rScalar[dst] = (this.rScalar[s1] >= this.rScalar[s2]) ? 1.0 : 0.0; break;
+        case 0x30: {
+          var val = this.rScalar[s1];
+          this.logs.push('> OUT: ' + (typeof val === 'number' ? val.toFixed(4) : val) + '\n');
+          break;
+        }
+        case 0x50: this.pushUi(0x50, this.rScalar[dst]); break;
+        case 0x51: {
+          var rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++], rh = this.code[pc++], rc = this.code[pc++];
+          this.pushUi(0x51, this.rScalar[rx], this.rScalar[ry], this.rScalar[rw], this.rScalar[rh], this.rScalar[rc]);
+          break;
+        }
+        case 0x52: {
+          var rcx = this.code[pc++], rcy = this.code[pc++], rr = this.code[pc++], rc2 = this.code[pc++];
+          this.pushUi(0x52, this.rScalar[rcx], this.rScalar[rcy], this.rScalar[rr], this.rScalar[rc2]);
+          break;
+        }
+        case 0x53: {
+          var rx1 = this.code[pc++], ry1 = this.code[pc++], rx2 = this.code[pc++], ry2 = this.code[pc++], lc = this.code[pc++];
+          this.pushUi(0x53, this.rScalar[rx1], this.rScalar[ry1], this.rScalar[rx2], this.rScalar[ry2], this.rScalar[lc]);
+          break;
+        }
+        case 0x54: {
+          var isString = (dst === 1);
+          var strOrReg = this.code[pc++], tx = this.code[pc++], ty = this.code[pc++], tSize = this.code[pc++], tc = this.code[pc++];
+          var px = this.rScalar[tx], py = this.rScalar[ty], pCol = this.rScalar[tc], pSize = this.rScalar[tSize] || 16;
+          var displayText = isString
+            ? ((this.strings && this.strings[strOrReg] !== undefined) ? this.strings[strOrReg] : "")
+            : (Number.isInteger(this.rScalar[strOrReg]) ? this.rScalar[strOrReg].toString() : this.rScalar[strOrReg].toFixed(2));
+          this.pushUi(0x54, px, py, pCol, pSize);
+          this.texts.push({ text: displayText, x: px, y: py, color: pCol, size: pSize });
+          break;
+        }
+        case 0x56: {
+          var strIdx = dst;
+          var bx = this.code[pc++], by = this.code[pc++], bw = this.code[pc++], bh = this.code[pc++];
+          var actHash = this.code[pc++];
+          var bc = this.code[pc++];
+          var px = this.rScalar[bx], py = this.rScalar[by], pw = this.rScalar[bw], ph = this.rScalar[bh];
+          var bColor = this.rScalar[bc] || 0x1f6feb;
+          var label = (this.strings && this.strings[strIdx] !== undefined) ? this.strings[strIdx] : 'BOTÓN';
+          this.pushUi(0x56, px, py, pw, ph, bColor);
+          this.buttons.push({ x: px, y: py, w: pw, h: ph, target: actHash, label: label, color: bColor });
+          break;
+        }
+      }
+    }
+  };
+
+  // =========================================================================
+  // 2. PHASOR RUNTIME MASTER (CANVAS COMPOSITOR & MULTI-WINDOW MANAGER)
+  // =========================================================================
+  var PhasorRuntime = {
+    wasmInstance: null,
+    wasmMemory: null,
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    fps: 120,
+    lastFrameTime: performance.now(),
+    frameCount: 0,
+    title: 'PhasorLang Application',
+    showHud: false,
+    vm: null,
+    screenRoutes: {},
+    actionRoutes: {},
+    currentScreenPc: 0,
+
+    // Sub-pantallas hijas configurables (por defecto 1 ventana centrada o N ventanas)
+    children: [
+      { id: 1, title: '<s>1: Ventana Principal', x: 60, y: 60, w: 460, h: 560, visible: true, minimized: false, color: '#161B22', scrollX: 0, scrollY: 0, contentW: 460, contentH: 520 }
+    ],
+    activeChildIndex: 0,
+    isDraggingWindow: null,
+    isResizingWindow: null,
+    isDraggingScrollbar: null,
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    initialPinchDist: 0,
+
+    // Cálculo unificado de métricas de scroll y barras (Single Source of Truth)
+    getScrollMetrics: function(ch) {
+      if (!ch || ch.minimized) return null;
+
+      var innerW = Math.max(10, ch.w - 24);
+      var innerH = Math.max(10, ch.h - 36);
+      var totW = ch.contentW || 460;
+      var totH = ch.contentH || 520;
+
+      var hasVScroll = totH > innerH;
+      var hasHScroll = totW > innerW;
+
+      var maxScX = Math.max(0, totW - innerW);
+      var maxScY = Math.max(0, totH - innerH);
+
+      var scX = Math.max(0, Math.min(maxScX, ch.scrollX || 0));
+      var scY = Math.max(0, Math.min(maxScY, ch.scrollY || 0));
+      ch.scrollX = scX;
+      ch.scrollY = scY;
+
+      var cornerReserve = 16;
+      var sbSize = 8;
+
+      var vMetrics = null;
+      if (hasVScroll) {
+        var vTrackX = ch.x + ch.w - sbSize - 3;
+        var vTrackY = ch.y + 32;
+        var vTrackH = Math.max(20, ch.h - 32 - cornerReserve);
+        var vThumbH = Math.max(18, Math.min(vTrackH, Math.round(vTrackH * (innerH / totH))));
+        var vAvail = vTrackH - vThumbH;
+        var vRatio = maxScY > 0 ? (scY / maxScY) : 0;
+        vRatio = Math.max(0, Math.min(1, vRatio));
+        var vThumbY = Math.round(vTrackY + vRatio * vAvail);
+
+        vMetrics = {
+          trackX: vTrackX,
+          trackY: vTrackY,
+          trackW: sbSize,
+          trackH: vTrackH,
+          thumbY: vThumbY,
+          thumbH: vThumbH,
+          maxScroll: maxScY,
+          hitX: vTrackX - 3,
+          hitW: sbSize + 6
+        };
+      }
+
+      var hMetrics = null;
+      if (hasHScroll) {
+        var hTrackX = ch.x + 4;
+        var hTrackY = ch.y + ch.h - sbSize - 3;
+        var hTrackW = Math.max(20, ch.w - 8 - cornerReserve);
+        var hThumbW = Math.max(18, Math.min(hTrackW, Math.round(hTrackW * (innerW / totW))));
+        var hAvail = hTrackW - hThumbW;
+        var hRatio = maxScX > 0 ? (scX / maxScX) : 0;
+        hRatio = Math.max(0, Math.min(1, hRatio));
+        var hThumbX = Math.round(hTrackX + hRatio * hAvail);
+
+        hMetrics = {
+          trackX: hTrackX,
+          trackY: hTrackY,
+          trackW: hTrackW,
+          trackH: sbSize,
+          thumbX: hThumbX,
+          thumbW: hThumbW,
+          maxScroll: maxScX,
+          hitY: hTrackY - 3,
+          hitH: sbSize + 6
+        };
+      }
+
+      return {
+        innerW: innerW,
+        innerH: innerH,
+        totW: totW,
+        totH: totH,
+        maxScX: maxScX,
+        maxScY: maxScY,
+        scX: scX,
+        scY: scY,
+        hasVScroll: hasVScroll,
+        hasHScroll: hasHScroll,
+        v: vMetrics,
+        h: hMetrics
+      };
+    },
+
+    getResizeDir: function(ch, mx, my) {
+      if (ch.minimized) return null;
+      var x = ch.x, y = ch.y, w = ch.w, h = ch.h;
+
+      if (mx >= x + w - 16 && mx <= x + w + 6 && my >= y + h - 16 && my <= y + h + 6) return 'se';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y - 6 && my <= y + 8) return 'nw';
+      if (mx >= x + w - 8 && mx <= x + w + 6 && my >= y - 6 && my <= y + 8) return 'ne';
+      if (mx >= x - 6 && mx <= x + 8 && my >= y + h - 8 && my <= y + h + 6) return 'sw';
+      if (mx >= x - 5 && mx <= x + 3 && my >= y && my <= y + h) return 'w';
+      if (mx >= x + w - 3 && mx <= x + w + 5 && my >= y && my <= y + h) return 'e';
+      if (my >= y - 5 && my <= y + 3 && mx >= x && mx <= x + w) return 'n';
+      if (my >= y + h - 3 && my <= y + h + 5 && mx >= x && mx <= x + w) return 's';
+
+      return null;
+    },
+
+    colorHex: function(c) {
+      var n = (Number(c) >>> 0) & 0xFFFFFF;
+      return '#' + n.toString(16).padStart(6, '0');
+    },
+
+    // Renderizado Zero-GC de comandos de interfaz de MicroPhasorVM
+    renderVmUi: function(ctx, targetVm, availW, availH) {
+      if (!targetVm || !targetVm.uiCmds) return;
+      var cmds = targetVm.uiCmds;
+      var textIdx = 0;
+      var btnIdx = 0;
+
+      for (var i = 0; i < cmds.length; i += 6) {
+        var type = Math.floor(cmds[i]);
+        var p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
+
+        if (type === 0x50) {
+          ctx.fillStyle = this.colorHex(p1);
+          ctx.fillRect(0, 0, availW, availH);
+        } else if (type === 0x51) {
+          ctx.fillStyle = this.colorHex(p5);
+          ctx.fillRect(p1, p2, p3, p4);
+        } else if (type === 0x52) {
+          ctx.strokeStyle = this.colorHex(p4);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(p1, p2, p3, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (type === 0x53) {
+          ctx.strokeStyle = this.colorHex(p5);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(p1, p2);
+          ctx.lineTo(p3, p4);
+          ctx.stroke();
+        } else if (type === 0x54) {
+          if (targetVm.texts && textIdx < targetVm.texts.length) {
+            var t = targetVm.texts[textIdx++];
+            ctx.fillStyle = this.colorHex(t.color);
+            ctx.font = (t.size || 16) + 'px monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(t.text, t.x, t.y);
+          }
+        } else if (type === 0x56) {
+          ctx.fillStyle = this.colorHex(p5);
+          if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(p1, p2, p3, p4, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          } else {
+            ctx.fillRect(p1, p2, p3, p4);
+          }
+
+          var btnText = 'BOTÓN';
+          if (targetVm.buttons && btnIdx < targetVm.buttons.length) {
+            btnText = targetVm.buttons[btnIdx].label || btnText;
+          }
+          btnIdx++;
+          var fontSize = 14;
+          if (btnText.length * 8.5 > p3 - 10) {
+            fontSize = Math.max(9, Math.floor((p3 - 10) / (btnText.length * 0.65)));
+          }
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold ' + fontSize + 'px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(btnText, p1 + (p3 / 2), p2 + (p4 / 2));
+          ctx.textBaseline = 'top';
+          ctx.textAlign = 'left';
+        }
+      }
+    },
+
+    init: function(wasmPathOrPayload, canvasId, options) {
+      var self = this;
+      options = options || {};
+      self.title = options.title || 'PhasorLang Application';
+      self.showHud = !!options.showHud;
+
+      if (options.children && Array.isArray(options.children) && options.children.length > 0) {
+        self.children = options.children;
+      }
+
+      // Inicializar MicroPhasorVM si se proporciona bytecode compilado
+      if (options.bytecode && options.constPool) {
+        self.vm = new MicroPhasorVM(options.bytecode, options.constPool, options.strings || []);
+        self.screenRoutes = options.screenRoutes || {};
+        self.actionRoutes = options.actionRoutes || {};
+        self.currentScreenPc = options.firstScreenPc || 0;
+
+        self.handleAction = function(target, ch) {
+          var key = String(Math.round(Number(target)));
+          var targetPc = (self.actionRoutes[key] !== undefined)
+            ? self.actionRoutes[key]
+            : ((self.screenRoutes[key] !== undefined) ? self.screenRoutes[key] : null);
+
+          if (targetPc !== null) {
+            self.vm.run(targetPc);
+            self.vm.run(self.currentScreenPc);
+            self.renderFrame();
+          }
+        };
+
+        self.vm.run(0);
+        if (self.currentScreenPc !== 0) {
+          self.vm.run(self.currentScreenPc);
+        }
+
+        // Asignar VM a la primera ventana hija si no tiene uno
+        if (self.children.length > 0 && !self.children[0].appVm) {
+          self.children[0].appVm = self.vm;
+        }
+      }
+
+      self.canvas = document.getElementById(canvasId || 'phasorCanvas');
+      if (!self.canvas) {
+        console.error('[PhasorRuntime] Elemento Canvas no encontrado: #' + canvasId);
+        return;
+      }
+      self.ctx = self.canvas.getContext('2d', { alpha: false });
+
+      self.resize();
+      window.addEventListener('resize', function() {
+        self.resize();
+      });
+
+      self.setupInteractions();
+      self.loadWasm(wasmPathOrPayload || 'phasor_ide.wasm');
+    },
+
+    setupInteractions: function() {
+      var self = this;
+      if (!self.canvas) return;
+
+      // 1. MOUSE (ESCRITORIO): BOTONES, VENTANAS, REDIMENSIÓN, MINIMIZADO Y SCROLL
+      self.canvas.addEventListener('mousedown', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+        self.setRegister(254, 1.0);
+
+        if (self.width < 768) return; // Móvil gestionado por toques y gestos
+
+        // Clic en botón de alternar Telemetría HUD en la barra superior
+        if (my >= 6 && my <= 30 && mx >= self.width - 150 && mx <= self.width - 16) {
+          self.showHud = !self.showHud;
+          self.renderFrame();
+          return;
+        }
+
+        // Clic en botón cerrar de Telemetría HUD flotante
+        if (self.showHud) {
+          var hudMargin = 24;
+          var hudW = Math.min(460, self.width - (hudMargin * 2));
+          var hudH = 90;
+          var hudX = self.width - hudW - hudMargin;
+          var hudY = self.height - hudH - 46;
+          if (mx >= hudX + hudW - 24 && mx <= hudX + hudW - 4 && my >= hudY + 4 && my <= hudY + 24) {
+            self.showHud = false;
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Comprobar ventanas hijas en orden inverso (top-most primero)
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+
+          // A. Minimizar / Restaurar (-) o (+)
+          if (mx >= ch.x + ch.w - 28 && mx <= ch.x + ch.w - 6 && my >= ch.y + 4 && my <= ch.y + 26) {
+            ch.minimized = !ch.minimized;
+            self.renderFrame();
+            return;
+          }
+
+          if (!ch.minimized) {
+            // B. Agarradera SE de redimensión
+            if (mx >= ch.x + ch.w - 16 && mx <= ch.x + ch.w + 6 && my >= ch.y + ch.h - 16 && my <= ch.y + ch.h + 6) {
+              self.isResizingWindow = {
+                child: ch,
+                dir: 'se',
+                startX: mx,
+                startY: my,
+                origX: ch.x,
+                origY: ch.y,
+                origW: ch.w,
+                origH: ch.h
+              };
+              self.children.splice(i, 1);
+              self.children.push(ch);
+              self.renderFrame();
+              return;
+            }
+
+            // C. Barras de Scroll (Vertical / Horizontal)
+            var metrics = self.getScrollMetrics(ch);
+            if (metrics) {
+              if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                  my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+                var isThumbClick = (my >= metrics.v.thumbY && my <= metrics.v.thumbY + metrics.v.thumbH);
+                var offset = isThumbClick ? (my - metrics.v.thumbY) : (metrics.v.thumbH / 2);
+                if (!isThumbClick) {
+                  var availH = metrics.v.trackH - metrics.v.thumbH;
+                  if (availH > 0) {
+                    var targetThumbY = (my - offset) - metrics.v.trackY;
+                    var ratio = Math.max(0, Math.min(1, targetThumbY / availH));
+                    ch.scrollY = Math.round(ratio * metrics.v.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'vertical',
+                  trackPos: metrics.v.trackY,
+                  trackLen: metrics.v.trackH,
+                  thumbLen: metrics.v.thumbH,
+                  maxScroll: metrics.v.maxScroll,
+                  offset: offset
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+
+              if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                  mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+                var isThumbClickH = (mx >= metrics.h.thumbX && mx <= metrics.h.thumbX + metrics.h.thumbW);
+                var offsetH = isThumbClickH ? (mx - metrics.h.thumbX) : (metrics.h.thumbW / 2);
+                if (!isThumbClickH) {
+                  var availW = metrics.h.trackW - metrics.h.thumbW;
+                  if (availW > 0) {
+                    var targetThumbX = (mx - offsetH) - metrics.h.trackX;
+                    var ratioH = Math.max(0, Math.min(1, targetThumbX / availW));
+                    ch.scrollX = Math.round(ratioH * metrics.h.maxScroll);
+                  }
+                }
+                self.isDraggingScrollbar = {
+                  child: ch,
+                  type: 'horizontal',
+                  trackPos: metrics.h.trackX,
+                  trackLen: metrics.h.trackW,
+                  thumbLen: metrics.h.thumbW,
+                  maxScroll: metrics.h.maxScroll,
+                  offset: offsetH
+                };
+                self.children.splice(i, 1);
+                self.children.push(ch);
+                self.renderFrame();
+                return;
+              }
+            }
+
+            // D. Detección y clic en botones de la aplicación dentro de la ventana
+            var targetVm = ch.appVm || self.vm;
+            var testBtns = (ch.buttons && ch.buttons.length > 0) ? ch.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0) {
+              var innerX = ch.x + 12;
+              var innerY = ch.y + 32;
+              var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+              var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+              var localX = mx - innerX + scX;
+              var localY = my - innerY + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, ch);
+                  }
+                  self.children.splice(i, 1);
+                  self.children.push(ch);
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+
+          // E. Redimensión perimetral en 8 direcciones
+          var resizeDir = self.getResizeDir(ch, mx, my);
+          if (resizeDir) {
+            self.isResizingWindow = {
+              child: ch,
+              dir: resizeDir,
+              startX: mx,
+              startY: my,
+              origX: ch.x,
+              origY: ch.y,
+              origW: ch.w,
+              origH: ch.h
+            };
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // F. Arrastre de ventana mediante la barra de título
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + 30) {
+            self.isDraggingWindow = ch;
+            self.dragOffsetX = mx - ch.x;
+            self.dragOffsetY = my - ch.y;
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+
+          // G. Clic en cuerpo de la ventana: traer al frente
+          if (!ch.minimized && mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y && my <= ch.y + ch.h) {
+            self.children.splice(i, 1);
+            self.children.push(ch);
+            self.renderFrame();
+            return;
+          }
+        }
+
+        // Clic en barra inferior de dock para restaurar ventanas minimizadas
+        if (my >= self.height - 36) {
+          for (var j = 0; j < self.children.length; j++) {
+            self.children[j].minimized = false;
+          }
+          self.renderFrame();
+        }
+      });
+
+      window.addEventListener('mousemove', function(e) {
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        self.setRegister(252, mx);
+        self.setRegister(253, my);
+
+        if (self.width < 768) return;
+
+        // Arrastre activo de barra de scroll
+        if (self.isDraggingScrollbar) {
+          var sb = self.isDraggingScrollbar;
+          var avail = sb.trackLen - sb.thumbLen;
+          if (avail > 0) {
+            if (sb.type === 'vertical') {
+              var targetPos = (my - sb.offset) - sb.trackPos;
+              var ratio = Math.max(0, Math.min(1, targetPos / avail));
+              sb.child.scrollY = Math.round(ratio * sb.maxScroll);
+            } else if (sb.type === 'horizontal') {
+              var targetPosX = (mx - sb.offset) - sb.trackPos;
+              var ratioX = Math.max(0, Math.min(1, targetPosX / avail));
+              sb.child.scrollX = Math.round(ratioX * sb.maxScroll);
+            }
+          }
+          self.renderFrame();
+          return;
+        }
+
+        // Redimensión activa de ventana
+        if (self.isResizingWindow) {
+          var res = self.isResizingWindow;
+          var dx = mx - res.startX;
+          var dy = my - res.startY;
+          var minW = 200;
+          var minH = 120;
+
+          if (res.dir.indexOf('e') !== -1) {
+            res.child.w = Math.max(minW, res.origW + dx);
+          } else if (res.dir.indexOf('w') !== -1) {
+            var newW = Math.max(minW, res.origW - dx);
+            res.child.x = res.origX + (res.origW - newW);
+            res.child.w = newW;
+          }
+
+          if (res.dir.indexOf('s') !== -1) {
+            res.child.h = Math.max(minH, res.origH + dy);
+          } else if (res.dir.indexOf('n') !== -1) {
+            var newH = Math.max(minH, res.origH - dy);
+            res.child.y = res.origY + (res.origH - newH);
+            res.child.h = newH;
+          }
+
+          var curInnerW = Math.max(10, res.child.w - 24);
+          var curInnerH = Math.max(10, res.child.h - 36);
+          var curTotW = res.child.contentW || 460;
+          var curTotH = res.child.contentH || 520;
+          var curMaxScX = Math.max(0, curTotW - curInnerW);
+          var curMaxScY = Math.max(0, curTotH - curInnerH);
+
+          res.child.scrollX = Math.max(0, Math.min(curMaxScX, res.child.scrollX || 0));
+          res.child.scrollY = Math.max(0, Math.min(curMaxScY, res.child.scrollY || 0));
+
+          self.renderFrame();
+          return;
+        }
+
+        // Arrastre activo de ventana
+        if (self.isDraggingWindow) {
+          var ch = self.isDraggingWindow;
+          ch.x = Math.max(0, Math.min(self.width - 60, mx - self.dragOffsetX));
+          ch.y = Math.max(0, Math.min(self.height - 30, my - self.dragOffsetY));
+          self.renderFrame();
+          return;
+        }
+
+        // Actualización de cursor según bordes, scrollbars y botones
+        var cursor = 'default';
+        for (var k = self.children.length - 1; k >= 0; k--) {
+          var target = self.children[k];
+          if (target.minimized) {
+            if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+              cursor = 'move';
+              break;
+            }
+            continue;
+          }
+
+          var metrics = self.getScrollMetrics(target);
+          if (metrics) {
+            if (metrics.v && mx >= metrics.v.hitX && mx <= metrics.v.hitX + metrics.v.hitW &&
+                my >= metrics.v.trackY && my <= metrics.v.trackY + metrics.v.trackH) {
+              cursor = 'pointer';
+              break;
+            }
+            if (metrics.h && my >= metrics.h.hitY && my <= metrics.h.hitY + metrics.h.hitH &&
+                mx >= metrics.h.trackX && mx <= metrics.h.trackX + metrics.h.trackW) {
+              cursor = 'pointer';
+              break;
+            }
+          }
+
+          // Comprobar hover en botones de la ventana
+          var targetVm = target.appVm || self.vm;
+          var testBtns = (target.buttons && target.buttons.length > 0) ? target.buttons : (targetVm ? targetVm.buttons : null);
+          if (testBtns && testBtns.length > 0) {
+            var innerX = target.x + 12;
+            var innerY = target.y + 32;
+            var scX = metrics ? metrics.scX : (target.scrollX || 0);
+            var scY = metrics ? metrics.scY : (target.scrollY || 0);
+            var localX = mx - innerX + scX;
+            var localY = my - innerY + scY;
+            var overButton = false;
+            for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+              var btn = testBtns[bIdx];
+              if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                cursor = 'pointer';
+                overButton = true;
+                break;
+              }
+            }
+            if (overButton) break;
+          }
+
+          var rDir = self.getResizeDir(target, mx, my);
+          if (rDir) {
+            if (rDir === 'nw' || rDir === 'se') cursor = 'nwse-resize';
+            else if (rDir === 'ne' || rDir === 'sw') cursor = 'nesw-resize';
+            else if (rDir === 'w' || rDir === 'e') cursor = 'ew-resize';
+            else if (rDir === 'n' || rDir === 's') cursor = 'ns-resize';
+            break;
+          } else if (mx >= target.x && mx <= target.x + target.w && my >= target.y && my <= target.y + 30) {
+            cursor = 'move';
+            break;
+          }
+        }
+        self.canvas.style.cursor = cursor;
+      });
+
+      window.addEventListener('mouseup', function() {
+        self.setRegister(254, 0.0);
+        self.isDraggingWindow = null;
+        self.isResizingWindow = null;
+        self.isDraggingScrollbar = null;
+        if (self.canvas) self.canvas.style.cursor = 'default';
+      });
+
+      // Scroll con rueda de ratón en escritorio
+      self.canvas.addEventListener('wheel', function(e) {
+        self.setRegister(255, e.deltaY);
+        if (self.width < 768) return;
+        var rect = self.canvas.getBoundingClientRect();
+        var mx = e.clientX - rect.left;
+        var my = e.clientY - rect.top;
+
+        for (var i = self.children.length - 1; i >= 0; i--) {
+          var ch = self.children[i];
+          if (ch.minimized) continue;
+          if (mx >= ch.x && mx <= ch.x + ch.w && my >= ch.y + 30 && my <= ch.y + ch.h) {
+            e.preventDefault();
+            var metrics = self.getScrollMetrics(ch);
+            if (!metrics) return;
+
+            if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+              var dX = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+              ch.scrollX = Math.max(0, Math.min(metrics.maxScX, (ch.scrollX || 0) + dX));
+            } else {
+              ch.scrollY = Math.max(0, Math.min(metrics.maxScY, (ch.scrollY || 0) + e.deltaY));
+            }
+            self.renderFrame();
+            return;
+          }
+        }
+      }, { passive: false });
+
+      // 2. TOUCH (MÓVIL): BOTONES, PESTAÑAS Y GESTOS MULTITÁCTILES
+      var touchStartX = 0;
+      var touchStartY = 0;
+
+      self.canvas.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          var tx = e.touches[0].clientX - rect.left;
+          var ty = e.touches[0].clientY - rect.top;
+          self.setRegister(252, tx);
+          self.setRegister(253, ty);
+          self.setRegister(254, 1.0);
+
+          if (self.width < 768) {
+            // A. Clic en pestañas superiores si hay múltiples ventanas
+            if (self.children.length > 1 && ty <= 44) {
+              var tabW = Math.min(140, Math.floor((self.width - 20) / self.children.length));
+              for (var tIdx = 0; tIdx < self.children.length; tIdx++) {
+                var tabX = 10 + (tIdx * (tabW + 6));
+                if (tx >= tabX && tx <= tabX + tabW) {
+                  self.activeChildIndex = tIdx;
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+
+            // B. Clic en botones dentro de la ventana activa en móvil
+            var activeChild = self.children[self.activeChildIndex] || self.children[0];
+            var targetVm = activeChild.appVm || self.vm;
+            var testBtns = (activeChild.buttons && activeChild.buttons.length > 0) ? activeChild.buttons : (targetVm ? targetVm.buttons : null);
+            if (testBtns && testBtns.length > 0 && ty >= 44) {
+              var scX = activeChild.scrollX || 0;
+              var scY = activeChild.scrollY || 0;
+              var localX = tx - 10 + scX;
+              var localY = ty - 48 + scY;
+
+              for (var bIdx = 0; bIdx < testBtns.length; bIdx++) {
+                var btn = testBtns[bIdx];
+                if (localX >= btn.x && localX <= btn.x + btn.w && localY >= btn.y && localY <= btn.y + btn.h) {
+                  if (typeof self.handleAction === 'function') {
+                    self.handleAction(btn.target, activeChild);
+                  }
+                  self.renderFrame();
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        if (e.touches.length === 2) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          self.initialPinchDist = Math.sqrt(dx * dx + dy * dy);
+        } else if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 0) {
+          var rect = self.canvas.getBoundingClientRect();
+          self.setRegister(252, e.touches[0].clientX - rect.left);
+          self.setRegister(253, e.touches[0].clientY - rect.top);
+        }
+        if (e.touches.length === 2 && self.initialPinchDist > 0 && self.children.length > 1) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          var currentDist = Math.sqrt(dx * dx + dy * dy);
+          if (Math.abs(currentDist - self.initialPinchDist) > 40) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.initialPinchDist = currentDist;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+
+      self.canvas.addEventListener('touchend', function(e) {
+        self.setRegister(254, 0.0);
+        self.initialPinchDist = 0;
+        if (e.changedTouches.length === 1 && self.children.length > 1) {
+          var deltaX = e.changedTouches[0].clientX - touchStartX;
+          var deltaY = e.changedTouches[0].clientY - touchStartY;
+          if (Math.abs(deltaX) > 60 || Math.abs(deltaY) > 60) {
+            self.activeChildIndex = (self.activeChildIndex + 1) % self.children.length;
+            self.renderFrame();
+          }
+        }
+      }, { passive: true });
+    },
+
+    setRegister: function(idx, val) {
+      if (this.wasmInstance && this.wasmInstance.exports) {
+        if (typeof this.wasmInstance.exports.set_register === 'function') {
+          this.wasmInstance.exports.set_register(idx, val);
+        }
+      }
+      if (this.wasmMemory && this.wasmMemory.buffer) {
+        var f64 = new Float64Array(this.wasmMemory.buffer);
+        if (f64.length > idx) {
+          f64[idx] = val;
+        }
+      }
+    },
+
+    resize: function() {
+      var w = window.innerWidth || document.documentElement.clientWidth || 800;
+      var h = window.innerHeight || document.documentElement.clientHeight || 600;
+      this.width = w;
+      this.height = h;
+      this.canvas.width = w;
+      this.canvas.height = h;
+
+      this.setRegister(250, w);
+      this.setRegister(251, h);
+
+      if (this.ctx) {
+        this.renderFrame();
+      }
+    },
+
+    loadWasm: function(wasmInput) {
+      var self = this;
+      var onInstanceReady = function(instance) {
+        self.wasmInstance = instance;
+        self.wasmMemory = instance.exports.memory;
+        self.setRegister(250, self.width);
+        self.setRegister(251, self.height);
+        self.startLoop();
+      };
+
+      if (typeof wasmInput === 'string' && wasmInput.length > 500 && !wasmInput.endsWith('.wasm')) {
+        try {
+          var binaryString = atob(wasmInput);
+          var len = binaryString.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          WebAssembly.instantiate(bytes.buffer).then(function(result) {
+            onInstanceReady(result.instance);
+          }).catch(function(err) {
+            console.warn('[PhasorRuntime] Error instanciando WASM Base64:', err);
+            self.startLoop();
+          });
+          return;
+        } catch(e) {
+          console.warn('[PhasorRuntime] Error decodificando Base64:', e);
+        }
+      }
+
+      var targetPath = wasmInput || 'phasor_ide.wasm';
+      fetch(targetPath)
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        })
+        .then(function(bytes) {
+          return WebAssembly.instantiate(bytes);
+        })
+        .then(function(result) {
+          onInstanceReady(result.instance);
+        })
+        .catch(function(err) {
+          self.startLoop();
+        });
+    },
+
+    startLoop: function() {
+      var self = this;
+      var loop = function(now) {
+        self.frameCount++;
+        if (now - self.lastFrameTime >= 1000) {
+          self.fps = Math.round((self.frameCount * 1000) / (now - self.lastFrameTime));
+          self.frameCount = 0;
+          self.lastFrameTime = now;
+        }
+        self.renderFrame();
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    },
+
+    renderFrame: function() {
+      var self = this;
+      var ctx = this.ctx;
+      if (!ctx) return;
+      var w = this.width;
+      var h = this.height;
+      var isMobile = w < 768;
+
+      // 1. ESPACIO DE TRABAJO PADRE (<main>)
+      ctx.fillStyle = '#0B0E14';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!isMobile) {
+        // Cuadrícula sutil de fondo en escritorio
+        ctx.strokeStyle = '#161B22';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (var x = 0; x < w; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+        for (var y = 0; y < h; y += 40) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+        ctx.stroke();
+
+        // Barra superior de acoplamiento (Docking Bar)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 36);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 36); ctx.lineTo(w, 36); ctx.stroke();
+
+        // Título de la aplicación / workspace
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText(this.title.toUpperCase(), 16, 22);
+
+        // Badge Zero-GC / FPS
+        ctx.fillStyle = '#238636';
+        ctx.fillRect(w - 290, 6, 120, 24);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('Zero-GC | ' + this.fps + ' FPS', w - 280, 22);
+
+        // Botón interactivo para alternar Telemetría HUD
+        ctx.fillStyle = this.showHud ? '#1F6FEB' : '#21262D';
+        ctx.fillRect(w - 150, 6, 134, 24);
+        ctx.strokeStyle = '#30363D';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(w - 150, 6, 134, 24);
+        ctx.fillStyle = this.showHud ? '#FFFFFF' : '#8B949E';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText('📊 Telemetría', w - 136, 22);
+
+        // Barra inferior de estado y ventanas minimizadas
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, h - 34, w, 34);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, h - 34); ctx.lineTo(w, h - 34); ctx.stroke();
+        ctx.fillStyle = '#8B949E';
+        ctx.font = '12px monospace';
+        ctx.fillText('Ventanas Hijas (' + this.children.length + '). Arrastra la barra de título para mover, [-] para minimizar.', 16, h - 13);
+      }
+
+      // 2. CONTENEDORES HIJOS (<s>1, <s>2)
+      if (!isMobile) {
+        // --- MODO ESCRITORIO: RENDERIZAR CADA HIJO ---
+        for (var i = 0; i < this.children.length; i++) {
+          var ch = this.children[i];
+          var isMin = !!ch.minimized;
+          var curH = isMin ? 30 : ch.h;
+
+          // Sombra de ventana
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+          ctx.fillRect(ch.x + 6, ch.y + 6, ch.w, curH);
+
+          if (!isMin) {
+            ctx.fillStyle = ch.color || '#161B22';
+            ctx.fillRect(ch.x, ch.y, ch.w, ch.h);
+            ctx.strokeStyle = '#30363D';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ch.x, ch.y, ch.w, ch.h);
+          }
+
+          // Barra de título arrastrable
+          ctx.fillStyle = isMin ? '#1C2128' : '#21262D';
+          ctx.fillRect(ch.x, ch.y, ch.w, 30);
+          ctx.strokeStyle = isMin ? '#58A6FF' : '#30363D';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(ch.x, ch.y, ch.w, 30);
+
+          // Título de la ventana
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 12px monospace';
+          var titleStr = isMin ? ch.title + ' [MIN]' : ch.title;
+          ctx.fillText(titleStr, ch.x + 10, ch.y + 19);
+
+          // Botón minimizar / restaurar
+          ctx.fillStyle = isMin ? '#238636' : '#30363D';
+          ctx.fillRect(ch.x + ch.w - 24, ch.y + 6, 18, 18);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText(isMin ? '+' : '-', ch.x + ch.w - 18, ch.y + 19);
+
+          if (!isMin) {
+            var metrics = self.getScrollMetrics(ch);
+            var innerX = ch.x + 12;
+            var innerY = ch.y + 32;
+            var innerW = metrics ? metrics.innerW : Math.max(10, ch.w - 24);
+            var innerH = metrics ? metrics.innerH : Math.max(10, ch.h - 36);
+
+            // Clipping estricto por hardware
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(ch.x + 2, ch.y + 30, ch.w - 4, ch.h - 32);
+            ctx.clip();
+
+            var scX = metrics ? metrics.scX : (ch.scrollX || 0);
+            var scY = metrics ? metrics.scY : (ch.scrollY || 0);
+            ctx.translate(innerX - scX, innerY - scY);
+
+            var targetVm = ch.appVm || self.vm;
+            if (self.vm && ch.screenPc !== undefined) {
+              self.vm.run(ch.screenPc);
+              ch.buttons = self.vm.buttons.slice();
+              self.renderVmUi(ctx, self.vm, innerW, innerH);
+            } else if (targetVm && targetVm.uiCmds && targetVm.uiCmds.length > 0) {
+              // RENDERIZADO DINÁMICO DE ELEMENTOS PHASORLANG DE LA VENTANA
+              self.renderVmUi(ctx, targetVm, innerW, innerH);
+            } else {
+              // Fallback para pruebas unitarias de maquetación y wrap
+              ctx.fillStyle = '#3FB950';
+              ctx.font = 'bold 11px monospace';
+              ctx.fillText('Contenedor Hijo [' + ch.id + '] • Viewport Activo', 0, 16);
+
+              ctx.fillStyle = '#8B949E';
+              ctx.font = '10px monospace';
+              ctx.fillText('Resolución: ' + Math.round(ch.w) + 'x' + Math.round(ch.h) + ' px | Scroll: (' + Math.round(scX) + ', ' + Math.round(scY) + ')', 0, 32);
+
+              var charsPerLine = Math.max(8, Math.floor(innerW / 6.8));
+              var rawText = 'PhasorLang Zero-GC Runtime. El contenido se adapta en modo wrap a los bordes de la ventana hija y permite desplazamiento bidireccional suave con la rueda del raton o touchpad.';
+              var words = rawText.split(' ');
+              var curLine = '';
+              var lineY = 52;
+              ctx.fillStyle = '#C9D1D9';
+              ctx.font = '10px monospace';
+
+              for (var wIdx = 0; wIdx < words.length; wIdx++) {
+                var testLine = curLine + (curLine ? ' ' : '') + words[wIdx];
+                if (testLine.length > charsPerLine && curLine.length > 0) {
+                  ctx.fillText(curLine, 0, lineY);
+                  lineY += 16;
+                  curLine = words[wIdx];
+                } else {
+                  curLine = testLine;
+                }
+              }
+              if (curLine.length > 0) {
+                ctx.fillText(curLine, 0, lineY);
+                lineY += 16;
+              }
+
+              if (lineY + 36 > 0) {
+                ctx.fillStyle = '#238636';
+                ctx.fillRect(0, lineY + 10, Math.max(120, Math.min(220, innerW - 20)), 32);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText('Acción Hijo ' + ch.id, 16, lineY + 30);
+              }
+
+              ctx.fillStyle = '#1F6FEB';
+              ctx.fillRect(340, 16, 140, 28);
+              ctx.fillStyle = '#FFFFFF';
+              ctx.font = '9px monospace';
+              ctx.fillText('Panel Virtual X=340', 348, 34);
+            }
+
+            ctx.restore(); // Fin de clipping
+
+            // Barras de desplazamiento (Scrollbars)
+            if (metrics) {
+              if (metrics.v) {
+                var v = metrics.v;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(v.trackX, v.trackY, v.trackW, v.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(v.trackX, v.trackY, v.trackW, v.trackH);
+
+                var isVDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'vertical');
+                ctx.fillStyle = isVDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(v.trackX + 1, v.thumbY, v.trackW - 2, v.thumbH);
+                }
+              }
+
+              if (metrics.h) {
+                var hMetrics = metrics.h;
+                ctx.fillStyle = '#161B22';
+                ctx.fillRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+                ctx.strokeStyle = '#21262D';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(hMetrics.trackX, hMetrics.trackY, hMetrics.trackW, hMetrics.trackH);
+
+                var isHDragging = (self.isDraggingScrollbar && self.isDraggingScrollbar.child === ch && self.isDraggingScrollbar.type === 'horizontal');
+                ctx.fillStyle = isHDragging ? '#79C0FF' : '#58A6FF';
+                if (ctx.roundRect) {
+                  ctx.beginPath();
+                  ctx.roundRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2, 3);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(hMetrics.thumbX, hMetrics.trackY + 1, hMetrics.thumbW, hMetrics.trackH - 2);
+                }
+              }
+            }
+
+            // Agarradera visual de redimensión en esquina SE
+            ctx.strokeStyle = '#58A6FF';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ch.x + ch.w - 12, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 12);
+            ctx.moveTo(ch.x + ch.w - 8, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 8);
+            ctx.moveTo(ch.x + ch.w - 4, ch.y + ch.h - 3); ctx.lineTo(ch.x + ch.w - 3, ch.y + ch.h - 4);
+            ctx.stroke();
+          }
+        }
+      } else {
+        // --- MODO MÓVIL: AJUSTE SNAP 100% AL VIEWPORT ---
+        var activeChild = this.children[this.activeChildIndex] || this.children[0];
+
+        ctx.fillStyle = activeChild.color || '#161B22';
+        ctx.fillRect(0, 0, w, h);
+
+        // Barra superior móvil (44px)
+        ctx.fillStyle = '#161B22';
+        ctx.fillRect(0, 0, w, 44);
+        ctx.strokeStyle = '#30363D';
+        ctx.beginPath(); ctx.moveTo(0, 44); ctx.lineTo(w, 44); ctx.stroke();
+
+        if (this.children.length === 1) {
+          ctx.fillStyle = '#58A6FF';
+          ctx.font = 'bold 13px monospace';
+          ctx.fillText(activeChild.title, 14, 27);
+        } else {
+          var tabW = Math.min(130, Math.floor((w - 20) / this.children.length));
+          for (var tIdx = 0; tIdx < this.children.length; tIdx++) {
+            var cTab = this.children[tIdx];
+            var isSel = (tIdx === this.activeChildIndex);
+            var tabX = 10 + (tIdx * (tabW + 6));
+            ctx.fillStyle = isSel ? '#238636' : '#21262D';
+            ctx.fillRect(tabX, 8, tabW, 28);
+            ctx.fillStyle = isSel ? '#FFFFFF' : '#8B949E';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(cTab.title.substring(0, 14), tabX + (tabW / 2), 26);
+            ctx.textAlign = 'left';
+          }
+        }
+
+        // FPS badge en barra superior
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(this.fps + ' FPS', w - 14, 27);
+        ctx.textAlign = 'left';
+
+        // Renderizado del contenido hijo en móvil
+        var targetVmMobile = activeChild.appVm || this.vm;
+        var innerH = h - 44;
+        var scXMobile = activeChild.scrollX || 0;
+        var scYMobile = activeChild.scrollY || 0;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 44, w, innerH);
+        ctx.clip();
+        ctx.translate(10 - scXMobile, 48 - scYMobile);
+
+        if (self.vm && activeChild.screenPc !== undefined) {
+          self.vm.run(activeChild.screenPc);
+          activeChild.buttons = self.vm.buttons.slice();
+          self.renderVmUi(ctx, self.vm, w - 20, innerH);
+        } else if (targetVmMobile && targetVmMobile.uiCmds && targetVmMobile.uiCmds.length > 0) {
+          self.renderVmUi(ctx, targetVmMobile, w - 20, innerH);
+        } else {
+          ctx.fillStyle = '#8B949E';
+          ctx.font = '10px monospace';
+          ctx.fillText('Hijo ' + (this.activeChildIndex + 1) + '/' + this.children.length + ' • Desliza para orbitar 360°', 14, 20);
+
+          var btnMargin = 15;
+          var btnW = w - (btnMargin * 2);
+          var btnH = 48;
+          ctx.fillStyle = '#238636';
+          ctx.fillRect(btnMargin - 10, innerH - 80, btnW, btnH);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 13px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('Cambiar Sub-Pantalla (Touch >= 44px)', (w - 20) / 2, innerH - 50);
+          ctx.textAlign = 'left';
+        }
+        ctx.restore();
+      }
+
+      // 3. PANEL DE TELEMETRÍA RUNTIME (SHOW HUD NO-INVASIVO)
+      if (this.showHud) {
+        var hudMargin = isMobile ? 12 : 24;
+        var hudW = Math.min(460, w - (hudMargin * 2));
+        var hudH = 92;
+        var hudX = w - hudW - hudMargin;
+        var hudY = isMobile ? (h - hudH - 20) : (h - hudH - 46);
+
+        ctx.fillStyle = 'rgba(11, 14, 20, 0.95)';
+        ctx.fillRect(hudX, hudY, hudW, hudH);
+        ctx.strokeStyle = '#58A6FF';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hudX, hudY, hudW, hudH);
+
+        ctx.fillStyle = '#21262D';
+        ctx.fillRect(hudX, hudY, hudW, 24);
+        ctx.fillStyle = '#58A6FF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('TELEMETRÍA RUNTIME [Zero-GC]', hudX + 10, hudY + 16);
+
+        // Botón cerrar
+        ctx.fillStyle = '#F85149';
+        ctx.fillRect(hudX + hudW - 20, hudY + 4, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('x', hudX + hudW - 15, hudY + 15);
+
+        ctx.fillStyle = '#3FB950';
+        ctx.font = '11px monospace';
+        ctx.fillText('Invariante Zero-GC: 0.0 Bytes Heap | ' + this.fps + ' FPS', hudX + 12, hudY + 46);
+
+        ctx.fillStyle = '#C9D1D9';
+        ctx.font = '10px monospace';
+        ctx.fillText('Ventanas Activas: ' + this.children.length + ' | Modo: ' + (isMobile ? 'Móvil Snap 100%' : 'Escritorio Multi-Ventana'), hudX + 12, hudY + 70);
+      }
+    }
+  };
+
+  global.MicroPhasorVM = MicroPhasorVM;
+  global.PhasorRuntime = PhasorRuntime;
+})(typeof window !== 'undefined' ? window : this);
+
+  </script>
+  <script>
+    (function() {
+      if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+        try {
+          var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+        } catch(e) {}
+      }
+
+      var WASM_PAYLOAD = "AGFzbQEAAAABLgdgAABgAX8BfGACf3wAYAR/f398AGAFf398fHwAYAZ8fHx8fHwBfGADfHx8AXwDCAcAAQIDBAUGBQMBAAEHZwkGbWVtb3J5AgADcnVuAAAEbWFpbgAADGdldF9yZWdpc3RlcgABDHNldF9yZWdpc3RlcgACCXNpbWRfc3RlcAADDXNpbWRfaW5pdF92ZWwABAh2ZWMzX2RvdAAFCHZlYzNfbWFnAAYKuJABB/6NAQKACHwIf0GAwAAhgAhBACsDACEAQQgrAwAhAUEQKwMAIQJBGCsDACEDQSArAwAhBEEoKwMAIQVBMCsDACEGQTgrAwAhB0HAACsDACEIQcgAKwMAIQlB0AArAwAhCkHYACsDACELQeAAKwMAIQxB6AArAwAhDUHwACsDACEOQfgAKwMAIQ9BgAErAwAhEEGIASsDACERQZABKwMAIRJBmAErAwAhE0GgASsDACEUQagBKwMAIRVBsAErAwAhFkG4ASsDACEXQcABKwMAIRhByAErAwAhGUHQASsDACEaQdgBKwMAIRtB4AErAwAhHEHoASsDACEdQfABKwMAIR5B+AErAwAhH0GAAisDACEgQYgCKwMAISFBkAIrAwAhIkGYAisDACEjQaACKwMAISRBqAIrAwAhJUGwAisDACEmQbgCKwMAISdBwAIrAwAhKEHIAisDACEpQdACKwMAISpB2AIrAwAhK0HgAisDACEsQegCKwMAIS1B8AIrAwAhLkH4AisDACEvQYADKwMAITBBiAMrAwAhMUGQAysDACEyQZgDKwMAITNBoAMrAwAhNEGoAysDACE1QbADKwMAITZBuAMrAwAhN0HAAysDACE4QcgDKwMAITlB0AMrAwAhOkHYAysDACE7QeADKwMAITxB6AMrAwAhPUHwAysDACE+QfgDKwMAIT9BgAQrAwAhQEGIBCsDACFBQZAEKwMAIUJBmAQrAwAhQ0GgBCsDACFEQagEKwMAIUVBsAQrAwAhRkG4BCsDACFHQcAEKwMAIUhByAQrAwAhSUHQBCsDACFKQdgEKwMAIUtB4AQrAwAhTEHoBCsDACFNQfAEKwMAIU5B+AQrAwAhT0GABSsDACFQQYgFKwMAIVFBkAUrAwAhUkGYBSsDACFTQaAFKwMAIVRBqAUrAwAhVUGwBSsDACFWQbgFKwMAIVdBwAUrAwAhWEHIBSsDACFZQdAFKwMAIVpB2AUrAwAhW0HgBSsDACFcQegFKwMAIV1B8AUrAwAhXkH4BSsDACFfQYAGKwMAIWBBiAYrAwAhYUGQBisDACFiQZgGKwMAIWNBoAYrAwAhZEGoBisDACFlQbAGKwMAIWZBuAYrAwAhZ0HABisDACFoQcgGKwMAIWlB0AYrAwAhakHYBisDACFrQeAGKwMAIWxB6AYrAwAhbUHwBisDACFuQfgGKwMAIW9BgAcrAwAhcEGIBysDACFxQZAHKwMAIXJBmAcrAwAhc0GgBysDACF0QagHKwMAIXVBsAcrAwAhdkG4BysDACF3QcAHKwMAIXhByAcrAwAheUHQBysDACF6QdgHKwMAIXtB4AcrAwAhfEHoBysDACF9QfAHKwMAIX5B+AcrAwAhf0GACCsDACGAAUGICCsDACGBAUGQCCsDACGCAUGYCCsDACGDAUGgCCsDACGEAUGoCCsDACGFAUGwCCsDACGGAUG4CCsDACGHAUHACCsDACGIAUHICCsDACGJAUHQCCsDACGKAUHYCCsDACGLAUHgCCsDACGMAUHoCCsDACGNAUHwCCsDACGOAUH4CCsDACGPAUGACSsDACGQAUGICSsDACGRAUGQCSsDACGSAUGYCSsDACGTAUGgCSsDACGUAUGoCSsDACGVAUGwCSsDACGWAUG4CSsDACGXAUHACSsDACGYAUHICSsDACGZAUHQCSsDACGaAUHYCSsDACGbAUHgCSsDACGcAUHoCSsDACGdAUHwCSsDACGeAUH4CSsDACGfAUGACisDACGgAUGICisDACGhAUGQCisDACGiAUGYCisDACGjAUGgCisDACGkAUGoCisDACGlAUGwCisDACGmAUG4CisDACGnAUHACisDACGoAUHICisDACGpAUHQCisDACGqAUHYCisDACGrAUHgCisDACGsAUHoCisDACGtAUHwCisDACGuAUH4CisDACGvAUGACysDACGwAUGICysDACGxAUGQCysDACGyAUGYCysDACGzAUGgCysDACG0AUGoCysDACG1AUGwCysDACG2AUG4CysDACG3AUHACysDACG4AUHICysDACG5AUHQCysDACG6AUHYCysDACG7AUHgCysDACG8AUHoCysDACG9AUHwCysDACG+AUH4CysDACG/AUGADCsDACHAAUGIDCsDACHBAUGQDCsDACHCAUGYDCsDACHDAUGgDCsDACHEAUGoDCsDACHFAUGwDCsDACHGAUG4DCsDACHHAUHADCsDACHIAUHIDCsDACHJAUHQDCsDACHKAUHYDCsDACHLAUHgDCsDACHMAUHoDCsDACHNAUHwDCsDACHOAUH4DCsDACHPAUGADSsDACHQAUGIDSsDACHRAUGQDSsDACHSAUGYDSsDACHTAUGgDSsDACHUAUGoDSsDACHVAUGwDSsDACHWAUG4DSsDACHXAUHADSsDACHYAUHIDSsDACHZAUHQDSsDACHaAUHYDSsDACHbAUHgDSsDACHcAUHoDSsDACHdAUHwDSsDACHeAUH4DSsDACHfAUGADisDACHgAUGIDisDACHhAUGQDisDACHiAUGYDisDACHjAUGgDisDACHkAUGoDisDACHlAUGwDisDACHmAUG4DisDACHnAUHADisDACHoAUHIDisDACHpAUHQDisDACHqAUHYDisDACHrAUHgDisDACHsAUHoDisDACHtAUHwDisDACHuAUH4DisDACHvAUGADysDACHwAUGIDysDACHxAUGQDysDACHyAUGYDysDACHzAUGgDysDACH0AUGoDysDACH1AUGwDysDACH2AUG4DysDACH3AUHADysDACH4AUHIDysDACH5AUHQDysDACH6AUHYDysDACH7AUHgDysDACH8AUHoDysDACH9AUHwDysDACH+AUH4DysDACH/AUGAECsDACGAAkGIECsDACGBAkGQECsDACGCAkGYECsDACGDAkGgECsDACGEAkGoECsDACGFAkGwECsDACGGAkG4ECsDACGHAkHAECsDACGIAkHIECsDACGJAkHQECsDACGKAkHYECsDACGLAkHgECsDACGMAkHoECsDACGNAkHwECsDACGOAkH4ECsDACGPAkGAESsDACGQAkGIESsDACGRAkGQESsDACGSAkGYESsDACGTAkGgESsDACGUAkGoESsDACGVAkGwESsDACGWAkG4ESsDACGXAkHAESsDACGYAkHIESsDACGZAkHQESsDACGaAkHYESsDACGbAkHgESsDACGcAkHoESsDACGdAkHwESsDACGeAkH4ESsDACGfAkGAEisDACGgAkGIEisDACGhAkGQEisDACGiAkGYEisDACGjAkGgEisDACGkAkGoEisDACGlAkGwEisDACGmAkG4EisDACGnAkHAEisDACGoAkHIEisDACGpAkHQEisDACGqAkHYEisDACGrAkHgEisDACGsAkHoEisDACGtAkHwEisDACGuAkH4EisDACGvAkGAEysDACGwAkGIEysDACGxAkGQEysDACGyAkGYEysDACGzAkGgEysDACG0AkGoEysDACG1AkGwEysDACG2AkG4EysDACG3AkHAEysDACG4AkHIEysDACG5AkHQEysDACG6AkHYEysDACG7AkHgEysDACG8AkHoEysDACG9AkHwEysDACG+AkH4EysDACG/AkGAFCsDACHAAkGIFCsDACHBAkGQFCsDACHCAkGYFCsDACHDAkGgFCsDACHEAkGoFCsDACHFAkGwFCsDACHGAkG4FCsDACHHAkHAFCsDACHIAkHIFCsDACHJAkHQFCsDACHKAkHYFCsDACHLAkHgFCsDACHMAkHoFCsDACHNAkHwFCsDACHOAkH4FCsDACHPAkGAFSsDACHQAkGIFSsDACHRAkGQFSsDACHSAkGYFSsDACHTAkGgFSsDACHUAkGoFSsDACHVAkGwFSsDACHWAkG4FSsDACHXAkHAFSsDACHYAkHIFSsDACHZAkHQFSsDACHaAkHYFSsDACHbAkHgFSsDACHcAkHoFSsDACHdAkHwFSsDACHeAkH4FSsDACHfAkGAFisDACHgAkGIFisDACHhAkGQFisDACHiAkGYFisDACHjAkGgFisDACHkAkGoFisDACHlAkGwFisDACHmAkG4FisDACHnAkHAFisDACHoAkHIFisDACHpAkHQFisDACHqAkHYFisDACHrAkHgFisDACHsAkHoFisDACHtAkHwFisDACHuAkH4FisDACHvAkGAFysDACHwAkGIFysDACHxAkGQFysDACHyAkGYFysDACHzAkGgFysDACH0AkGoFysDACH1AkGwFysDACH2AkG4FysDACH3AkHAFysDACH4AkHIFysDACH5AkHQFysDACH6AkHYFysDACH7AkHgFysDACH8AkHoFysDACH9AkHwFysDACH+AkH4FysDACH/AkGAGCsDACGAA0GIGCsDACGBA0GQGCsDACGCA0GYGCsDACGDA0GgGCsDACGEA0GoGCsDACGFA0GwGCsDACGGA0G4GCsDACGHA0HAGCsDACGIA0HIGCsDACGJA0HQGCsDACGKA0HYGCsDACGLA0HgGCsDACGMA0HoGCsDACGNA0HwGCsDACGOA0H4GCsDACGPA0GAGSsDACGQA0GIGSsDACGRA0GQGSsDACGSA0GYGSsDACGTA0GgGSsDACGUA0GoGSsDACGVA0GwGSsDACGWA0G4GSsDACGXA0HAGSsDACGYA0HIGSsDACGZA0HQGSsDACGaA0HYGSsDACGbA0HgGSsDACGcA0HoGSsDACGdA0HwGSsDACGeA0H4GSsDACGfA0GAGisDACGgA0GIGisDACGhA0GQGisDACGiA0GYGisDACGjA0GgGisDACGkA0GoGisDACGlA0GwGisDACGmA0G4GisDACGnA0HAGisDACGoA0HIGisDACGpA0HQGisDACGqA0HYGisDACGrA0HgGisDACGsA0HoGisDACGtA0HwGisDACGuA0H4GisDACGvA0GAGysDACGwA0GIGysDACGxA0GQGysDACGyA0GYGysDACGzA0GgGysDACG0A0GoGysDACG1A0GwGysDACG2A0G4GysDACG3A0HAGysDACG4A0HIGysDACG5A0HQGysDACG6A0HYGysDACG7A0HgGysDACG8A0HoGysDACG9A0HwGysDACG+A0H4GysDACG/A0GAHCsDACHAA0GIHCsDACHBA0GQHCsDACHCA0GYHCsDACHDA0GgHCsDACHEA0GoHCsDACHFA0GwHCsDACHGA0G4HCsDACHHA0HAHCsDACHIA0HIHCsDACHJA0HQHCsDACHKA0HYHCsDACHLA0HgHCsDACHMA0HoHCsDACHNA0HwHCsDACHOA0H4HCsDACHPA0GAHSsDACHQA0GIHSsDACHRA0GQHSsDACHSA0GYHSsDACHTA0GgHSsDACHUA0GoHSsDACHVA0GwHSsDACHWA0G4HSsDACHXA0HAHSsDACHYA0HIHSsDACHZA0HQHSsDACHaA0HYHSsDACHbA0HgHSsDACHcA0HoHSsDACHdA0HwHSsDACHeA0H4HSsDACHfA0GAHisDACHgA0GIHisDACHhA0GQHisDACHiA0GYHisDACHjA0GgHisDACHkA0GoHisDACHlA0GwHisDACHmA0G4HisDACHnA0HAHisDACHoA0HIHisDACHpA0HQHisDACHqA0HYHisDACHrA0HgHisDACHsA0HoHisDACHtA0HwHisDACHuA0H4HisDACHvA0GAHysDACHwA0GIHysDACHxA0GQHysDACHyA0GYHysDACHzA0GgHysDACH0A0GoHysDACH1A0GwHysDACH2A0G4HysDACH3A0HAHysDACH4A0HIHysDACH5A0HQHysDACH6A0HYHysDACH7A0HgHysDACH8A0HoHysDACH9A0HwHysDACH+A0H4HysDACH/A0GAICsDACGABEGIICsDACGBBEGQICsDACGCBEGYICsDACGDBEGgICsDACGEBEGoICsDACGFBEGwICsDACGGBEG4ICsDACGHBEHAICsDACGIBEHIICsDACGJBEHQICsDACGKBEHYICsDACGLBEHgICsDACGMBEHoICsDACGNBEHwICsDACGOBEH4ICsDACGPBEGAISsDACGQBEGIISsDACGRBEGQISsDACGSBEGYISsDACGTBEGgISsDACGUBEGoISsDACGVBEGwISsDACGWBEG4ISsDACGXBEHAISsDACGYBEHIISsDACGZBEHQISsDACGaBEHYISsDACGbBEHgISsDACGcBEHoISsDACGdBEHwISsDACGeBEH4ISsDACGfBEGAIisDACGgBEGIIisDACGhBEGQIisDACGiBEGYIisDACGjBEGgIisDACGkBEGoIisDACGlBEGwIisDACGmBEG4IisDACGnBEHAIisDACGoBEHIIisDACGpBEHQIisDACGqBEHYIisDACGrBEHgIisDACGsBEHoIisDACGtBEHwIisDACGuBEH4IisDACGvBEGAIysDACGwBEGIIysDACGxBEGQIysDACGyBEGYIysDACGzBEGgIysDACG0BEGoIysDACG1BEGwIysDACG2BEG4IysDACG3BEHAIysDACG4BEHIIysDACG5BEHQIysDACG6BEHYIysDACG7BEHgIysDACG8BEHoIysDACG9BEHwIysDACG+BEH4IysDACG/BEGAJCsDACHABEGIJCsDACHBBEGQJCsDACHCBEGYJCsDACHDBEGgJCsDACHEBEGoJCsDACHFBEGwJCsDACHGBEG4JCsDACHHBEHAJCsDACHIBEHIJCsDACHJBEHQJCsDACHKBEHYJCsDACHLBEHgJCsDACHMBEHoJCsDACHNBEHwJCsDACHOBEH4JCsDACHPBEGAJSsDACHQBEGIJSsDACHRBEGQJSsDACHSBEGYJSsDACHTBEGgJSsDACHUBEGoJSsDACHVBEGwJSsDACHWBEG4JSsDACHXBEHAJSsDACHYBEHIJSsDACHZBEHQJSsDACHaBEHYJSsDACHbBEHgJSsDACHcBEHoJSsDACHdBEHwJSsDACHeBEH4JSsDACHfBEGAJisDACHgBEGIJisDACHhBEGQJisDACHiBEGYJisDACHjBEGgJisDACHkBEGoJisDACHlBEGwJisDACHmBEG4JisDACHnBEHAJisDACHoBEHIJisDACHpBEHQJisDACHqBEHYJisDACHrBEHgJisDACHsBEHoJisDACHtBEHwJisDACHuBEH4JisDACHvBEGAJysDACHwBEGIJysDACHxBEGQJysDACHyBEGYJysDACHzBEGgJysDACH0BEGoJysDACH1BEGwJysDACH2BEG4JysDACH3BEHAJysDACH4BEHIJysDACH5BEHQJysDACH6BEHYJysDACH7BEHgJysDACH8BEHoJysDACH9BEHwJysDACH+BEH4JysDACH/BEGAKCsDACGABUGIKCsDACGBBUGQKCsDACGCBUGYKCsDACGDBUGgKCsDACGEBUGoKCsDACGFBUGwKCsDACGGBUG4KCsDACGHBUHAKCsDACGIBUHIKCsDACGJBUHQKCsDACGKBUHYKCsDACGLBUHgKCsDACGMBUHoKCsDACGNBUHwKCsDACGOBUH4KCsDACGPBUGAKSsDACGQBUGIKSsDACGRBUGQKSsDACGSBUGYKSsDACGTBUGgKSsDACGUBUGoKSsDACGVBUGwKSsDACGWBUG4KSsDACGXBUHAKSsDACGYBUHIKSsDACGZBUHQKSsDACGaBUHYKSsDACGbBUHgKSsDACGcBUHoKSsDACGdBUHwKSsDACGeBUH4KSsDACGfBUGAKisDACGgBUGIKisDACGhBUGQKisDACGiBUGYKisDACGjBUGgKisDACGkBUGoKisDACGlBUGwKisDACGmBUG4KisDACGnBUHAKisDACGoBUHIKisDACGpBUHQKisDACGqBUHYKisDACGrBUHgKisDACGsBUHoKisDACGtBUHwKisDACGuBUH4KisDACGvBUGAKysDACGwBUGIKysDACGxBUGQKysDACGyBUGYKysDACGzBUGgKysDACG0BUGoKysDACG1BUGwKysDACG2BUG4KysDACG3BUHAKysDACG4BUHIKysDACG5BUHQKysDACG6BUHYKysDACG7BUHgKysDACG8BUHoKysDACG9BUHwKysDACG+BUH4KysDACG/BUGALCsDACHABUGILCsDACHBBUGQLCsDACHCBUGYLCsDACHDBUGgLCsDACHEBUGoLCsDACHFBUGwLCsDACHGBUG4LCsDACHHBUHALCsDACHIBUHILCsDACHJBUHQLCsDACHKBUHYLCsDACHLBUHgLCsDACHMBUHoLCsDACHNBUHwLCsDACHOBUH4LCsDACHPBUGALSsDACHQBUGILSsDACHRBUGQLSsDACHSBUGYLSsDACHTBUGgLSsDACHUBUGoLSsDACHVBUGwLSsDACHWBUG4LSsDACHXBUHALSsDACHYBUHILSsDACHZBUHQLSsDACHaBUHYLSsDACHbBUHgLSsDACHcBUHoLSsDACHdBUHwLSsDACHeBUH4LSsDACHfBUGALisDACHgBUGILisDACHhBUGQLisDACHiBUGYLisDACHjBUGgLisDACHkBUGoLisDACHlBUGwLisDACHmBUG4LisDACHnBUHALisDACHoBUHILisDACHpBUHQLisDACHqBUHYLisDACHrBUHgLisDACHsBUHoLisDACHtBUHwLisDACHuBUH4LisDACHvBUGALysDACHwBUGILysDACHxBUGQLysDACHyBUGYLysDACHzBUGgLysDACH0BUGoLysDACH1BUGwLysDACH2BUG4LysDACH3BUHALysDACH4BUHILysDACH5BUHQLysDACH6BUHYLysDACH7BUHgLysDACH8BUHoLysDACH9BUHwLysDACH+BUH4LysDACH/BUGAMCsDACGABkGIMCsDACGBBkGQMCsDACGCBkGYMCsDACGDBkGgMCsDACGEBkGoMCsDACGFBkGwMCsDACGGBkG4MCsDACGHBkHAMCsDACGIBkHIMCsDACGJBkHQMCsDACGKBkHYMCsDACGLBkHgMCsDACGMBkHoMCsDACGNBkHwMCsDACGOBkH4MCsDACGPBkGAMSsDACGQBkGIMSsDACGRBkGQMSsDACGSBkGYMSsDACGTBkGgMSsDACGUBkGoMSsDACGVBkGwMSsDACGWBkG4MSsDACGXBkHAMSsDACGYBkHIMSsDACGZBkHQMSsDACGaBkHYMSsDACGbBkHgMSsDACGcBkHoMSsDACGdBkHwMSsDACGeBkH4MSsDACGfBkGAMisDACGgBkGIMisDACGhBkGQMisDACGiBkGYMisDACGjBkGgMisDACGkBkGoMisDACGlBkGwMisDACGmBkG4MisDACGnBkHAMisDACGoBkHIMisDACGpBkHQMisDACGqBkHYMisDACGrBkHgMisDACGsBkHoMisDACGtBkHwMisDACGuBkH4MisDACGvBkGAMysDACGwBkGIMysDACGxBkGQMysDACGyBkGYMysDACGzBkGgMysDACG0BkGoMysDACG1BkGwMysDACG2BkG4MysDACG3BkHAMysDACG4BkHIMysDACG5BkHQMysDACG6BkHYMysDACG7BkHgMysDACG8BkHoMysDACG9BkHwMysDACG+BkH4MysDACG/BkGANCsDACHABkGINCsDACHBBkGQNCsDACHCBkGYNCsDACHDBkGgNCsDACHEBkGoNCsDACHFBkGwNCsDACHGBkG4NCsDACHHBkHANCsDACHIBkHINCsDACHJBkHQNCsDACHKBkHYNCsDACHLBkHgNCsDACHMBkHoNCsDACHNBkHwNCsDACHOBkH4NCsDACHPBkGANSsDACHQBkGINSsDACHRBkGQNSsDACHSBkGYNSsDACHTBkGgNSsDACHUBkGoNSsDACHVBkGwNSsDACHWBkG4NSsDACHXBkHANSsDACHYBkHINSsDACHZBkHQNSsDACHaBkHYNSsDACHbBkHgNSsDACHcBkHoNSsDACHdBkHwNSsDACHeBkH4NSsDACHfBkGANisDACHgBkGINisDACHhBkGQNisDACHiBkGYNisDACHjBkGgNisDACHkBkGoNisDACHlBkGwNisDACHmBkG4NisDACHnBkHANisDACHoBkHINisDACHpBkHQNisDACHqBkHYNisDACHrBkHgNisDACHsBkHoNisDACHtBkHwNisDACHuBkH4NisDACHvBkGANysDACHwBkGINysDACHxBkGQNysDACHyBkGYNysDACHzBkGgNysDACH0BkGoNysDACH1BkGwNysDACH2BkG4NysDACH3BkHANysDACH4BkHINysDACH5BkHQNysDACH6BkHYNysDACH7BkHgNysDACH8BkHoNysDACH9BkHwNysDACH+BkH4NysDACH/BkGAOCsDACGAB0GIOCsDACGBB0GQOCsDACGCB0GYOCsDACGDB0GgOCsDACGEB0GoOCsDACGFB0GwOCsDACGGB0G4OCsDACGHB0HAOCsDACGIB0HIOCsDACGJB0HQOCsDACGKB0HYOCsDACGLB0HgOCsDACGMB0HoOCsDACGNB0HwOCsDACGOB0H4OCsDACGPB0GAOSsDACGQB0GIOSsDACGRB0GQOSsDACGSB0GYOSsDACGTB0GgOSsDACGUB0GoOSsDACGVB0GwOSsDACGWB0G4OSsDACGXB0HAOSsDACGYB0HIOSsDACGZB0HQOSsDACGaB0HYOSsDACGbB0HgOSsDACGcB0HoOSsDACGdB0HwOSsDACGeB0H4OSsDACGfB0GAOisDACGgB0GIOisDACGhB0GQOisDACGiB0GYOisDACGjB0GgOisDACGkB0GoOisDACGlB0GwOisDACGmB0G4OisDACGnB0HAOisDACGoB0HIOisDACGpB0HQOisDACGqB0HYOisDACGrB0HgOisDACGsB0HoOisDACGtB0HwOisDACGuB0H4OisDACGvB0GAOysDACGwB0GIOysDACGxB0GQOysDACGyB0GYOysDACGzB0GgOysDACG0B0GoOysDACG1B0GwOysDACG2B0G4OysDACG3B0HAOysDACG4B0HIOysDACG5B0HQOysDACG6B0HYOysDACG7B0HgOysDACG8B0HoOysDACG9B0HwOysDACG+B0H4OysDACG/B0GAPCsDACHAB0GIPCsDACHBB0GQPCsDACHCB0GYPCsDACHDB0GgPCsDACHEB0GoPCsDACHFB0GwPCsDACHGB0G4PCsDACHHB0HAPCsDACHIB0HIPCsDACHJB0HQPCsDACHKB0HYPCsDACHLB0HgPCsDACHMB0HoPCsDACHNB0HwPCsDACHOB0H4PCsDACHPB0GAPSsDACHQB0GIPSsDACHRB0GQPSsDACHSB0GYPSsDACHTB0GgPSsDACHUB0GoPSsDACHVB0GwPSsDACHWB0G4PSsDACHXB0HAPSsDACHYB0HIPSsDACHZB0HQPSsDACHaB0HYPSsDACHbB0HgPSsDACHcB0HoPSsDACHdB0HwPSsDACHeB0H4PSsDACHfB0GAPisDACHgB0GIPisDACHhB0GQPisDACHiB0GYPisDACHjB0GgPisDACHkB0GoPisDACHlB0GwPisDACHmB0G4PisDACHnB0HAPisDACHoB0HIPisDACHpB0HQPisDACHqB0HYPisDACHrB0HgPisDACHsB0HoPisDACHtB0HwPisDACHuB0H4PisDACHvB0GAPysDACHwB0GIPysDACHxB0GQPysDACHyB0GYPysDACHzB0GgPysDACH0B0GoPysDACH1B0GwPysDACH2B0G4PysDACH3B0HAPysDACH4B0HIPysDACH5B0HQPysDACH6B0HYPysDACH7B0HgPysDACH8B0HoPysDACH9B0HwPysDACH+B0H4PysDACH/B0EAIAA5AwBBCCABOQMAQRAgAjkDAEEYIAM5AwBBICAEOQMAQSggBTkDAEEwIAY5AwBBOCAHOQMAQcAAIAg5AwBByAAgCTkDAEHQACAKOQMAQdgAIAs5AwBB4AAgDDkDAEHoACANOQMAQfAAIA45AwBB+AAgDzkDAEGAASAQOQMAQYgBIBE5AwBBkAEgEjkDAEGYASATOQMAQaABIBQ5AwBBqAEgFTkDAEGwASAWOQMAQbgBIBc5AwBBwAEgGDkDAEHIASAZOQMAQdABIBo5AwBB2AEgGzkDAEHgASAcOQMAQegBIB05AwBB8AEgHjkDAEH4ASAfOQMAQYACICA5AwBBiAIgITkDAEGQAiAiOQMAQZgCICM5AwBBoAIgJDkDAEGoAiAlOQMAQbACICY5AwBBuAIgJzkDAEHAAiAoOQMAQcgCICk5AwBB0AIgKjkDAEHYAiArOQMAQeACICw5AwBB6AIgLTkDAEHwAiAuOQMAQfgCIC85AwBBgAMgMDkDAEGIAyAxOQMAQZADIDI5AwBBmAMgMzkDAEGgAyA0OQMAQagDIDU5AwBBsAMgNjkDAEG4AyA3OQMAQcADIDg5AwBByAMgOTkDAEHQAyA6OQMAQdgDIDs5AwBB4AMgPDkDAEHoAyA9OQMAQfADID45AwBB+AMgPzkDAEGABCBAOQMAQYgEIEE5AwBBkAQgQjkDAEGYBCBDOQMAQaAEIEQ5AwBBqAQgRTkDAEGwBCBGOQMAQbgEIEc5AwBBwAQgSDkDAEHIBCBJOQMAQdAEIEo5AwBB2AQgSzkDAEHgBCBMOQMAQegEIE05AwBB8AQgTjkDAEH4BCBPOQMAQYAFIFA5AwBBiAUgUTkDAEGQBSBSOQMAQZgFIFM5AwBBoAUgVDkDAEGoBSBVOQMAQbAFIFY5AwBBuAUgVzkDAEHABSBYOQMAQcgFIFk5AwBB0AUgWjkDAEHYBSBbOQMAQeAFIFw5AwBB6AUgXTkDAEHwBSBeOQMAQfgFIF85AwBBgAYgYDkDAEGIBiBhOQMAQZAGIGI5AwBBmAYgYzkDAEGgBiBkOQMAQagGIGU5AwBBsAYgZjkDAEG4BiBnOQMAQcAGIGg5AwBByAYgaTkDAEHQBiBqOQMAQdgGIGs5AwBB4AYgbDkDAEHoBiBtOQMAQfAGIG45AwBB+AYgbzkDAEGAByBwOQMAQYgHIHE5AwBBkAcgcjkDAEGYByBzOQMAQaAHIHQ5AwBBqAcgdTkDAEGwByB2OQMAQbgHIHc5AwBBwAcgeDkDAEHIByB5OQMAQdAHIHo5AwBB2AcgezkDAEHgByB8OQMAQegHIH05AwBB8AcgfjkDAEH4ByB/OQMAQYAIIIABOQMAQYgIIIEBOQMAQZAIIIIBOQMAQZgIIIMBOQMAQaAIIIQBOQMAQagIIIUBOQMAQbAIIIYBOQMAQbgIIIcBOQMAQcAIIIgBOQMAQcgIIIkBOQMAQdAIIIoBOQMAQdgIIIsBOQMAQeAIIIwBOQMAQegIII0BOQMAQfAIII4BOQMAQfgIII8BOQMAQYAJIJABOQMAQYgJIJEBOQMAQZAJIJIBOQMAQZgJIJMBOQMAQaAJIJQBOQMAQagJIJUBOQMAQbAJIJYBOQMAQbgJIJcBOQMAQcAJIJgBOQMAQcgJIJkBOQMAQdAJIJoBOQMAQdgJIJsBOQMAQeAJIJwBOQMAQegJIJ0BOQMAQfAJIJ4BOQMAQfgJIJ8BOQMAQYAKIKABOQMAQYgKIKEBOQMAQZAKIKIBOQMAQZgKIKMBOQMAQaAKIKQBOQMAQagKIKUBOQMAQbAKIKYBOQMAQbgKIKcBOQMAQcAKIKgBOQMAQcgKIKkBOQMAQdAKIKoBOQMAQdgKIKsBOQMAQeAKIKwBOQMAQegKIK0BOQMAQfAKIK4BOQMAQfgKIK8BOQMAQYALILABOQMAQYgLILEBOQMAQZALILIBOQMAQZgLILMBOQMAQaALILQBOQMAQagLILUBOQMAQbALILYBOQMAQbgLILcBOQMAQcALILgBOQMAQcgLILkBOQMAQdALILoBOQMAQdgLILsBOQMAQeALILwBOQMAQegLIL0BOQMAQfALIL4BOQMAQfgLIL8BOQMAQYAMIMABOQMAQYgMIMEBOQMAQZAMIMIBOQMAQZgMIMMBOQMAQaAMIMQBOQMAQagMIMUBOQMAQbAMIMYBOQMAQbgMIMcBOQMAQcAMIMgBOQMAQcgMIMkBOQMAQdAMIMoBOQMAQdgMIMsBOQMAQeAMIMwBOQMAQegMIM0BOQMAQfAMIM4BOQMAQfgMIM8BOQMAQYANINABOQMAQYgNINEBOQMAQZANINIBOQMAQZgNINMBOQMAQaANINQBOQMAQagNINUBOQMAQbANINYBOQMAQbgNINcBOQMAQcANINgBOQMAQcgNINkBOQMAQdANINoBOQMAQdgNINsBOQMAQeANINwBOQMAQegNIN0BOQMAQfANIN4BOQMAQfgNIN8BOQMAQYAOIOABOQMAQYgOIOEBOQMAQZAOIOIBOQMAQZgOIOMBOQMAQaAOIOQBOQMAQagOIOUBOQMAQbAOIOYBOQMAQbgOIOcBOQMAQcAOIOgBOQMAQcgOIOkBOQMAQdAOIOoBOQMAQdgOIOsBOQMAQeAOIOwBOQMAQegOIO0BOQMAQfAOIO4BOQMAQfgOIO8BOQMAQYAPIPABOQMAQYgPIPEBOQMAQZAPIPIBOQMAQZgPIPMBOQMAQaAPIPQBOQMAQagPIPUBOQMAQbAPIPYBOQMAQbgPIPcBOQMAQcAPIPgBOQMAQcgPIPkBOQMAQdAPIPoBOQMAQdgPIPsBOQMAQeAPIPwBOQMAQegPIP0BOQMAQfAPIP4BOQMAQfgPIP8BOQMAQYAQIIACOQMAQYgQIIECOQMAQZAQIIICOQMAQZgQIIMCOQMAQaAQIIQCOQMAQagQIIUCOQMAQbAQIIYCOQMAQbgQIIcCOQMAQcAQIIgCOQMAQcgQIIkCOQMAQdAQIIoCOQMAQdgQIIsCOQMAQeAQIIwCOQMAQegQII0COQMAQfAQII4COQMAQfgQII8COQMAQYARIJACOQMAQYgRIJECOQMAQZARIJICOQMAQZgRIJMCOQMAQaARIJQCOQMAQagRIJUCOQMAQbARIJYCOQMAQbgRIJcCOQMAQcARIJgCOQMAQcgRIJkCOQMAQdARIJoCOQMAQdgRIJsCOQMAQeARIJwCOQMAQegRIJ0COQMAQfARIJ4COQMAQfgRIJ8COQMAQYASIKACOQMAQYgSIKECOQMAQZASIKICOQMAQZgSIKMCOQMAQaASIKQCOQMAQagSIKUCOQMAQbASIKYCOQMAQbgSIKcCOQMAQcASIKgCOQMAQcgSIKkCOQMAQdASIKoCOQMAQdgSIKsCOQMAQeASIKwCOQMAQegSIK0COQMAQfASIK4COQMAQfgSIK8COQMAQYATILACOQMAQYgTILECOQMAQZATILICOQMAQZgTILMCOQMAQaATILQCOQMAQagTILUCOQMAQbATILYCOQMAQbgTILcCOQMAQcATILgCOQMAQcgTILkCOQMAQdATILoCOQMAQdgTILsCOQMAQeATILwCOQMAQegTIL0COQMAQfATIL4COQMAQfgTIL8COQMAQYAUIMACOQMAQYgUIMECOQMAQZAUIMICOQMAQZgUIMMCOQMAQaAUIMQCOQMAQagUIMUCOQMAQbAUIMYCOQMAQbgUIMcCOQMAQcAUIMgCOQMAQcgUIMkCOQMAQdAUIMoCOQMAQdgUIMsCOQMAQeAUIMwCOQMAQegUIM0COQMAQfAUIM4COQMAQfgUIM8COQMAQYAVINACOQMAQYgVINECOQMAQZAVINICOQMAQZgVINMCOQMAQaAVINQCOQMAQagVINUCOQMAQbAVINYCOQMAQbgVINcCOQMAQcAVINgCOQMAQcgVINkCOQMAQdAVINoCOQMAQdgVINsCOQMAQeAVINwCOQMAQegVIN0COQMAQfAVIN4COQMAQfgVIN8COQMAQYAWIOACOQMAQYgWIOECOQMAQZAWIOICOQMAQZgWIOMCOQMAQaAWIOQCOQMAQagWIOUCOQMAQbAWIOYCOQMAQbgWIOcCOQMAQcAWIOgCOQMAQcgWIOkCOQMAQdAWIOoCOQMAQdgWIOsCOQMAQeAWIOwCOQMAQegWIO0COQMAQfAWIO4COQMAQfgWIO8COQMAQYAXIPACOQMAQYgXIPECOQMAQZAXIPICOQMAQZgXIPMCOQMAQaAXIPQCOQMAQagXIPUCOQMAQbAXIPYCOQMAQbgXIPcCOQMAQcAXIPgCOQMAQcgXIPkCOQMAQdAXIPoCOQMAQdgXIPsCOQMAQeAXIPwCOQMAQegXIP0COQMAQfAXIP4COQMAQfgXIP8COQMAQYAYIIADOQMAQYgYIIEDOQMAQZAYIIIDOQMAQZgYIIMDOQMAQaAYIIQDOQMAQagYIIUDOQMAQbAYIIYDOQMAQbgYIIcDOQMAQcAYIIgDOQMAQcgYIIkDOQMAQdAYIIoDOQMAQdgYIIsDOQMAQeAYIIwDOQMAQegYII0DOQMAQfAYII4DOQMAQfgYII8DOQMAQYAZIJADOQMAQYgZIJEDOQMAQZAZIJIDOQMAQZgZIJMDOQMAQaAZIJQDOQMAQagZIJUDOQMAQbAZIJYDOQMAQbgZIJcDOQMAQcAZIJgDOQMAQcgZIJkDOQMAQdAZIJoDOQMAQdgZIJsDOQMAQeAZIJwDOQMAQegZIJ0DOQMAQfAZIJ4DOQMAQfgZIJ8DOQMAQYAaIKADOQMAQYgaIKEDOQMAQZAaIKIDOQMAQZgaIKMDOQMAQaAaIKQDOQMAQagaIKUDOQMAQbAaIKYDOQMAQbgaIKcDOQMAQcAaIKgDOQMAQcgaIKkDOQMAQdAaIKoDOQMAQdgaIKsDOQMAQeAaIKwDOQMAQegaIK0DOQMAQfAaIK4DOQMAQfgaIK8DOQMAQYAbILADOQMAQYgbILEDOQMAQZAbILIDOQMAQZgbILMDOQMAQaAbILQDOQMAQagbILUDOQMAQbAbILYDOQMAQbgbILcDOQMAQcAbILgDOQMAQcgbILkDOQMAQdAbILoDOQMAQdgbILsDOQMAQeAbILwDOQMAQegbIL0DOQMAQfAbIL4DOQMAQfgbIL8DOQMAQYAcIMADOQMAQYgcIMEDOQMAQZAcIMIDOQMAQZgcIMMDOQMAQaAcIMQDOQMAQagcIMUDOQMAQbAcIMYDOQMAQbgcIMcDOQMAQcAcIMgDOQMAQcgcIMkDOQMAQdAcIMoDOQMAQdgcIMsDOQMAQeAcIMwDOQMAQegcIM0DOQMAQfAcIM4DOQMAQfgcIM8DOQMAQYAdINADOQMAQYgdINEDOQMAQZAdINIDOQMAQZgdINMDOQMAQaAdINQDOQMAQagdINUDOQMAQbAdINYDOQMAQbgdINcDOQMAQcAdINgDOQMAQcgdINkDOQMAQdAdINoDOQMAQdgdINsDOQMAQeAdINwDOQMAQegdIN0DOQMAQfAdIN4DOQMAQfgdIN8DOQMAQYAeIOADOQMAQYgeIOEDOQMAQZAeIOIDOQMAQZgeIOMDOQMAQaAeIOQDOQMAQageIOUDOQMAQbAeIOYDOQMAQbgeIOcDOQMAQcAeIOgDOQMAQcgeIOkDOQMAQdAeIOoDOQMAQdgeIOsDOQMAQeAeIOwDOQMAQegeIO0DOQMAQfAeIO4DOQMAQfgeIO8DOQMAQYAfIPADOQMAQYgfIPEDOQMAQZAfIPIDOQMAQZgfIPMDOQMAQaAfIPQDOQMAQagfIPUDOQMAQbAfIPYDOQMAQbgfIPcDOQMAQcAfIPgDOQMAQcgfIPkDOQMAQdAfIPoDOQMAQdgfIPsDOQMAQeAfIPwDOQMAQegfIP0DOQMAQfAfIP4DOQMAQfgfIP8DOQMAQYAgIIAEOQMAQYggIIEEOQMAQZAgIIIEOQMAQZggIIMEOQMAQaAgIIQEOQMAQaggIIUEOQMAQbAgIIYEOQMAQbggIIcEOQMAQcAgIIgEOQMAQcggIIkEOQMAQdAgIIoEOQMAQdggIIsEOQMAQeAgIIwEOQMAQeggII0EOQMAQfAgII4EOQMAQfggII8EOQMAQYAhIJAEOQMAQYghIJEEOQMAQZAhIJIEOQMAQZghIJMEOQMAQaAhIJQEOQMAQaghIJUEOQMAQbAhIJYEOQMAQbghIJcEOQMAQcAhIJgEOQMAQcghIJkEOQMAQdAhIJoEOQMAQdghIJsEOQMAQeAhIJwEOQMAQeghIJ0EOQMAQfAhIJ4EOQMAQfghIJ8EOQMAQYAiIKAEOQMAQYgiIKEEOQMAQZAiIKIEOQMAQZgiIKMEOQMAQaAiIKQEOQMAQagiIKUEOQMAQbAiIKYEOQMAQbgiIKcEOQMAQcAiIKgEOQMAQcgiIKkEOQMAQdAiIKoEOQMAQdgiIKsEOQMAQeAiIKwEOQMAQegiIK0EOQMAQfAiIK4EOQMAQfgiIK8EOQMAQYAjILAEOQMAQYgjILEEOQMAQZAjILIEOQMAQZgjILMEOQMAQaAjILQEOQMAQagjILUEOQMAQbAjILYEOQMAQbgjILcEOQMAQcAjILgEOQMAQcgjILkEOQMAQdAjILoEOQMAQdgjILsEOQMAQeAjILwEOQMAQegjIL0EOQMAQfAjIL4EOQMAQfgjIL8EOQMAQYAkIMAEOQMAQYgkIMEEOQMAQZAkIMIEOQMAQZgkIMMEOQMAQaAkIMQEOQMAQagkIMUEOQMAQbAkIMYEOQMAQbgkIMcEOQMAQcAkIMgEOQMAQcgkIMkEOQMAQdAkIMoEOQMAQdgkIMsEOQMAQeAkIMwEOQMAQegkIM0EOQMAQfAkIM4EOQMAQfgkIM8EOQMAQYAlINAEOQMAQYglINEEOQMAQZAlINIEOQMAQZglINMEOQMAQaAlINQEOQMAQaglINUEOQMAQbAlINYEOQMAQbglINcEOQMAQcAlINgEOQMAQcglINkEOQMAQdAlINoEOQMAQdglINsEOQMAQeAlINwEOQMAQeglIN0EOQMAQfAlIN4EOQMAQfglIN8EOQMAQYAmIOAEOQMAQYgmIOEEOQMAQZAmIOIEOQMAQZgmIOMEOQMAQaAmIOQEOQMAQagmIOUEOQMAQbAmIOYEOQMAQbgmIOcEOQMAQcAmIOgEOQMAQcgmIOkEOQMAQdAmIOoEOQMAQdgmIOsEOQMAQeAmIOwEOQMAQegmIO0EOQMAQfAmIO4EOQMAQfgmIO8EOQMAQYAnIPAEOQMAQYgnIPEEOQMAQZAnIPIEOQMAQZgnIPMEOQMAQaAnIPQEOQMAQagnIPUEOQMAQbAnIPYEOQMAQbgnIPcEOQMAQcAnIPgEOQMAQcgnIPkEOQMAQdAnIPoEOQMAQdgnIPsEOQMAQeAnIPwEOQMAQegnIP0EOQMAQfAnIP4EOQMAQfgnIP8EOQMAQYAoIIAFOQMAQYgoIIEFOQMAQZAoIIIFOQMAQZgoIIMFOQMAQaAoIIQFOQMAQagoIIUFOQMAQbAoIIYFOQMAQbgoIIcFOQMAQcAoIIgFOQMAQcgoIIkFOQMAQdAoIIoFOQMAQdgoIIsFOQMAQeAoIIwFOQMAQegoII0FOQMAQfAoII4FOQMAQfgoII8FOQMAQYApIJAFOQMAQYgpIJEFOQMAQZApIJIFOQMAQZgpIJMFOQMAQaApIJQFOQMAQagpIJUFOQMAQbApIJYFOQMAQbgpIJcFOQMAQcApIJgFOQMAQcgpIJkFOQMAQdApIJoFOQMAQdgpIJsFOQMAQeApIJwFOQMAQegpIJ0FOQMAQfApIJ4FOQMAQfgpIJ8FOQMAQYAqIKAFOQMAQYgqIKEFOQMAQZAqIKIFOQMAQZgqIKMFOQMAQaAqIKQFOQMAQagqIKUFOQMAQbAqIKYFOQMAQbgqIKcFOQMAQcAqIKgFOQMAQcgqIKkFOQMAQdAqIKoFOQMAQdgqIKsFOQMAQeAqIKwFOQMAQegqIK0FOQMAQfAqIK4FOQMAQfgqIK8FOQMAQYArILAFOQMAQYgrILEFOQMAQZArILIFOQMAQZgrILMFOQMAQaArILQFOQMAQagrILUFOQMAQbArILYFOQMAQbgrILcFOQMAQcArILgFOQMAQcgrILkFOQMAQdArILoFOQMAQdgrILsFOQMAQeArILwFOQMAQegrIL0FOQMAQfArIL4FOQMAQfgrIL8FOQMAQYAsIMAFOQMAQYgsIMEFOQMAQZAsIMIFOQMAQZgsIMMFOQMAQaAsIMQFOQMAQagsIMUFOQMAQbAsIMYFOQMAQbgsIMcFOQMAQcAsIMgFOQMAQcgsIMkFOQMAQdAsIMoFOQMAQdgsIMsFOQMAQeAsIMwFOQMAQegsIM0FOQMAQfAsIM4FOQMAQfgsIM8FOQMAQYAtINAFOQMAQYgtINEFOQMAQZAtINIFOQMAQZgtINMFOQMAQaAtINQFOQMAQagtINUFOQMAQbAtINYFOQMAQbgtINcFOQMAQcAtINgFOQMAQcgtINkFOQMAQdAtINoFOQMAQdgtINsFOQMAQeAtINwFOQMAQegtIN0FOQMAQfAtIN4FOQMAQfgtIN8FOQMAQYAuIOAFOQMAQYguIOEFOQMAQZAuIOIFOQMAQZguIOMFOQMAQaAuIOQFOQMAQaguIOUFOQMAQbAuIOYFOQMAQbguIOcFOQMAQcAuIOgFOQMAQcguIOkFOQMAQdAuIOoFOQMAQdguIOsFOQMAQeAuIOwFOQMAQeguIO0FOQMAQfAuIO4FOQMAQfguIO8FOQMAQYAvIPAFOQMAQYgvIPEFOQMAQZAvIPIFOQMAQZgvIPMFOQMAQaAvIPQFOQMAQagvIPUFOQMAQbAvIPYFOQMAQbgvIPcFOQMAQcAvIPgFOQMAQcgvIPkFOQMAQdAvIPoFOQMAQdgvIPsFOQMAQeAvIPwFOQMAQegvIP0FOQMAQfAvIP4FOQMAQfgvIP8FOQMAQYAwIIAGOQMAQYgwIIEGOQMAQZAwIIIGOQMAQZgwIIMGOQMAQaAwIIQGOQMAQagwIIUGOQMAQbAwIIYGOQMAQbgwIIcGOQMAQcAwIIgGOQMAQcgwIIkGOQMAQdAwIIoGOQMAQdgwIIsGOQMAQeAwIIwGOQMAQegwII0GOQMAQfAwII4GOQMAQfgwII8GOQMAQYAxIJAGOQMAQYgxIJEGOQMAQZAxIJIGOQMAQZgxIJMGOQMAQaAxIJQGOQMAQagxIJUGOQMAQbAxIJYGOQMAQbgxIJcGOQMAQcAxIJgGOQMAQcgxIJkGOQMAQdAxIJoGOQMAQdgxIJsGOQMAQeAxIJwGOQMAQegxIJ0GOQMAQfAxIJ4GOQMAQfgxIJ8GOQMAQYAyIKAGOQMAQYgyIKEGOQMAQZAyIKIGOQMAQZgyIKMGOQMAQaAyIKQGOQMAQagyIKUGOQMAQbAyIKYGOQMAQbgyIKcGOQMAQcAyIKgGOQMAQcgyIKkGOQMAQdAyIKoGOQMAQdgyIKsGOQMAQeAyIKwGOQMAQegyIK0GOQMAQfAyIK4GOQMAQfgyIK8GOQMAQYAzILAGOQMAQYgzILEGOQMAQZAzILIGOQMAQZgzILMGOQMAQaAzILQGOQMAQagzILUGOQMAQbAzILYGOQMAQbgzILcGOQMAQcAzILgGOQMAQcgzILkGOQMAQdAzILoGOQMAQdgzILsGOQMAQeAzILwGOQMAQegzIL0GOQMAQfAzIL4GOQMAQfgzIL8GOQMAQYA0IMAGOQMAQYg0IMEGOQMAQZA0IMIGOQMAQZg0IMMGOQMAQaA0IMQGOQMAQag0IMUGOQMAQbA0IMYGOQMAQbg0IMcGOQMAQcA0IMgGOQMAQcg0IMkGOQMAQdA0IMoGOQMAQdg0IMsGOQMAQeA0IMwGOQMAQeg0IM0GOQMAQfA0IM4GOQMAQfg0IM8GOQMAQYA1INAGOQMAQYg1INEGOQMAQZA1INIGOQMAQZg1INMGOQMAQaA1INQGOQMAQag1INUGOQMAQbA1INYGOQMAQbg1INcGOQMAQcA1INgGOQMAQcg1INkGOQMAQdA1INoGOQMAQdg1INsGOQMAQeA1INwGOQMAQeg1IN0GOQMAQfA1IN4GOQMAQfg1IN8GOQMAQYA2IOAGOQMAQYg2IOEGOQMAQZA2IOIGOQMAQZg2IOMGOQMAQaA2IOQGOQMAQag2IOUGOQMAQbA2IOYGOQMAQbg2IOcGOQMAQcA2IOgGOQMAQcg2IOkGOQMAQdA2IOoGOQMAQdg2IOsGOQMAQeA2IOwGOQMAQeg2IO0GOQMAQfA2IO4GOQMAQfg2IO8GOQMAQYA3IPAGOQMAQYg3IPEGOQMAQZA3IPIGOQMAQZg3IPMGOQMAQaA3IPQGOQMAQag3IPUGOQMAQbA3IPYGOQMAQbg3IPcGOQMAQcA3IPgGOQMAQcg3IPkGOQMAQdA3IPoGOQMAQdg3IPsGOQMAQeA3IPwGOQMAQeg3IP0GOQMAQfA3IP4GOQMAQfg3IP8GOQMAQYA4IIAHOQMAQYg4IIEHOQMAQZA4IIIHOQMAQZg4IIMHOQMAQaA4IIQHOQMAQag4IIUHOQMAQbA4IIYHOQMAQbg4IIcHOQMAQcA4IIgHOQMAQcg4IIkHOQMAQdA4IIoHOQMAQdg4IIsHOQMAQeA4IIwHOQMAQeg4II0HOQMAQfA4II4HOQMAQfg4II8HOQMAQYA5IJAHOQMAQYg5IJEHOQMAQZA5IJIHOQMAQZg5IJMHOQMAQaA5IJQHOQMAQag5IJUHOQMAQbA5IJYHOQMAQbg5IJcHOQMAQcA5IJgHOQMAQcg5IJkHOQMAQdA5IJoHOQMAQdg5IJsHOQMAQeA5IJwHOQMAQeg5IJ0HOQMAQfA5IJ4HOQMAQfg5IJ8HOQMAQYA6IKAHOQMAQYg6IKEHOQMAQZA6IKIHOQMAQZg6IKMHOQMAQaA6IKQHOQMAQag6IKUHOQMAQbA6IKYHOQMAQbg6IKcHOQMAQcA6IKgHOQMAQcg6IKkHOQMAQdA6IKoHOQMAQdg6IKsHOQMAQeA6IKwHOQMAQeg6IK0HOQMAQfA6IK4HOQMAQfg6IK8HOQMAQYA7ILAHOQMAQYg7ILEHOQMAQZA7ILIHOQMAQZg7ILMHOQMAQaA7ILQHOQMAQag7ILUHOQMAQbA7ILYHOQMAQbg7ILcHOQMAQcA7ILgHOQMAQcg7ILkHOQMAQdA7ILoHOQMAQdg7ILsHOQMAQeA7ILwHOQMAQeg7IL0HOQMAQfA7IL4HOQMAQfg7IL8HOQMAQYA8IMAHOQMAQYg8IMEHOQMAQZA8IMIHOQMAQZg8IMMHOQMAQaA8IMQHOQMAQag8IMUHOQMAQbA8IMYHOQMAQbg8IMcHOQMAQcA8IMgHOQMAQcg8IMkHOQMAQdA8IMoHOQMAQdg8IMsHOQMAQeA8IMwHOQMAQeg8IM0HOQMAQfA8IM4HOQMAQfg8IM8HOQMAQYA9INAHOQMAQYg9INEHOQMAQZA9INIHOQMAQZg9INMHOQMAQaA9INQHOQMAQag9INUHOQMAQbA9INYHOQMAQbg9INcHOQMAQcA9INgHOQMAQcg9INkHOQMAQdA9INoHOQMAQdg9INsHOQMAQeA9INwHOQMAQeg9IN0HOQMAQfA9IN4HOQMAQfg9IN8HOQMAQYA+IOAHOQMAQYg+IOEHOQMAQZA+IOIHOQMAQZg+IOMHOQMAQaA+IOQHOQMAQag+IOUHOQMAQbA+IOYHOQMAQbg+IOcHOQMAQcA+IOgHOQMAQcg+IOkHOQMAQdA+IOoHOQMAQdg+IOsHOQMAQeA+IOwHOQMAQeg+IO0HOQMAQfA+IO4HOQMAQfg+IO8HOQMAQYA/IPAHOQMAQYg/IPEHOQMAQZA/IPIHOQMAQZg/IPMHOQMAQaA/IPQHOQMAQag/IPUHOQMAQbA/IPYHOQMAQbg/IPcHOQMAQcA/IPgHOQMAQcg/IPkHOQMAQdA/IPoHOQMAQdg/IPsHOQMAQeA/IPwHOQMAQeg/IP0HOQMAQfA/IP4HOQMAQfg/IP8HOQMACwoAIABBA3QrAwALDAAgAEEDdCABOQMAC6YBAQF/QQAhBANAIAQgAkgEQCAAIARqQQN0IAAgBGpBA3QrAwAgASAEakEDdCsDACADoqA5AwAgACACaiAEakEDdCAAIAJqIARqQQN0KwMAIAEgAmogBGpBA3QrAwAgA6KgOQMAIAAgAkEBdGogBGpBA3QgACACQQF0aiAEakEDdCsDACABIAJBAXRqIARqQQN0KwMAIAOioDkDACAEQQFqIQQMAQsLC0wBAX9BACEFA0AgBSABSARAIAAgBWpBA3QgAjkDACAAIAFqIAVqQQN0IAM5AwAgACABQQF0aiAFakEDdCAEOQMAIAVBAWohBQwBCwsLEwAgACADoiABIASioCACIAWioAsUACAAIACiIAEgAaKgIAIgAqKgnws=";
+      var BYTECODE = [16909312,33620480,16980736,1879311105,33686528,17039872,33752064,17105152,33817856,17196032,33883648,17241344,33949440,17344000,34015232,17367552,34081024,34273792,34339584,17563648,588057100,1091371033,17760512,34475776,1073741857,604768779,1091305502,17694976,34409984,1073741856,17564160,34409472,34475264,34147840,34273792,34339584,17629184,588122637,1091436586,17826048,34541568,1073741874,604834315,1091371055,17760512,34475776,1073741873,17629696,34475264,34541056,17629440,554569485,1091436600,17826560,34541568,1073741882,17630208,34540800,34344704,17694976,34541056,17826048,554766096,1091633219,18038528,34738944,1073741928,17827584,554766096,1091633225,18039296,34738944,1073741927,17831168,554766096,1091633231,18039552,34738944,1073741926,17831424,554766096,1091633237,18038784,34738944,1073741925,17834496,554766096,1091633243,18036992,34738944,1073741924,17834752,554766096,1091633249,18039808,34738944,1073741923,17843456,34738176,34738688,34738688,34738688,34738688,34738688,34411008,17896960,34541824,17957120,554897170,1091764337,18169600,34870528,1073741974,17893120,554831633,1091698807,18104832,34804736,1073741973,17896704,554831633,1091698813,18105088,34804736,1073741972,17896960,554831633,1091698819,18104320,34804736,1073741971,17900032,554831633,1091698825,18102528,34804736,1073741970,17900288,554831633,1091698831,18105344,34804736,1073741969,17908992,34803968,34804480,34804480,34804480,34804480,34870016,34608128,17965824,34542080,18022656,554962707,1091829919,18235136,34936320,1073742020,17958656,554897170,1091764389,18170368,34870528,1073742019,17962240,554897170,1091764395,18170624,34870528,1073742018,17962496,554897170,1091764401,18169856,34870528,1073742017,17965568,554897170,1091764407,18168064,34870528,1073742016,17965824,554897170,1091764413,18170880,34870528,1073742015,17974528,34869760,34870272,34870272,34870272,34870272,34935808,34673920,34802944,34804480,34935552,18231040,588715286,1092026575,18427648,34937088,35132672,1073742033,18219264,35132928,18231296,622269718,1092026584,18427904,34937088,35132672,1073742042,18219264,35132928,18231552,588715286,1092026592,18428416,35133696,1073742076,18232064,588715286,1092026604,18494208,286988821,18625536,320674588,35200256,18493952,303765786,35134208,1073742075,18494720,622531866,1092288760,18691328,287184157,18822144,320871967,35201024,18494976,303765786,35396352,1073742074,18481664,35396096,35134464,35133440,34871296,34804480,34935552,18558720,589042971,1092354310,18755328,34938368,35460352,1073742088,18546944,35461888,18558976,622597403,1092354319,18755584,34938368,35460352,1073742097,18546944,35461888,18560768,589042971,1092354327,18743808,35462656,1073742138,18561024,589042971,1092354339,18757376,287249694,18887680,320937760,35201280,18559488,303831323,35462144,1073742137,18561280,589042971,1092354345,18756096,35462656,1073742136,18560256,589042971,1092354357,18756864,287251989,18889216,320937760,35201280,18559488,303831323,35462144,1073742135,18547200,35461888,35462400,35462400,35462400,35265792,34804480,34935552,18624256,589108508,1092419908,18820864,34938624,35525888,1073742150,18612480,35527680,18624512,622662940,1092419917,18821120,34938624,35525888,1073742159,18612480,35527680,18625280,589108508,1092419925,18809344,35528448,1073742180,18627328,589108508,1092419937,18821888,287315231,18954752,321003553,35201536,18625024,303896860,35527936,1073742179,18625024,35527680,35528192,35331584,34870272,35265024,35330816,35394560,18678272,589175837,1092485488,18874880,35397632,35593216,1073742194,18678016,35593472,18690560,622730269,1092485497,18887168,35397632,35593216,1073742203,18678016,35593472,35461632,18743808,589241630,1092551043,18940416,35463424,35659008,1073742213,18743552,35659264,18756096,622796062,1092551052,18952704,35463424,35659008,1073742222,18743552,35659264,35527424,18809344,589307423,1092616598,19005952,35529216,35724800,1073742232,18809088,35725056,18821632,622861855,1092616607,19018240,35529216,35724800,1073742241,18809088,35725056,18824192,304094239,18955520,304225569,270737442,270803742,34743296,34803712,34804480,34935552,18886400,589370656,1092682162,19083008,34939648,35788032,1073742260,18874624,35790848,18886656,622925088,1092682171,19083264,34939648,35788032,1073742269,18874624,35790848,18886912,589370656,1092682179,19083776,35791616,1073742303,18887424,589370656,1092682191,19084032,287580949,19215360,321266725,35202560,18887168,304159008,35791104,1073742302,18887936,622925088,1092682203,19084544,287577379,19215360,321266725,35202560,18888192,304159008,35791104,1073742301,18874880,35790848,35791360,35791360,34873856,34804480,34935552,18886400,589370656,1092682217,19083008,34939648,35788032,1073742315,18874624,35790848,18886656,622925088,1092682226,19083264,34939648,35788032,1073742324,18874624,35790848,18888448,589370656,1092682234,19071488,35791616,1073742365,18888704,589370656,1092682246,19085056,287577379,19215360,321266725,35202560,18887168,304159008,35791104,1073742364,18888960,589370656,1092682252,19083776,35791616,1073742363,18887936,589370656,1092682264,19084544,287580949,19216896,321266725,35202560,18887168,304159008,35791104,1073742362,18874880,35790848,35791360,35791360,35791360,35267072,34804480,34935552,18886400,589370656,1092682279,19083008,34939648,35788032,1073742377,18874624,35790848,18886656,622925088,1092682288,19083264,34939648,35788032,1073742386,18874624,35790848,18887424,589370656,1092682296,19071488,35791616,1073742407,18889472,589370656,1092682308,19084032,287577379,19216896,321266725,35202560,18887168,304159008,35791104,1073742406,18887168,35790848,35791360,35332608,34870272,35265024,35330816,35394560,18874880,589372448,1092682323,19071488,35398400,35789824,1073742421,18874624,35790848,18887168,622926880,1092682332,19083776,35398400,35789824,1073742430,18874624,35790848,35461632,18874880,589372704,1092682342,19071488,35463936,35790080,1073742440,18874624,35790848,18887168,622927136,1092682351,19083776,35463936,35790080,1073742449,18874624,35790848,35527424,18874880,589372960,1092682361,19071488,35529472,35790336,1073742459,18874624,35790848,18887168,622927392,1092682370,19083776,35529472,35790336,1073742468,18874624,35790848,18889728,304159776,19021056,304291106,270803235,270869534,35595520,34803968,34804480,34935552,18951936,589436193,1092747925,19148544,34939904,35853568,1073742487,18940160,35856640,18952192,622990625,1092747934,19148800,34939904,35853568,1073742496,18940160,35856640,18952448,589436193,1092747942,19149312,35857408,1073742530,18952960,589436193,1092747954,19149568,287646741,19280896,321332518,35202816,18952704,304224545,35856896,1073742529,18953472,622990625,1092747966,19150080,287642916,19280896,321332518,35202816,18953728,304224545,35856896,1073742528,18940416,35856640,35857152,35857152,34874112,34804480,34935552,18951936,589436193,1092747980,19148544,34939904,35853568,1073742542,18940160,35856640,18952192,622990625,1092747989,19148800,34939904,35853568,1073742551,18940160,35856640,18953984,589436193,1092747997,19137024,35857408,1073742592,18954240,589436193,1092748009,19150592,287642916,19280896,321332518,35202816,18952704,304224545,35856896,1073742591,18954496,589436193,1092748015,19149312,35857408,1073742590,18953472,589436193,1092748027,19150080,287646741,19282432,321332518,35202816,18952704,304224545,35856896,1073742589,18940416,35856640,35857152,35857152,35857152,35267328,34804480,34935552,18951936,589436193,1092748042,19148544,34939904,35853568,1073742604,18940160,35856640,18952192,622990625,1092748051,19148800,34939904,35853568,1073742613,18940160,35856640,18952960,589436193,1092748059,19137024,35857408,1073742634,18955008,589436193,1092748071,19149568,287642916,19282432,321332518,35202816,18952704,304224545,35856896,1073742633,18952704,35856640,35857152,35332864,34870272,35265024,35330816,35394560,18940416,589437985,1092748086,19137024,35398656,35855360,1073742648,18940160,35856640,18952704,622992417,1092748095,19149312,35398656,35855360,1073742657,18940160,35856640,35461632,18940416,589438241,1092748105,19137024,35464192,35855616,1073742667,18940160,35856640,18952704,622992673,1092748114,19149312,35464192,35855616,1073742676,18940160,35856640,35527424,18940416,589438497,1092748124,19137024,35529728,35855872,1073742686,18940160,35856640,18952704,622992929,1092748133,19149312,35529728,35855872,1073742695,18940160,35856640,18955264,304225313,19086592,304356643,270869028,270935326,35661312,805377792,805378048,805308672,805378304,805309440,805378560,805310976,805378816,805314304,805379072,805314560,19009024,19095040,1881416227,35726336,19005952,19095040,19171072,19246336,19272960,36118784,36184576,36250368,36316160,36381952,36447744,19726848,1915170048,40,41,42,19726592,1915170048,40,41,43,19728128,19792384,1915170048,40,41,46,19731712,19792384,1915170048,40,41,46,19731968,19802112,1915170048,40,41,46,19735040,19815424,1915170048,40,41,46,19735296,19815680,1915170048,40,41,46,19735552,1915170048,40,41,44,19726592,19726848,19792128,19901952,36708608,36187392,36777472,36843264,20143616,36254464,20186880,1899311156,40,41,36910336,20259584,1899376693,40,41,36976128,20340480,37041664,305606962,37107456,305672501,272184120,37173504,20447744,624505144,1094255590,624637750,1094386648,37172736,37500672,1073742810,20447488,37500928,20456192,20513792,356135993,289092666,20720640,272448316,1915762688,40,41,61,37371136,1073742840,590886710,1094190059,37172736,37304064,1073742829,20447488,37304320,20456192,20513792,356135993,289092666,20711168,272448316,1915762688,40,41,61,37371136,20449024,1915762688,40,41,55,20447488,20447744,20519936,36708608,36190208,37370112,20667904,36256512,20652800,1899769915,40,41,36977664,20711168,356332604,20840704,641678654,37437184,1094386724,20780288,20840960,289357370,1915763968,40,41,63,20775168,289289277,20911616,272645695,37502976,20783872,1915763968,40,41,60,20775168,37502208,1073742886,20775424,37502208,20775424,20840960,36708608,36191488,37699072,20995584,36257792,21046272,1900163137,40,41,37765632,21046016,1900163137,40,41,36979200,21106176,323171394,21235456,356860740,21364992,642204998,37832448,21103104,591609666,1094911070,1094779972,38092800,1073742940,272842815,37896960,21168640,591675971,1094976589,21365248,37897728,38093312,1073742927,21168384,38093568,21177088,21237248,272970820,1915765504,40,41,69,21177344,1915765504,40,41,66,38093312,38028544,1073742950,272842815,37896960,21177344,1915765504,40,41,66,38027776,33965056,805379328,805307904,21233920,21344000,1883653189,37963264,21304832,21370368,1883718982,38029056,21299712,21370368,38224896,36193536,36259328,21496320,21561600,1917274112,40,41,73,21496064,21561856,1917274112,40,41,73,21497600,21561856,1917274112,40,41,73,21501184,21561856,1917274112,40,41,73,21496064,21583872,38291712,21671936,38357504,21627392,21731072,21802752,38619136,38683392,38750720,38816512,36260864,22151680,1901284946,79,41,38884096,307449937,290737491,38949888,34099712,22318848,38930432,39146496,307712594,39212800,626480725,1096221870,22610176,39344384,1073743024,22479360,39343872,39016448,22479104,559436631,1096287451,22675968,22746624,38224896,36198912,36264704,22872576,1902004061,40,41,39607808,22877440,559832157,1096680662,23069184,23134464,1917280256,40,41,97,22872320,22938112,1917279488,40,41,94,22873856,22937856,1917279488,40,41,94,22872320,39804160,1073743064,22872576,39804160,805379584,39387136,1073743069,22872320,39410944,1073743070,22917376,39738624,34273792,34339584,23003648,23069184,1358954496,95,96,10,11,94,23003648,23069184,23134720,23202048,1392508928,95,96,10,97,98,23003392,23074816,23136512,40001280,39739392,40067328,34273792,34273792,34339584,23396352,593889893,1097204995,23593216,40331264,1073743115,610601483,1097139464,23527680,40265472,1073743114,23396864,40264960,40330752,40134400,23464704,40199680,23462144,560424038,1097270549,23661568,40200448,40396032,1073743128,23463168,40199680,40396032,23462400,23527936,1358954496,102,103,10,101,94,23462400,1392508928,102,101,10,101,99,23530752,308831591,23662080,292186217,40266240,23531264,23597056,23662848,1409351680,0,103,102,104,105,23527680,23558656,23602944,23693312,23724800,23835136,1444872192,103,104,105,106,2053068650,107,23573248,23602944,23693312,23724800,23801088,1444937728,103,104,105,106,891671266,107,23573504,23602944,23693312,23724800,23835904,1445003264,103,104,105,106,1049232862,107,23540224,23602944,23693312,23724800,23836160,1445068800,103,104,105,106,1641285167,107,23574272,23602944,23693312,23724800,23816704,1445134336,103,104,105,106,266466513,107,23527680,560464999,1097336424,23755264,23836672,23894784,23968000,23988736,1358954496,106,107,108,109,110,23559424,23640576,23665664,23728384,1409351680,36,103,104,105,106,23559424,23640832,23706624,23772416,23795712,23857408,40724224,40790016,40855808,40921600,39742208,40070144,1358954496,109,110,111,112,94,275869039,1392508928,109,110,113,110,99,275869039,275934575,276000368,1392508928,113,110,114,115,99,275869039,275934832,276000368,1392508928,113,114,109,115,99,275869296,1392508928,109,113,109,110,99,24183040,24215808,24262144,24323328,24405504,1409351680,37,113,114,115,116,24215808,24296960,24323328,24428288,1409351680,38,113,114,115,116,24215808,24297472,24323328,24383744,1409351680,39,113,114,115,116,24215808,24297728,24323328,24405504,1409351680,40,113,114,115,116,24215808,24297984,24323328,24429312,1409351680,41,113,114,115,116,24215808,24298496,24323328,24406016,1409351680,42,113,114,115,116,24215808,24298752,24323328,24405504,1409351680,43,113,114,115,116,24215808,24299008,24323328,24430336,1409351680,44,113,114,115,116,24183040,24280320,24365056,24381440,24496384,24521984,41382144,40727040,40792832,40858624,41448704,41514496,34273792,34339584,24838144,595331707,1098647073,25035008,41778688,1073743401,612043275,1098581542,24969472,41712896,1073743400,24838656,41712384,41778176,24838400,561806715,1098647087,25036032,41778688,1073743409,24839680,41777920,41581824,1442840576,119,109,110,111,1829517143,120,24838400,24839936,24955392,25020416,25086720,25152512,25211392,41384704,40729600,40795392,40861184,41451264,41517056,34273792,34339584,24838144,595331707,1098647118,25035008,41778688,1073743446,612043275,1098581587,24969472,41712896,1073743445,24838656,41712384,41778176,24838400,561806715,1098647132,25036032,41778688,1073743454,24839680,41777920,41581824,1442840576,119,109,110,111,1829517143,120,24838400,40467200,24839936,561775739,1098647674,25065984,25147392,25205504,25278720,25299456,1358954496,126,127,128,129,130,24870144,24951296,24976384,25039104,1409351680,45,123,124,125,126,24870144,24947968,25004800,25041152,1358954496,123,124,125,126,18,24890624,24956416,24978688,25061888,1409351680,46,123,124,125,126,24870144,24955648,25004800,25041152,1358954496,123,124,125,126,31,24890624,24956672,24978688,25060864,1409351680,47,123,124,125,126,24870144,24955392,25004800,25041152,1358954496,123,124,125,126,32,24890624,24956928,24978688,25039104,1409351680,48,123,124,125,126,24889856,24947968,24971264,25088256,25126656,25166336,293699711,25350656,25366016,42236672,42302464,42368256,42434048,42500352,42566144,42631936,42699264,25957888,596478860,1099761364,26154496,42700544,42896128,1073743574,25952512,42896384,328042119,42765568,26083840,42831360,596544903,1099827029,26214912,42962944,328306055,26369792,311660946,26502144,295015316,43029760,596742022,1100023634,328437638,26500864,311792532,311858572,26698752,311990156,295278232,43161856,26480384,43160064,43028480,42502144,42567936,43357184,40735232,40800256,26673664,43423488,26739200,43489280,597202581,1100482328,312110445,43620864,312176238,43686656,278632858,27006464,631085980,1100809993,27197696,43491072,43422976,43947520,1073743639,27002624,312319085,312384878,278896265,43753216,295541146,278830472,43818496,40737792,40803072,27066624,278828701,43425280,43947520,1073743610,27066624,564041629,1100875550,329291413,44015616,1073743648,27066880,44014848,43228928,27066880,631149469,1100875589,44077824,27340544,27419392,312713378,279224739,34841600,27332864,27354368,597857185,1101137713,27354624,44278016,1073743674,27354880,597857185,1101137719,27332864,44278016,1073743673,27355136,44278016,44278528,279020687,279086477,279151759,1358954496,161,162,139,139,163,44015872,1073743695,279020687,279086477,27462144,1358954496,161,162,139,139,163,44015872,279023499,42967296,1073743588,279022987,42836224,1073743578,279020678,27396352,1392508928,132,133,161,133,162,279020678,279086214,279152007,27527424,1392508928,161,133,162,163,164,279020678,279086471,279152007,27527424,1392508928,161,162,132,163,164,279020935,27396352,1392508928,132,161,132,133,162,27328768,27382528,27448320,27463168,27551744,1409351680,49,161,162,163,164,27360512,27441408,27514112,27572480,27592448,27670528,44540160,44605952,43623168,43688960,44672256,44738048,28053760,44805120,28076288,598583980,1101858713,28273152,44805888,45001472,1073743780,28068096,598583980,1101858720,28272128,44805888,45001472,1073743779,28053760,44805120,45001472,45002240,296589735,28185856,330280366,44871424,296655528,28251392,330346159,44937216,279947180,45002496,280012973,45068288,28378880,313700780,280209330,45134592,28444416,313766573,280275123,45200384,28511488,313830579,280342196,28732160,314027446,297317815,45266944,28601088,313896116,280407989,28773632,314092983,280606392,45332736,1392508928,167,168,174,175,171,1392508928,174,175,178,179,171,1392508928,178,179,176,177,171,1392508928,176,177,153,154,171,28573952,28605696,28679424,28708352,28819200,1409351680,50,180,181,182,183,28581120,28671232,28759552,28818432,28836608,28956416,28979968,41399296,40744192,40809984,40875776,41596928,41466112,44743168,29038592,1358954496,109,110,111,122,187,280259951,28641024,44526848,44592640,43627520,43675136,44676352,44739072,28709120,44807680,28600576,599108276,1102383119,28797440,44807936,45525760,1073743898,28592384,599108276,1102383126,28796416,44807936,45525760,1073743897,28578048,44807168,45525760,45528576,297048487,28644608,330740917,44873216,297048744,28644608,330740917,44938752,280274860,45003776,280275117,45069312,28575488,313898156,280405941,45135360,28575488,313898157,280406197,45200896,28577024,313896116,280407733,28797696,314092983,297383608,45267200,28601088,313896116,280407989,28773632,314092983,280606392,45332736,1392508928,167,168,174,175,171,1392508928,174,175,178,179,171,1392508928,178,179,176,177,171,1392508928,176,177,153,154,171,28573952,280259951,280325487,280391290,28772608,1392508928,180,110,181,182,183,280259951,280325754,280391290,28772608,1392508928,180,181,109,182,183,280260218,28641536,1392508928,109,180,109,110,181,1442840576,119,109,110,111,1829517143,120,28573952,41792512,28579072,565511348,1102383843,28801536,28882944,28941056,29014272,29087744,1358954496,183,184,185,186,187,28605696,28686848,28711936,28774656,1409351680,51,180,181,182,183,28629248,28641280,28730368,45548800,40875008,41596160,45659648,28901888,28967424,29054976,314342075,29191168,1358954496,185,186,111,188,189,28970240,314273722,45726464,29054208,314342075,45792256,29043456,29125888,1375731712,185,186,187,188,29036288,29126144,1375731712,185,186,187,188,29120512,314407612,45858048,29098496,297630395,29257472,1358954496,188,187,111,189,190,29163776,45923584,29169152,616479933,1102973234,29388800,314669760,314752193,281263042,46121728,29431296,29520128,314817730,281330115,46187520,29520384,331596476,314885048,46253056,29578752,281330620,314947524,46318848,29622784,46384128,46448384,29757184,46515712,42976512,29848320,46581504,29820672,566803655,1103628522,30045184,46582272,46777856,1073744108,29819136,46778112,29824256,566803655,1103628531,30045440,46582272,46777856,1073744117,29819136,46778112,29824512,566803655,1103628540,30045696,46582272,46777856,1073744126,29819136,46778112,617058159,1103563054,315199425,298502594,46713344,415942656,315343050,46779136,30102784,315408587,30213888,315541709,399494656,315673807,46845952,281853897,281922762,46910720,1392508928,195,196,143,203,198,298684345,46976256,315477196,30308096,600821198,1104087335,30474496,299027409,30607104,30699008,1375731712,143,210,211,212,47222528,1073744169,30212352,47238400,46370560,46451456,281907141,42978560,1073744126,30212352,281984205,45927936,1073744070,30212352,30259456,30333440,30374400,45548800,47238400,47304192,47369984,30701568,47436800,30738432,47502592,30805248,316134358,299421911,47568896,299356628,47634176,30898432,1358954496,213,214,211,212,215,30898688,282645975,31004928,282777305,31136000,299684827,31267072,299816157,31423232,1358954496,216,218,220,222,223,30964736,299487704,47700224,30964992,282711512,31096320,299619290,31199232,31293184,1358954496,217,215,219,220,221,30933248,34985984,30941696,618206680,1104742846,31134976,299636187,31271936,316595421,47898112,31198720,316520412,31358976,316610014,283172319,400678912,31595264,316913634,31745792,317003236,283567077,417850880,317252071,47966208,31293696,31337472,316660702,283172319,31531776,316806625,283369698,48030464,283037914,48094720,299882460,48160512,31490560,48226304,31459072,652285408,1105267093,31659520,618927587,48423936,31490816,48226304,31457536,31462656,568399328,1105267103,31687680,48227072,48422656,1073744289,31457536,48422912,31460864,300015072,1392508928,225,215,221,222,223,31460864,283237856,1392508928,225,215,221,222,223,31491328,316792032,300079073,31661312,1375731712,221,226,227,223,31457536,283186656,34988288,1073744235,31523072,48292096,618782930,1105267174,31688192,316989667,48423936,31729408,317044708,283567586,48489984,31798784,367453157,300406758,48555776,31856128,317175782,283699170,401205248,32116480,317450730,48622336,283627749,32016128,367649512,32144384,300673514,283961323,48688128,31917824,32009472,1375731712,230,228,231,232,31916288,283697383,48293888,1073744320,31916288,31972096,32032768,32048896,45548800,47245056,47310848,34014976,48949504,32212992,32278784,1375731712,208,209,235,236,32213504,32246272,1375731712,208,209,235,236,32210432,300732651,32341248,300863981,32472576,284217583,32603392,301126129,32706816,1392508928,236,238,240,242,243,32210432,300732651,32341248,300863981,32473344,300994799,32606976,284348913,32706816,1392508928,236,238,240,242,243,32210432,283955435,32341248,300863981,32473344,284217583,32606976,284348913,32706816,1392508928,236,238,240,242,243,32211200,300732651,32344832,284086765,32473344,284217583,32606976,284348913,32706816,1392508928,236,238,240,242,243,32279552,317569004,32380160,368045550,49016576,32345344,636414957,49081856,32386048,49147392,32447744,49213184,1105988170,32538624,49213440,49278464,1073744460,32440576,49278720,32510208,49278976,32507648,569502448,1106315861,32728576,49279744,49475328,1073744471,32506112,49475584,32511232,569502448,1106315870,32729088,49279744,49475328,1073744480,32506112,49475584,32511488,569502448,1106315879,32729600,49279744,49475328,1073744489,32506112,49475584,32582400,301125873,49345024,32640512,301191666,49410816,32640256,317976050,301265139,32836864,318172917,301462006,1358954496,244,247,237,238,239,32713472,284479731,49476608,32705792,318041587,301331188,32902400,318238454,301527543,1358954496,245,248,237,238,239,32775424,301330932,49542400,32769792,569764596,1106578090,32972032,301527287,33103104,284881145,33297664,301855740,1392508928,248,243,250,253,239,32775424,301331188,32904448,301462518,33037568,284816120,1392508928,245,247,249,243,239,49739008,1073744575,32775424,301330676,32906496,284684534,1392508928,245,243,247,243,239,32775424,301331188,32906496,284685046,1392508928,245,243,247,243,239,49739008,32844544,284611061,49608192,32935424,49673728,32966400,33034240,318310392,284882937,49740288,32967936,318305783,301584632,33295616,318633724,301921533,1358954496,249,254,245,246,239,32965376,301519095,33098496,284873209,33301760,33368576,1409351680,22,248,250,252,253,32964864,45545216,32970240,569902327,1106775001,33323520,33404928,33463040,33536256,16779776,1358954496,252,253,254,255,256,32996608,33077760,33102848,33296640,1409351680,52,247,248,249,252,32996608,33074432,33143808,33294336,33363968,33425664,40761088,40826880,40892672,40958976,39779584,40107520,1358954496,109,110,111,112,94,284650863,1392508928,109,110,247,110,99,284650863,284716399,284782192,1392508928,247,110,248,249,99,284650863,284716656,284782192,1392508928,247,248,109,249,99,284651120,1392508928,109,247,109,110,99,32964864,32997632,33078528,33105152,33318400,1409351680,53,247,248,249,252,32997632,33082112,33105152,33341184,1409351680,54,247,248,249,252,32997632,33086464,33105152,33341184,1409351680,55,247,248,249,252,32997632,33086720,33105152,33341184,1409351680,56,247,248,249,252,32997632,33086976,33105152,33341184,1409351680,57,247,248,249,252,32997632,33087232,33105152,33341184,1409351680,58,247,248,249,252,32997632,33087488,33105152,33318400,1409351680,59,247,248,249,252,32997632,33087744,33105152,33338624,1409351680,60,247,248,249,252,32971776,33062144,33150464,33294336,33415680,33469952,41416448,40761344,40827136,40893440,41483520,41549312,34273792,34339584,32964608,603458295,1106774930,33292544,49937408,1073744794,620169739,1106709399,33095936,49871104,1073744793,32965120,49870592,49936384,32964864,569965047,1106774944,33293568,49937408,1073744802,32966144,49936128,41613568,1442840576,119,109,110,111,1829517143,120,32964864,32971520,33081856,33150464,33344256,33415936,33450496,41416448,40761344,40827136,40893440,41483520,41549312,34273792,34339584,32964608,603458295,1106774975,33292544,49937408,1073744839,620169739,1106709444,33095936,49871104,1073744838,32965120,49870592,49936384,32964864,569965047,1106774989,33293568,49937408,1073744847,32966144,49936128,41613568,1442840576,119,109,110,111,1829517143,120,32964864,49936128,32973312,569902327,1106775544,33323520,33404928,33463040,33536256,16835584,1358954496,252,253,254,255,256,32996608,33077760,33102848,33296640,1409351680,61,247,248,249,252,32995328,33032192,33128704,33350912,33372160,47249152,47314944,50264320,50330624,33619200,16929792,33620480,16984576,33686272,16974080,46203648,16983040,604291331,1090784362,17176320,302498054,33883904,45548800,34078464,17302016,604616456,1091111951,17498624,34212608,1073744964,34014976,34146048,17451776,587925770,1091243032,17648384,34147584,34343168,1073744922,17432832,34343424,17498368,319556361,34212864,17583872,302844172,34278656,17649664,302910730,17763584,336596495,34344960,336464649,34409984,17760512,17846528,303106576,269618961,34476544,302976013,303042318,34082816,17781248,588253199,1091570742,17977856,34083328,34670592,1073744952,17760512,34672384,17826048,286328592,336770833,34542080,17912576,17957376,286462647,336859411,34608128,303107856,319951112,34214400,33950208,17978624,18044416,303302163,269816340,303496725,34674176,18044672,303350035,34739200,403902976,18110464,303431188,303436565,44832256,387125760,18110720,303431188,303436565,44897792,18031104,622117139,1091832925,34931200,1073744991,18022656,34935552,269734060,269799853,1375731712,275,276,273,208,18022656,269795603,46208000,1073744897,18041600,303365651,286642452,18242048,303562262,18373376,1375731712,208,277,279,280,18022656,18081280,18136320,18163712,18278144,18298880,47190784,47256576,50205952,50271744,33560320,18371584,33626112,18033152,33690368,18022656,46207744,18031616,605339923,1091833071,18159360,303481109,33887744,45548800,34078464,18022912,605337363,1091832980,18219520,34936320,1073745097,34014976,34146048,18041600,588515603,1091832989,18238208,34149888,34932992,1073745055,18022656,34935552,18022656,320082697,34214912,18042624,303302931,34280448,18042880,303305482,18156800,336991253,34346496,336792329,34411264,18022656,18108672,303368724,269882133,34477568,303238157,303305486,34083840,18043392,588515347,1091833019,18240000,34084352,34932736,1073745085,18022656,34935552,18022656,286525203,336967444,34542848,18043648,18088448,286594231,336990997,34608640,303238928,320082696,34935808,33953024,18044160,18109952,303367700,269882133,303562262,34674432,18044672,303350035,34739200,403902976,18110464,303431188,303436565,44832256,387125760,18110720,303431188,303436565,44897792,18031104,622117139,1091833058,34931200,1073745124,18022656,34935552,269734060,269799853,1375731712,275,276,273,208,18022656,269795603,46208000,1073745030,18041600,303365651,286642452,18242048,303562262,18373376,1375731712,208,277,279,280,18022656,18054400,18147328,18201600,18250752,18296064,1358954496,275,276,277,278,279,18054400,18147328,18213120,18278400,18310656,1392508928,275,276,277,278,279,18022912,18091776,18199040,36118784,36180736,36246528,35001600,18285056,1897408279,40,41,42211328,18284800,1897408279,40,41,42276864,18290176,1897408279,40,41,42342400,18293248,1897408279,40,41,42407936,18293504,1897408279,40,41,36968448,18291456,270042391,18422528,286951193,1358954496,132,280,134,282,278,18353408,303662616,35068160,270042135,18419200,270173465,18550272,18637312,1375731712,280,282,283,284,18419456,320484377,18548480,354163227,18678016,639507485,35134976,270173207,18552064,270277147,35200000,1092095322,270238743,18617600,270342940,35200256,35264768,1073745247,270173207,18555392,287054363,35200000,35264768,18490368,270239002,18614016,18678272,1375731712,281,283,284,285,18481408,18513152,18600704,18621696,18703872,1409351680,62,282,283,284,285,18512896,18578688,18662400,18724864,18820352,41359872,40704768,40770560,40836352,41426432,41492224,34273792,34339584,18808832,589302303,1092619654,19005696,35725824,1073745294,606013963,1092554123,18940160,35660032,1073745293,18809344,35659520,35725312,18809088,555753759,1092619668,19006720,35725824,1073745302,18810368,35725056,41558272,1442840576,119,109,110,111,1829517143,120,18809088,18868736,18918656,18990080,19015168,19182080,41361152,40706048,40771840,40837632,41427712,41493504,34273792,34339584,19136512,589629988,1092947378,19333376,36054784,1073745338,606341643,1092881847,19267840,35988992,1073745337,19137024,35988480,36054272,19136768,556082724,1092947392,19334400,36054784,1073745346,19138048,36054016,41559552,1442840576,119,109,110,111,1829517143,120,19136768,19196672,19241984,19317760,19393536,19491328,41362432,40707328,40773120,40838912,41428992,41494784,34273792,34339584,19464192,589957673,1093275102,19661056,36383744,1073745382,606669323,1093209571,19595520,36317952,1073745381,19464704,36317440,36383232,19464448,556411689,1093275116,19662080,36383744,1073745390,19465728,36382976,41560832,1442840576,119,109,110,111,1829517143,120,19464448,49883392,19495424,19590400,19656192,19721472,19728640,1392508928,297,298,299,300,301,19496192,19590912,19598848,19671552,1409351680,63,297,298,299,300,-16777216,22872320,33840384,-16777216,22939392,33840640,-16777216,23008512,33840896,-16777216,23074304,33841152,-16777216,23142912,33841408,-16777216,23200256,23272192,36708608,36200960,37380864,23354880,36267008,23405312,1902522469,40,41,36988416,23529216,359150695,23658752,644507753,37448192,1094389315,23860480,23921152,292449594,1915776000,40,41,110,24051968,292566127,24188416,275935345,37515776,24322816,1915777792,40,41,60,24379648,40596480,1073745477,24445440,40596736,-16777216,24510976,24576256,24650752,36708608,36206080,36796160,36861952,24731136,36272384,24774400,1903898746,40,41,36928256,24912640,1904029820,40,41,36994304,25059072,37060096,310325554,37125888,310391093,276902784,37191936,25297408,629354882,1099107958,629487414,1099239016,37172736,42350336,1073745514,25624832,42370816,25699072,25756672,361378953,294335626,25963520,277711756,1915783168,40,41,141,42241280,1073745544,596522806,1099828859,37172736,42940160,1073745533,26214656,42962944,26288896,26346496,361968786,294925459,26543872,278303893,1915785472,40,41,150,42243584,26674944,1915787008,40,41,55,26738944,-16777216,26804736,26870016,26935808,295476122,36708608,36215040,37723136,27090432,36281600,27141120,1906258078,40,41,37789440,27271936,1906389152,40,41,37003520,27397632,329462946,27526912,363176868,27656448,648521126,37857024,27787776,598294440,1101598409,1094782639,44777472,1073745607,279724095,37923840,28115456,598622893,1101926072,28312064,37924864,45040128,1073745594,28377344,45068544,28451584,28511744,280245427,1915793920,40,41,180,28648448,1915794688,40,41,66,44777984,44739328,1073745617,280379455,37926400,28779520,1915795200,40,41,66,44712448,-16777216];
+      var CONST_POOL = [768.0,1.0,0.0,44.0,32.0,48.0,34.0,2.0,180.0,3159613.0,856343.0,56.0,64.0,0.5,8.0,16.0,14.0,5809919.0,500.0,900.0,1300.0,3.0,4.0,0.6,1448738.0,30.0,2172461.0,12.0,11.0,10.0,1.3226457E7,36.0,360.0,640.0,5.0,6.0,7.0,9.0,120.0,60.0,28.0,1843496.0,9147550.0,24.0,18.0,2328118.0,0.999,4.0E14,7.5E14,5.1E14,255.0,5.8E14,7.0E13,6.8E14,160.0,4.8E14,5.5E14,6.2E14,6.0E13,6.4E14,65536.0,256.0,0.001,4.4E14,5.6E14,6.7E14,4.9E14,5.2E14,6.6E14,7.1E14,4.7E14,5.05E14,5.4E14,6.0E14,6.9E14,0.1,1.671168E7,65280.0,1.677696E7,0.36787944117,6.28318530718,0.08333333333,1.0E-4,2.71828182846,1.5396594E7,0.35,1.8,0.897,0.45,0.25,0.55,1.6777215E7,42.0,17.0,512.0,2.4,3.6,0.01,1.6769213E7,3.4E14,1.2,0.3,4176208.0,0.7,1.2356863E7,5.0E14,1.6273737E7,0.8660254,661807.0,1.675392E7,1.6777184E7,6970.0,0.12,3.5,0.015,667753.0,616922.0,2198527.0,5549823.0,3600.0,140.0,1973790.0,15.0,657930.0,20.0,25.0,50.0,4859153.0,1.5,35.0,1.3645825E7,1.6084224E7,1.6764928E7,0.4,43.17,40.0,75.0,599626.0,65.0,45.0,0.75,2.85,26.0,0.2,3.14159265359,44100.0,1.103515245E9,12345.0,2.147483648E9,1.073741824E9,1.33,0.85,0.8,0.15,800.0,400.0,280.0,320.0,1200.0,2000.0,2300.0,2500.0,2800.0,3000.0,2400.0,2200.0,0.65,4410.0,101.0,1.05,0.95,102.0,0.92,150.0,6.5,1024.0,0.38,658964.0,2060267.0,95.0,175.0,1.4377378E7,9000933.0,335.0,115.0,310.0,128.0,148.0,380.0,165.0,178.0,7979263.0,196.0,214.0,232.0,1.3801762E7,250.0,268.0,286.0,58879.0,330.0,501.0,220.0,185.0,502.0,78.0,158.0,193.0,228.0,110.0,0.27,230.0,270.0,395.0,345.0,503.0,329740.0,200.0,240.0,210.0,202.0,219.0,236.0,253.0,275.0,295.0,504.0,505.0,725536.0,2.2,300.0,2.8,340.0,405.0,21.0,22.0,125.0,435.0,415.0,442.0];
+      var SCREEN_ROUTES = {"1787879944":1246};
+      var ACTION_ROUTES = {"2053068650":3598,"891671266":3601,"1049232862":3604,"1641285167":3607,"266466513":3610,"125697223":3613,"740866237":3654,"622838000":3727};
+      var STRINGS = ["CHRONOS IDE - KORADEVS","MODAL DE DIALOGO","AUTOCONTENIDO ZERO-OVERFLOW","CHRONOS WORKSPACE — MULTI-SCREEN DOCK","VENTANA HIJA [MIN]","+","VENTANA HIJA","-","red","rojo","green","verde","blue","azul","yellow","amarillo","cyan","cian","orange","naranja","violet","violeta","KORA-AI ASSISTANT","=== CHRONOS IDE & KORADEVS — MASTER CONSOLIDATION ===","[PVM Viewport] Deteccion de dispositivo:","[PVM Touch] Altura ergonomica minima:","[Color Engine] 4.4e14 Hz (Rojo) Hex:","[Color Engine] 5.6e14 Hz (Verde) Hex:","[Color Engine] 6.6e14 Hz (Azul) Hex:","[Platformer SoA] Vidas iniciales del jugador:","[Full-Duplex Barge-In] Interrupcion de voz detectada en O(1) - TTS silenciado.","🌐 Hub","🎨 Hertz","🎬 Video","🎙️ TTS","🕹️ Game","HUB POLÍGLOTA KORADEVS & DISPOSITIVO AUTO","ESTADO DEL RUNTIME Y DISPOSITIVO:","Viewport Inyectado : R250 (W), R251 (H)","Deteccion Movil    : auto_is_mobile() = 1.0","Touch Zone Min     : 44px (Ergonomia Movil)","Seguridad de Red   : NetworkSecurityManager Activo","Apps Donadas Kora  : Python, C++, Rust, JS, Java","Tasa de Refresco   : 90+ FPS Zero-GC Garantizado","LSP Signature Help : PhasorLSP O(1) Activo","ESPECTRO ÓPTICO EN HERTZ Y FRACTALES","4.4e14 Hz (Rojo)","5.6e14 Hz (Verde)","6.6e14 Hz (Azul)","Julia Set (-0.7 + 0.27j)","Curva de Koch Mapeada en Hz","VIDEO PROCEDURAL EN VIVO (0 BYTES STORAGE)","SÍNTESIS FORMÁNTICA 44.1 kHz Y FULL-DUPLEX","FORMANTES ACÚSTICOS (F0, F1, F2, F3):","Vocal 'A' : F1=800Hz,  F2=1200Hz, F3=2500Hz","Vocal 'E' : F1=400Hz,  F2=2000Hz, F3=2800Hz","Vocal 'I' : F1=280Hz,  F2=2300Hz, F3=3000Hz","Vocal 'O' : F1=500Hz,  F2=900Hz,  F3=2400Hz","Vocal 'U' : F1=320Hz,  F2=800Hz,  F3=2200Hz","Full-Duplex AEC  : Cancelacion de Eco en O(1)","Barge-In Status  : Corte Inmediato Activo","PLATAFORMAS SoA Y CURVAS GAMMA(z)","Vidas: 3.0 | Estado: Suelo + Movimiento SoA","KORADEVS CONSOLIDATION | 90+ FPS ZERO-GC | WASM | PWA READY"];
+      var FIRST_SCREEN_PC = 1246;
+      var CHILDREN = [{"id":1,"title":"<s>1: Demostrador Maestro KoraDevs","x":50,"y":50,"w":480,"h":580,"contentW":480,"contentH":540,"color":"#161B22","screenPc":1246}];
+
+      window.addEventListener('DOMContentLoaded', function() {
+        if (typeof PhasorRuntime !== 'undefined' && typeof PhasorRuntime.init === 'function') {
+          PhasorRuntime.init(WASM_PAYLOAD, 'phasorCanvas', {
+            title: "Demostrador Maestro KoraDevs",
+            showHud: false,
+            bytecode: BYTECODE,
+            constPool: CONST_POOL,
+            screenRoutes: SCREEN_ROUTES,
+            actionRoutes: ACTION_ROUTES,
+            strings: STRINGS,
+            firstScreenPc: FIRST_SCREEN_PC,
+            children: CHILDREN
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

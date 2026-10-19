@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+DIR="$(dirname "$0")"
+if [ "$1" = "bundle" ]; then
+    shift
+    node "$DIR/tools/phasor_bundler.js" "$@"
+    exit $?
+fi
+java -jar "$DIR/phasor.jar" "$@"
