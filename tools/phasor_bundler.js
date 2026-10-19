@@ -371,6 +371,7 @@ ${runtimeCode}
         if (typeof PhasorRuntime !== 'undefined' && typeof PhasorRuntime.init === 'function') {
           PhasorRuntime.init(WASM_PAYLOAD, 'phasorCanvas', {
             title: "${appTitle}",
+            appName: "${baseName}",
             showHud: ${options.showHud ? 'true' : 'false'},
             bytecode: BYTECODE,
             constPool: CONST_POOL,
