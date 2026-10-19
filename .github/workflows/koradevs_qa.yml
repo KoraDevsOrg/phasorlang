@@ -73,14 +73,18 @@ jobs:
       - name: 5. Configurar GitHub Pages
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: actions/configure-pages@v5
+        continue-on-error: true
 
       - name: 6. Subir Artefacto para GitHub Pages
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'dist'
+        continue-on-error: true
 
       - name: 7. Publicar PWA en GitHub Pages (Solo al 100% de Pruebas Exitosas)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+

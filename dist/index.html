@@ -2,705 +2,574 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#161b22">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="MiJuegoPhasor">
-  <meta name="application-name" content="MiJuegoPhasor">
-  <meta name="msapplication-TileColor" content="#161b22">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%23161b22%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22180%22%20fill%3D%22none%22%20stroke%3D%22%2358a6ff%22%20stroke-width%3D%2224%22%2F%3E%3Cpath%20d%3D%22M180%20160%20L360%20256%20L180%20352%20Z%22%20fill%3D%22%233fb950%22%2F%3E%3C%2Fsvg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <meta name="description" content="PhasorLang & Chronos IDE — Ecosistema Autónomo de Ultra-Alto Rendimiento (Zero-GC 120 FPS). KoraDevs Open Source.">
+  <title>PhasorLang & Chronos IDE — Ecosistema Autónomo KoraDevs</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBCMEUxNCIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMwMzYzRCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjM4NjM2IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIi8+CiAgICA8bGluZSB4MT0iMzIiIHkxPSIzMiIgeDI9IjQ4IiB5Mj0iMjAiIHN0cm9rZT0iIzU4QTZGRiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iMjAiIHI9IjQuNSIgZmlsbD0iIzU4QTZGRiIvPgogICAgPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iNCIgZmlsbD0iIzNGQjk1MCIvPgogIDwvc3ZnPg==">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <title>MiJuegoPhasor [PWA 120 FPS]</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-    html, body { width: 100%; height: 100%; background: #0b0e14; color: #adbac7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; display: flex; flex-direction: column; overflow: hidden; }
-    #console { height: 24vh; min-height: 90px; background: #0d1117; border-bottom: 2px solid #30363d; padding: 12px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; font-family: monospace; color: #58a6ff; line-height: 1.4; }
-    #canvas-container { flex: 1; position: relative; width: 100%; background: #121212; touch-action: manipulation; }
-    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+    :root {
+      --bg: #07090e;
+      --bg-surface: #0e131d;
+      --bg-card: rgba(18, 24, 38, 0.7);
+      --border: rgba(48, 54, 61, 0.6);
+      --border-accent: rgba(88, 166, 255, 0.35);
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --cyan: #58a6ff;
+      --neon-cyan: #39c5bb;
+      --green: #3fb950;
+      --purple: #bc8cff;
+      --amber: #d29922;
+      --red: #f85149;
+      --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--bg); color: var(--text); font-family: var(--font-ui); }
+    body { min-height: 100vh; overflow-x: hidden; position: relative; }
+
+    /* Background glow effects */
+    .bg-glow-1 {
+      position: absolute; top: -100px; left: 10%; width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(57, 197, 187, 0.12) 0%, transparent 70%);
+      filter: blur(80px); pointer-events: none; z-index: 0;
+    }
+    .bg-glow-2 {
+      position: absolute; top: 300px; right: 5%; width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(88, 166, 255, 0.1) 0%, transparent 70%);
+      filter: blur(100px); pointer-events: none; z-index: 0;
+    }
+
+    /* Navigation */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background: rgba(7, 9, 14, 0.85);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-container {
+      max-width: 1200px; margin: 0 auto; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
+    }
+    .brand svg { width: 34px; height: 34px; filter: drop-shadow(0 0 10px rgba(57, 197, 187, 0.4)); }
+    .brand-title { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em; }
+    .brand-title span { color: var(--neon-cyan); }
+    .brand-tag {
+      font-size: 0.65rem; font-family: var(--font-mono); font-weight: 600;
+      padding: 2px 7px; border-radius: 12px; background: rgba(57, 197, 187, 0.15);
+      color: var(--neon-cyan); border: 1px solid rgba(57, 197, 187, 0.3);
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 20px; }
+    .nav-link {
+      color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text); }
+    .btn-github {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 600;
+      text-decoration: none; color: var(--text); background: var(--bg-surface);
+      border: 1px solid var(--border); transition: all 0.2s;
+    }
+    .btn-github:hover {
+      border-color: var(--cyan); background: rgba(88, 166, 255, 0.1);
+      box-shadow: 0 0 14px rgba(88, 166, 255, 0.2);
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
+      padding: 70px 24px 40px; text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+      font-family: var(--font-mono); background: rgba(63, 185, 80, 0.12);
+      color: var(--green); border: 1px solid rgba(63, 185, 80, 0.3); margin-bottom: 24px;
+    }
+    .hero-badge-pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .hero-title {
+      font-size: clamp(2.4rem, 5.5vw, 4.2rem); font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.03em; margin-bottom: 20px; max-width: 950px; margin-inline: auto;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, #fff 20%, var(--neon-cyan) 60%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: clamp(1rem, 2vw, 1.25rem); color: var(--text-muted); line-height: 1.6;
+      max-width: 780px; margin: 0 auto 36px; font-weight: 400;
+    }
+    .hero-cta {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 40px;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px; border-radius: 10px; font-size: 1rem; font-weight: 600;
+      text-decoration: none; color: #07090e; background: linear-gradient(135deg, var(--neon-cyan), var(--cyan));
+      box-shadow: 0 6px 20px rgba(57, 197, 187, 0.35); transition: all 0.25s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px); box-shadow: 0 8px 26px rgba(57, 197, 187, 0.5);
+    }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 26px; border-radius: 10px; font-size: 1rem; font-weight: 600;
+      text-decoration: none; color: var(--text); background: var(--bg-surface);
+      border: 1px solid var(--border); transition: all 0.25s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--neon-cyan); background: rgba(57, 197, 187, 0.08);
+      transform: translateY(-2px);
+    }
+
+    /* Live Interactive Canvas Widget */
+    .live-demo-card {
+      max-width: 900px; margin: 0 auto 80px; padding: 20px; border-radius: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      backdrop-filter: blur(12px); box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      position: relative; overflow: hidden;
+    }
+    .demo-bar {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);
+    }
+    .demo-title { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
+    .demo-title span { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-cyan); }
+    .demo-stats { display: flex; gap: 16px; font-weight: 500; }
+    .demo-stats span { color: var(--green); }
+    #heroCanvas {
+      width: 100%; height: 260px; display: block; background: #07090e;
+      border-radius: 10px; border: 1px solid rgba(48, 54, 61, 0.5);
+    }
+
+    /* Showcase Grid */
+    .showcase-section {
+      max-width: 1200px; margin: 0 auto 90px; padding: 0 24px; position: relative; z-index: 1;
+    }
+    .section-header { text-align: center; margin-bottom: 48px; }
+    .section-badge {
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--neon-cyan); margin-bottom: 10px; display: block;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em;
+    }
+
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;
+    }
+    .app-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 30px; display: flex; flex-direction: column; justify-content: space-between;
+      transition: all 0.3s; position: relative; overflow: hidden; backdrop-filter: blur(10px);
+    }
+    .app-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: transparent; transition: background 0.3s;
+    }
+    .app-card:hover {
+      transform: translateY(-6px); border-color: var(--border-accent);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.4);
+    }
+    .app-card:hover::before {
+      background: linear-gradient(90deg, var(--neon-cyan), var(--cyan), var(--purple));
+    }
+
+    .card-top { margin-bottom: 24px; }
+    .card-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .badge {
+      font-size: 0.72rem; font-family: var(--font-mono); font-weight: 600;
+      padding: 3px 8px; border-radius: 6px; background: rgba(88, 166, 255, 0.12);
+      color: var(--cyan); border: 1px solid rgba(88, 166, 255, 0.25);
+    }
+    .badge-green {
+      background: rgba(63, 185, 80, 0.12); color: var(--green); border-color: rgba(63, 185, 80, 0.25);
+    }
+    .badge-purple {
+      background: rgba(188, 140, 255, 0.12); color: var(--purple); border-color: rgba(188, 140, 255, 0.25);
+    }
+
+    .card-icon { font-size: 2.2rem; margin-bottom: 14px; display: block; }
+    .card-title { font-size: 1.35rem; font-weight: 700; margin-bottom: 10px; }
+    .card-desc { font-size: 0.92rem; color: var(--text-muted); line-height: 1.55; }
+    
+    .card-action {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+      text-decoration: none; color: #fff; background: var(--bg-surface);
+      border: 1px solid var(--border); transition: all 0.2s;
+    }
+    .card-action:hover {
+      background: var(--cyan); color: #07090e; border-color: var(--cyan);
+      box-shadow: 0 4px 14px rgba(88, 166, 255, 0.35);
+    }
+    .card-action.featured {
+      background: linear-gradient(135deg, var(--neon-cyan), var(--cyan));
+      color: #07090e; border: none; font-weight: 700;
+    }
+    .card-action.featured:hover {
+      box-shadow: 0 6px 20px rgba(57, 197, 187, 0.45);
+    }
+
+    /* CLI Quickstart */
+    .cli-section {
+      max-width: 900px; margin: 0 auto 90px; padding: 0 24px; position: relative; z-index: 1;
+    }
+    .terminal-box {
+      background: #090d14; border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; box-shadow: 0 14px 30px rgba(0,0,0,0.4);
+    }
+    .terminal-header {
+      background: #111622; padding: 10px 16px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border);
+    }
+    .terminal-dots { display: flex; gap: 6px; }
+    .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+    .terminal-title { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); }
+    .terminal-body {
+      padding: 20px; font-family: var(--font-mono); font-size: 0.88rem; line-height: 1.6;
+      color: #e6edf3; overflow-x: auto;
+    }
+    .comment { color: #8b949e; }
+    .cmd { color: var(--neon-cyan); }
+    .flag { color: var(--purple); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border); background: #05070a;
+      padding: 40px 24px; text-align: center; color: var(--text-muted); font-size: 0.88rem;
+    }
+    footer a { color: var(--neon-cyan); text-decoration: none; font-weight: 500; }
+    footer a:hover { text-decoration: underline; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+
+    @media (max-width: 768px) {
+      .hero { padding-top: 40px; }
+      .nav-links .nav-link { display: none; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div id="console">&gt; OUT: === CHRONOS IDE &amp; KORADEVS — MASTER CONSOLIDATION ===
-&gt; OUT: [PVM Viewport] Deteccion de dispositivo:
-&gt; OUT: 0,0000
-&gt; OUT: [PVM Touch] Altura ergonomica minima:
-&gt; OUT: 32,0000
-&gt; OUT: [Color Engine] 4.4e14 Hz (Rojo) Hex:
-&gt; OUT: 6,0000
-&gt; OUT: [Color Engine] 5.6e14 Hz (Verde) Hex:
-&gt; OUT: 255,0000
-&gt; OUT: [Color Engine] 6.6e14 Hz (Azul) Hex:
-&gt; OUT: 255,0000
-&gt; OUT: [Platformer SoA] Vidas iniciales del jugador:
-&gt; OUT: 3,0000
-&gt; OUT: [Full-Duplex Barge-In] Interrupcion de voz detectada en O(1) - TTS silenciado.
-</div>
-  <div id="canvas-container">
-    <canvas id="stage"></canvas>
-  </div>
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <a href="./index.html" class="brand">
+        <svg viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#0B0E14"/>
+          <circle cx="32" cy="32" r="24" fill="none" stroke="#30363D" stroke-width="2"/>
+          <circle cx="32" cy="32" r="16" fill="none" stroke="#238636" stroke-width="1.5" stroke-dasharray="3,3"/>
+          <line x1="32" y1="32" x2="48" y2="20" stroke="#58A6FF" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="48" cy="20" r="4.5" fill="#58A6FF"/>
+          <circle cx="32" cy="32" r="4" fill="#3FB950"/>
+        </svg>
+        <div class="brand-title">Phasor<span>Lang</span></div>
+        <div class="brand-tag">v1.0.0</div>
+      </a>
+
+      <div class="nav-links">
+        <a href="#apps" class="nav-link">Aplicativos</a>
+        <a href="#quickstart" class="nav-link">Guía CLI</a>
+        <a href="https://github.com/koradevsorg/phasorlang" target="_blank" class="btn-github">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <div class="hero-badge-pulse"></div>
+        KoraDevs Open Source — Zero-GC 120 FPS
+      </div>
+      <h1 class="hero-title">
+        Lenguaje Fasorial y Entorno <br>
+        <span class="gradient-text">Chronos IDE Autónomo</span>
+      </h1>
+      <p class="hero-desc">
+        DSL vectorial, cuántico y procedimental para ingeniería y ciencia. Desarrolla sin pausas de Garbage Collector y empaqueta en aplicaciones HTML autocontenidas de un solo archivo.
+      </p>
+      <div class="hero-cta">
+        <a href="./chronos_ide.html" class="btn-primary">
+          🚀 Abrir Chronos IDE Web
+        </a>
+        <a href="./graficadora_fasorial.html" class="btn-secondary">
+          📈 Calculadora Gráfica
+        </a>
+      </div>
+
+      <!-- Live Interactive Canvas Widget -->
+      <div class="live-demo-card">
+        <div class="demo-bar">
+          <div class="demo-title"><span></span> Simulador Fasorial SoA en Tiempo Real</div>
+          <div class="demo-stats">
+            <div>FPS: <span id="fpsCounter">120</span></div>
+            <div>GC Pauses: <span>0</span></div>
+            <div>Memory: <span>64 KB Flat SoA</span></div>
+          </div>
+        </div>
+        <canvas id="heroCanvas"></canvas>
+      </div>
+    </section>
+
+    <!-- Showcase Grid -->
+    <section class="showcase-section" id="apps">
+      <div class="section-header">
+        <span class="section-badge">Catálogo Insignia</span>
+        <h2 class="section-title">Aplicativos Listos para Ejecución</h2>
+      </div>
+
+      <div class="cards-grid">
+        <!-- Chronos IDE -->
+        <div class="app-card">
+          <div class="card-top">
+            <div class="card-badges">
+              <span class="badge badge-green">v1.0.0</span>
+              <span class="badge">Live Preview 120 FPS</span>
+              <span class="badge badge-purple">7 Vistas</span>
+            </div>
+            <div class="card-icon">⚡</div>
+            <h3 class="card-title">Chronos IDE Autónomo</h3>
+            <p class="card-desc">
+              IDE completo multi-ventana con editor de código, terminal PVM, depurador de registros R0..R255, simulador en tiempo real con Carta de Smith y Copilot IA integrado.
+            </p>
+          </div>
+          <a href="./chronos_ide.html" class="card-action featured">
+            Abrir Chronos IDE →
+          </a>
+        </div>
+
+        <!-- Calculadora Gráfica GeoGebra -->
+        <div class="app-card">
+          <div class="card-top">
+            <div class="card-badges">
+              <span class="badge badge-green">3 Ventanas</span>
+              <span class="badge">GeoGebra Style</span>
+              <span class="badge">Interactivo</span>
+            </div>
+            <div class="card-icon">📈</div>
+            <h3 class="card-title">Calculadora Gráfica Fasorial</h3>
+            <p class="card-desc">
+              Graficadora con ventana de funciones y ecuaciones, plano complejo con vector fasorial y formas de onda continuas con inversión de fase a 180° y teclado científico.
+            </p>
+          </div>
+          <a href="./graficadora_fasorial.html" class="card-action">
+            Abrir Calculadora Gráfica →
+          </a>
+        </div>
+
+        <!-- Calculadora Básica -->
+        <div class="app-card">
+          <div class="card-top">
+            <div class="card-badges">
+              <span class="badge">1 Ventana Snap</span>
+              <span class="badge badge-green">Zero-GC</span>
+            </div>
+            <div class="card-icon">🧮</div>
+            <h3 class="card-title">Calculadora Vectorial</h3>
+            <p class="card-desc">
+              Herramienta compacta de cálculo para operaciones aritméticas, conversiones polares a rectangulares y análisis de impedancia sobre memoria plana.
+            </p>
+          </div>
+          <a href="./calculadora.html" class="card-action">
+            Abrir Calculadora →
+          </a>
+        </div>
+
+        <!-- Demostrador Maestro -->
+        <div class="app-card">
+          <div class="card-top">
+            <div class="card-badges">
+              <span class="badge badge-purple">Políglota</span>
+              <span class="badge">Full-Duplex</span>
+              <span class="badge badge-green">119 Tests</span>
+            </div>
+            <div class="card-icon">🌌</div>
+            <h3 class="card-title">Demostrador Multi-Dominio</h3>
+            <p class="card-desc">
+              Suite de prueba de todas las capacidades del ecosistema: física continua, síntesis formántica PCM a 44.1 kHz, cancelación acústica y espectro óptico en Hertz.
+            </p>
+          </div>
+          <a href="./demo_koradevs_master.html" class="card-action">
+            Abrir Demostrador →
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLI Quickstart -->
+    <section class="cli-section" id="quickstart">
+      <div class="section-header">
+        <span class="section-badge">Inicio Rápido CLI</span>
+        <h2 class="section-title">Compila y Empaqueta desde la Terminal</h2>
+      </div>
+
+      <div class="terminal-box">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <div class="terminal-dot dot-red"></div>
+            <div class="terminal-dot dot-yellow"></div>
+            <div class="terminal-dot dot-green"></div>
+          </div>
+          <div class="terminal-title">bash — koradevs@phasorlang</div>
+        </div>
+        <div class="terminal-body">
+          <div class="comment"># 1. Clonar el repositorio oficial de KoraDevs</div>
+          <div><span class="cmd">git clone</span> https://github.com/koradevsorg/phasorlang.git</div>
+          <div><span class="cmd">cd</span> phasorlang</div>
+          <br>
+          <div class="comment"># 2. Ejecutar la suite de pruebas unitarias (119/119 aserciones en &lt;120 ms)</div>
+          <div><span class="cmd">./bin/phasor</span> test tests</div>
+          <br>
+          <div class="comment"># 3. Empaquetar a un archivo HTML autocontenido (offline, 0 dependencias)</div>
+          <div><span class="cmd">./bin/phasor-bundle</span> samples/graficadora_fasorial.ph dist/mi_app.html <span class="flag">--title</span> "Mi App Fasorial"</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/koradevsorg" target="_blank">Organización KoraDevs</a>
+      <a href="https://github.com/koradevsorg/phasorlang" target="_blank">Repositorio GitHub</a>
+      <a href="https://github.com/koradevsorg/phasorlang/blob/main/LICENSE" target="_blank">Licencia MIT</a>
+    </div>
+    <p>© 2026 KoraDevs Ecosystem. PhasorLang y Chronos IDE son proyectos de código abierto.</p>
+  </footer>
+
+  <!-- Hero Canvas Animation Loop -->
   <script>
-    // ===============================================================
-    // PWA & SERVICE WORKER OFFLINE REGISTRATION (Zero-Dependencies)
-    // ===============================================================
-    if ('serviceWorker' in navigator) {
-      try {
-        const swScript = "const C='phasor-pwa-v1';self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('/')))));";
-        navigator.serviceWorker.register('./sw.js').then(function(reg){
-          console.log('[Phasor PWA] Service Worker registrado con éxito en scope:', reg.scope);
-        }).catch(function(err){
-          console.warn('[Phasor PWA] SW registration fallback:', err);
-        });
-      } catch(e) {}
-    }
+    (function() {
+      const canvas = document.getElementById('heroCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let angle = 0;
+      let lastTime = performance.now();
+      let frames = 0;
+      const fpsEl = document.getElementById('fpsCounter');
 
-    // ===============================================================
-    // WASM ACCELERATOR & BYTECODE STREAM
-    // ===============================================================
-    const WASM_B64 = "AGFzbQEAAAABLgdgAABgAX8BfGACf3wAYAR/f398AGAFf398fHwAYAZ8fHx8fHwBfGADfHx8AXwDCAcAAQIDBAUGBQMBAAEHZwkGbWVtb3J5AgADcnVuAAAEbWFpbgAADGdldF9yZWdpc3RlcgABDHNldF9yZWdpc3RlcgACCXNpbWRfc3RlcAADDXNpbWRfaW5pdF92ZWwABAh2ZWMzX2RvdAAFCHZlYzNfbWFnAAYKp5ABB+2NAQKACHwIf0GAQCGACEEAKwMAIQBBCCsDACEBQRArAwAhAkEYKwMAIQNBICsDACEEQSgrAwAhBUEwKwMAIQZBOCsDACEHQUArAwAhCEFIKwMAIQlBUCsDACEKQVgrAwAhC0FgKwMAIQxBaCsDACENQXArAwAhDkF4KwMAIQ9BgAErAwAhEEGIASsDACERQZABKwMAIRJBmAErAwAhE0GgASsDACEUQagBKwMAIRVBsAErAwAhFkG4ASsDACEXQcABKwMAIRhByAErAwAhGUHQASsDACEaQdgBKwMAIRtB4AErAwAhHEHoASsDACEdQfABKwMAIR5B+AErAwAhH0GAAisDACEgQYgCKwMAISFBkAIrAwAhIkGYAisDACEjQaACKwMAISRBqAIrAwAhJUGwAisDACEmQbgCKwMAISdBwAIrAwAhKEHIAisDACEpQdACKwMAISpB2AIrAwAhK0HgAisDACEsQegCKwMAIS1B8AIrAwAhLkH4AisDACEvQYADKwMAITBBiAMrAwAhMUGQAysDACEyQZgDKwMAITNBoAMrAwAhNEGoAysDACE1QbADKwMAITZBuAMrAwAhN0HAAysDACE4QcgDKwMAITlB0AMrAwAhOkHYAysDACE7QeADKwMAITxB6AMrAwAhPUHwAysDACE+QfgDKwMAIT9BgAQrAwAhQEGIBCsDACFBQZAEKwMAIUJBmAQrAwAhQ0GgBCsDACFEQagEKwMAIUVBsAQrAwAhRkG4BCsDACFHQcAEKwMAIUhByAQrAwAhSUHQBCsDACFKQdgEKwMAIUtB4AQrAwAhTEHoBCsDACFNQfAEKwMAIU5B+AQrAwAhT0GABSsDACFQQYgFKwMAIVFBkAUrAwAhUkGYBSsDACFTQaAFKwMAIVRBqAUrAwAhVUGwBSsDACFWQbgFKwMAIVdBwAUrAwAhWEHIBSsDACFZQdAFKwMAIVpB2AUrAwAhW0HgBSsDACFcQegFKwMAIV1B8AUrAwAhXkH4BSsDACFfQYAGKwMAIWBBiAYrAwAhYUGQBisDACFiQZgGKwMAIWNBoAYrAwAhZEGoBisDACFlQbAGKwMAIWZBuAYrAwAhZ0HABisDACFoQcgGKwMAIWlB0AYrAwAhakHYBisDACFrQeAGKwMAIWxB6AYrAwAhbUHwBisDACFuQfgGKwMAIW9BgAcrAwAhcEGIBysDACFxQZAHKwMAIXJBmAcrAwAhc0GgBysDACF0QagHKwMAIXVBsAcrAwAhdkG4BysDACF3QcAHKwMAIXhByAcrAwAheUHQBysDACF6QdgHKwMAIXtB4AcrAwAhfEHoBysDACF9QfAHKwMAIX5B+AcrAwAhf0GACCsDACGAAUGICCsDACGBAUGQCCsDACGCAUGYCCsDACGDAUGgCCsDACGEAUGoCCsDACGFAUGwCCsDACGGAUG4CCsDACGHAUHACCsDACGIAUHICCsDACGJAUHQCCsDACGKAUHYCCsDACGLAUHgCCsDACGMAUHoCCsDACGNAUHwCCsDACGOAUH4CCsDACGPAUGACSsDACGQAUGICSsDACGRAUGQCSsDACGSAUGYCSsDACGTAUGgCSsDACGUAUGoCSsDACGVAUGwCSsDACGWAUG4CSsDACGXAUHACSsDACGYAUHICSsDACGZAUHQCSsDACGaAUHYCSsDACGbAUHgCSsDACGcAUHoCSsDACGdAUHwCSsDACGeAUH4CSsDACGfAUGACisDACGgAUGICisDACGhAUGQCisDACGiAUGYCisDACGjAUGgCisDACGkAUGoCisDACGlAUGwCisDACGmAUG4CisDACGnAUHACisDACGoAUHICisDACGpAUHQCisDACGqAUHYCisDACGrAUHgCisDACGsAUHoCisDACGtAUHwCisDACGuAUH4CisDACGvAUGACysDACGwAUGICysDACGxAUGQCysDACGyAUGYCysDACGzAUGgCysDACG0AUGoCysDACG1AUGwCysDACG2AUG4CysDACG3AUHACysDACG4AUHICysDACG5AUHQCysDACG6AUHYCysDACG7AUHgCysDACG8AUHoCysDACG9AUHwCysDACG+AUH4CysDACG/AUGADCsDACHAAUGIDCsDACHBAUGQDCsDACHCAUGYDCsDACHDAUGgDCsDACHEAUGoDCsDACHFAUGwDCsDACHGAUG4DCsDACHHAUHADCsDACHIAUHIDCsDACHJAUHQDCsDACHKAUHYDCsDACHLAUHgDCsDACHMAUHoDCsDACHNAUHwDCsDACHOAUH4DCsDACHPAUGADSsDACHQAUGIDSsDACHRAUGQDSsDACHSAUGYDSsDACHTAUGgDSsDACHUAUGoDSsDACHVAUGwDSsDACHWAUG4DSsDACHXAUHADSsDACHYAUHIDSsDACHZAUHQDSsDACHaAUHYDSsDACHbAUHgDSsDACHcAUHoDSsDACHdAUHwDSsDACHeAUH4DSsDACHfAUGADisDACHgAUGIDisDACHhAUGQDisDACHiAUGYDisDACHjAUGgDisDACHkAUGoDisDACHlAUGwDisDACHmAUG4DisDACHnAUHADisDACHoAUHIDisDACHpAUHQDisDACHqAUHYDisDACHrAUHgDisDACHsAUHoDisDACHtAUHwDisDACHuAUH4DisDACHvAUGADysDACHwAUGIDysDACHxAUGQDysDACHyAUGYDysDACHzAUGgDysDACH0AUGoDysDACH1AUGwDysDACH2AUG4DysDACH3AUHADysDACH4AUHIDysDACH5AUHQDysDACH6AUHYDysDACH7AUHgDysDACH8AUHoDysDACH9AUHwDysDACH+AUH4DysDACH/AUGAECsDACGAAkGIECsDACGBAkGQECsDACGCAkGYECsDACGDAkGgECsDACGEAkGoECsDACGFAkGwECsDACGGAkG4ECsDACGHAkHAECsDACGIAkHIECsDACGJAkHQECsDACGKAkHYECsDACGLAkHgECsDACGMAkHoECsDACGNAkHwECsDACGOAkH4ECsDACGPAkGAESsDACGQAkGIESsDACGRAkGQESsDACGSAkGYESsDACGTAkGgESsDACGUAkGoESsDACGVAkGwESsDACGWAkG4ESsDACGXAkHAESsDACGYAkHIESsDACGZAkHQESsDACGaAkHYESsDACGbAkHgESsDACGcAkHoESsDACGdAkHwESsDACGeAkH4ESsDACGfAkGAEisDACGgAkGIEisDACGhAkGQEisDACGiAkGYEisDACGjAkGgEisDACGkAkGoEisDACGlAkGwEisDACGmAkG4EisDACGnAkHAEisDACGoAkHIEisDACGpAkHQEisDACGqAkHYEisDACGrAkHgEisDACGsAkHoEisDACGtAkHwEisDACGuAkH4EisDACGvAkGAEysDACGwAkGIEysDACGxAkGQEysDACGyAkGYEysDACGzAkGgEysDACG0AkGoEysDACG1AkGwEysDACG2AkG4EysDACG3AkHAEysDACG4AkHIEysDACG5AkHQEysDACG6AkHYEysDACG7AkHgEysDACG8AkHoEysDACG9AkHwEysDACG+AkH4EysDACG/AkGAFCsDACHAAkGIFCsDACHBAkGQFCsDACHCAkGYFCsDACHDAkGgFCsDACHEAkGoFCsDACHFAkGwFCsDACHGAkG4FCsDACHHAkHAFCsDACHIAkHIFCsDACHJAkHQFCsDACHKAkHYFCsDACHLAkHgFCsDACHMAkHoFCsDACHNAkHwFCsDACHOAkH4FCsDACHPAkGAFSsDACHQAkGIFSsDACHRAkGQFSsDACHSAkGYFSsDACHTAkGgFSsDACHUAkGoFSsDACHVAkGwFSsDACHWAkG4FSsDACHXAkHAFSsDACHYAkHIFSsDACHZAkHQFSsDACHaAkHYFSsDACHbAkHgFSsDACHcAkHoFSsDACHdAkHwFSsDACHeAkH4FSsDACHfAkGAFisDACHgAkGIFisDACHhAkGQFisDACHiAkGYFisDACHjAkGgFisDACHkAkGoFisDACHlAkGwFisDACHmAkG4FisDACHnAkHAFisDACHoAkHIFisDACHpAkHQFisDACHqAkHYFisDACHrAkHgFisDACHsAkHoFisDACHtAkHwFisDACHuAkH4FisDACHvAkGAFysDACHwAkGIFysDACHxAkGQFysDACHyAkGYFysDACHzAkGgFysDACH0AkGoFysDACH1AkGwFysDACH2AkG4FysDACH3AkHAFysDACH4AkHIFysDACH5AkHQFysDACH6AkHYFysDACH7AkHgFysDACH8AkHoFysDACH9AkHwFysDACH+AkH4FysDACH/AkGAGCsDACGAA0GIGCsDACGBA0GQGCsDACGCA0GYGCsDACGDA0GgGCsDACGEA0GoGCsDACGFA0GwGCsDACGGA0G4GCsDACGHA0HAGCsDACGIA0HIGCsDACGJA0HQGCsDACGKA0HYGCsDACGLA0HgGCsDACGMA0HoGCsDACGNA0HwGCsDACGOA0H4GCsDACGPA0GAGSsDACGQA0GIGSsDACGRA0GQGSsDACGSA0GYGSsDACGTA0GgGSsDACGUA0GoGSsDACGVA0GwGSsDACGWA0G4GSsDACGXA0HAGSsDACGYA0HIGSsDACGZA0HQGSsDACGaA0HYGSsDACGbA0HgGSsDACGcA0HoGSsDACGdA0HwGSsDACGeA0H4GSsDACGfA0GAGisDACGgA0GIGisDACGhA0GQGisDACGiA0GYGisDACGjA0GgGisDACGkA0GoGisDACGlA0GwGisDACGmA0G4GisDACGnA0HAGisDACGoA0HIGisDACGpA0HQGisDACGqA0HYGisDACGrA0HgGisDACGsA0HoGisDACGtA0HwGisDACGuA0H4GisDACGvA0GAGysDACGwA0GIGysDACGxA0GQGysDACGyA0GYGysDACGzA0GgGysDACG0A0GoGysDACG1A0GwGysDACG2A0G4GysDACG3A0HAGysDACG4A0HIGysDACG5A0HQGysDACG6A0HYGysDACG7A0HgGysDACG8A0HoGysDACG9A0HwGysDACG+A0H4GysDACG/A0GAHCsDACHAA0GIHCsDACHBA0GQHCsDACHCA0GYHCsDACHDA0GgHCsDACHEA0GoHCsDACHFA0GwHCsDACHGA0G4HCsDACHHA0HAHCsDACHIA0HIHCsDACHJA0HQHCsDACHKA0HYHCsDACHLA0HgHCsDACHMA0HoHCsDACHNA0HwHCsDACHOA0H4HCsDACHPA0GAHSsDACHQA0GIHSsDACHRA0GQHSsDACHSA0GYHSsDACHTA0GgHSsDACHUA0GoHSsDACHVA0GwHSsDACHWA0G4HSsDACHXA0HAHSsDACHYA0HIHSsDACHZA0HQHSsDACHaA0HYHSsDACHbA0HgHSsDACHcA0HoHSsDACHdA0HwHSsDACHeA0H4HSsDACHfA0GAHisDACHgA0GIHisDACHhA0GQHisDACHiA0GYHisDACHjA0GgHisDACHkA0GoHisDACHlA0GwHisDACHmA0G4HisDACHnA0HAHisDACHoA0HIHisDACHpA0HQHisDACHqA0HYHisDACHrA0HgHisDACHsA0HoHisDACHtA0HwHisDACHuA0H4HisDACHvA0GAHysDACHwA0GIHysDACHxA0GQHysDACHyA0GYHysDACHzA0GgHysDACH0A0GoHysDACH1A0GwHysDACH2A0G4HysDACH3A0HAHysDACH4A0HIHysDACH5A0HQHysDACH6A0HYHysDACH7A0HgHysDACH8A0HoHysDACH9A0HwHysDACH+A0H4HysDACH/A0GAICsDACGABEGIICsDACGBBEGQICsDACGCBEGYICsDACGDBEGgICsDACGEBEGoICsDACGFBEGwICsDACGGBEG4ICsDACGHBEHAICsDACGIBEHIICsDACGJBEHQICsDACGKBEHYICsDACGLBEHgICsDACGMBEHoICsDACGNBEHwICsDACGOBEH4ICsDACGPBEGAISsDACGQBEGIISsDACGRBEGQISsDACGSBEGYISsDACGTBEGgISsDACGUBEGoISsDACGVBEGwISsDACGWBEG4ISsDACGXBEHAISsDACGYBEHIISsDACGZBEHQISsDACGaBEHYISsDACGbBEHgISsDACGcBEHoISsDACGdBEHwISsDACGeBEH4ISsDACGfBEGAIisDACGgBEGIIisDACGhBEGQIisDACGiBEGYIisDACGjBEGgIisDACGkBEGoIisDACGlBEGwIisDACGmBEG4IisDACGnBEHAIisDACGoBEHIIisDACGpBEHQIisDACGqBEHYIisDACGrBEHgIisDACGsBEHoIisDACGtBEHwIisDACGuBEH4IisDACGvBEGAIysDACGwBEGIIysDACGxBEGQIysDACGyBEGYIysDACGzBEGgIysDACG0BEGoIysDACG1BEGwIysDACG2BEG4IysDACG3BEHAIysDACG4BEHIIysDACG5BEHQIysDACG6BEHYIysDACG7BEHgIysDACG8BEHoIysDACG9BEHwIysDACG+BEH4IysDACG/BEGAJCsDACHABEGIJCsDACHBBEGQJCsDACHCBEGYJCsDACHDBEGgJCsDACHEBEGoJCsDACHFBEGwJCsDACHGBEG4JCsDACHHBEHAJCsDACHIBEHIJCsDACHJBEHQJCsDACHKBEHYJCsDACHLBEHgJCsDACHMBEHoJCsDACHNBEHwJCsDACHOBEH4JCsDACHPBEGAJSsDACHQBEGIJSsDACHRBEGQJSsDACHSBEGYJSsDACHTBEGgJSsDACHUBEGoJSsDACHVBEGwJSsDACHWBEG4JSsDACHXBEHAJSsDACHYBEHIJSsDACHZBEHQJSsDACHaBEHYJSsDACHbBEHgJSsDACHcBEHoJSsDACHdBEHwJSsDACHeBEH4JSsDACHfBEGAJisDACHgBEGIJisDACHhBEGQJisDACHiBEGYJisDACHjBEGgJisDACHkBEGoJisDACHlBEGwJisDACHmBEG4JisDACHnBEHAJisDACHoBEHIJisDACHpBEHQJisDACHqBEHYJisDACHrBEHgJisDACHsBEHoJisDACHtBEHwJisDACHuBEH4JisDACHvBEGAJysDACHwBEGIJysDACHxBEGQJysDACHyBEGYJysDACHzBEGgJysDACH0BEGoJysDACH1BEGwJysDACH2BEG4JysDACH3BEHAJysDACH4BEHIJysDACH5BEHQJysDACH6BEHYJysDACH7BEHgJysDACH8BEHoJysDACH9BEHwJysDACH+BEH4JysDACH/BEGAKCsDACGABUGIKCsDACGBBUGQKCsDACGCBUGYKCsDACGDBUGgKCsDACGEBUGoKCsDACGFBUGwKCsDACGGBUG4KCsDACGHBUHAKCsDACGIBUHIKCsDACGJBUHQKCsDACGKBUHYKCsDACGLBUHgKCsDACGMBUHoKCsDACGNBUHwKCsDACGOBUH4KCsDACGPBUGAKSsDACGQBUGIKSsDACGRBUGQKSsDACGSBUGYKSsDACGTBUGgKSsDACGUBUGoKSsDACGVBUGwKSsDACGWBUG4KSsDACGXBUHAKSsDACGYBUHIKSsDACGZBUHQKSsDACGaBUHYKSsDACGbBUHgKSsDACGcBUHoKSsDACGdBUHwKSsDACGeBUH4KSsDACGfBUGAKisDACGgBUGIKisDACGhBUGQKisDACGiBUGYKisDACGjBUGgKisDACGkBUGoKisDACGlBUGwKisDACGmBUG4KisDACGnBUHAKisDACGoBUHIKisDACGpBUHQKisDACGqBUHYKisDACGrBUHgKisDACGsBUHoKisDACGtBUHwKisDACGuBUH4KisDACGvBUGAKysDACGwBUGIKysDACGxBUGQKysDACGyBUGYKysDACGzBUGgKysDACG0BUGoKysDACG1BUGwKysDACG2BUG4KysDACG3BUHAKysDACG4BUHIKysDACG5BUHQKysDACG6BUHYKysDACG7BUHgKysDACG8BUHoKysDACG9BUHwKysDACG+BUH4KysDACG/BUGALCsDACHABUGILCsDACHBBUGQLCsDACHCBUGYLCsDACHDBUGgLCsDACHEBUGoLCsDACHFBUGwLCsDACHGBUG4LCsDACHHBUHALCsDACHIBUHILCsDACHJBUHQLCsDACHKBUHYLCsDACHLBUHgLCsDACHMBUHoLCsDACHNBUHwLCsDACHOBUH4LCsDACHPBUGALSsDACHQBUGILSsDACHRBUGQLSsDACHSBUGYLSsDACHTBUGgLSsDACHUBUGoLSsDACHVBUGwLSsDACHWBUG4LSsDACHXBUHALSsDACHYBUHILSsDACHZBUHQLSsDACHaBUHYLSsDACHbBUHgLSsDACHcBUHoLSsDACHdBUHwLSsDACHeBUH4LSsDACHfBUGALisDACHgBUGILisDACHhBUGQLisDACHiBUGYLisDACHjBUGgLisDACHkBUGoLisDACHlBUGwLisDACHmBUG4LisDACHnBUHALisDACHoBUHILisDACHpBUHQLisDACHqBUHYLisDACHrBUHgLisDACHsBUHoLisDACHtBUHwLisDACHuBUH4LisDACHvBUGALysDACHwBUGILysDACHxBUGQLysDACHyBUGYLysDACHzBUGgLysDACH0BUGoLysDACH1BUGwLysDACH2BUG4LysDACH3BUHALysDACH4BUHILysDACH5BUHQLysDACH6BUHYLysDACH7BUHgLysDACH8BUHoLysDACH9BUHwLysDACH+BUH4LysDACH/BUGAMCsDACGABkGIMCsDACGBBkGQMCsDACGCBkGYMCsDACGDBkGgMCsDACGEBkGoMCsDACGFBkGwMCsDACGGBkG4MCsDACGHBkHAMCsDACGIBkHIMCsDACGJBkHQMCsDACGKBkHYMCsDACGLBkHgMCsDACGMBkHoMCsDACGNBkHwMCsDACGOBkH4MCsDACGPBkGAMSsDACGQBkGIMSsDACGRBkGQMSsDACGSBkGYMSsDACGTBkGgMSsDACGUBkGoMSsDACGVBkGwMSsDACGWBkG4MSsDACGXBkHAMSsDACGYBkHIMSsDACGZBkHQMSsDACGaBkHYMSsDACGbBkHgMSsDACGcBkHoMSsDACGdBkHwMSsDACGeBkH4MSsDACGfBkGAMisDACGgBkGIMisDACGhBkGQMisDACGiBkGYMisDACGjBkGgMisDACGkBkGoMisDACGlBkGwMisDACGmBkG4MisDACGnBkHAMisDACGoBkHIMisDACGpBkHQMisDACGqBkHYMisDACGrBkHgMisDACGsBkHoMisDACGtBkHwMisDACGuBkH4MisDACGvBkGAMysDACGwBkGIMysDACGxBkGQMysDACGyBkGYMysDACGzBkGgMysDACG0BkGoMysDACG1BkGwMysDACG2BkG4MysDACG3BkHAMysDACG4BkHIMysDACG5BkHQMysDACG6BkHYMysDACG7BkHgMysDACG8BkHoMysDACG9BkHwMysDACG+BkH4MysDACG/BkGANCsDACHABkGINCsDACHBBkGQNCsDACHCBkGYNCsDACHDBkGgNCsDACHEBkGoNCsDACHFBkGwNCsDACHGBkG4NCsDACHHBkHANCsDACHIBkHINCsDACHJBkHQNCsDACHKBkHYNCsDACHLBkHgNCsDACHMBkHoNCsDACHNBkHwNCsDACHOBkH4NCsDACHPBkGANSsDACHQBkGINSsDACHRBkGQNSsDACHSBkGYNSsDACHTBkGgNSsDACHUBkGoNSsDACHVBkGwNSsDACHWBkG4NSsDACHXBkHANSsDACHYBkHINSsDACHZBkHQNSsDACHaBkHYNSsDACHbBkHgNSsDACHcBkHoNSsDACHdBkHwNSsDACHeBkH4NSsDACHfBkGANisDACHgBkGINisDACHhBkGQNisDACHiBkGYNisDACHjBkGgNisDACHkBkGoNisDACHlBkGwNisDACHmBkG4NisDACHnBkHANisDACHoBkHINisDACHpBkHQNisDACHqBkHYNisDACHrBkHgNisDACHsBkHoNisDACHtBkHwNisDACHuBkH4NisDACHvBkGANysDACHwBkGINysDACHxBkGQNysDACHyBkGYNysDACHzBkGgNysDACH0BkGoNysDACH1BkGwNysDACH2BkG4NysDACH3BkHANysDACH4BkHINysDACH5BkHQNysDACH6BkHYNysDACH7BkHgNysDACH8BkHoNysDACH9BkHwNysDACH+BkH4NysDACH/BkGAOCsDACGAB0GIOCsDACGBB0GQOCsDACGCB0GYOCsDACGDB0GgOCsDACGEB0GoOCsDACGFB0GwOCsDACGGB0G4OCsDACGHB0HAOCsDACGIB0HIOCsDACGJB0HQOCsDACGKB0HYOCsDACGLB0HgOCsDACGMB0HoOCsDACGNB0HwOCsDACGOB0H4OCsDACGPB0GAOSsDACGQB0GIOSsDACGRB0GQOSsDACGSB0GYOSsDACGTB0GgOSsDACGUB0GoOSsDACGVB0GwOSsDACGWB0G4OSsDACGXB0HAOSsDACGYB0HIOSsDACGZB0HQOSsDACGaB0HYOSsDACGbB0HgOSsDACGcB0HoOSsDACGdB0HwOSsDACGeB0H4OSsDACGfB0GAOisDACGgB0GIOisDACGhB0GQOisDACGiB0GYOisDACGjB0GgOisDACGkB0GoOisDACGlB0GwOisDACGmB0G4OisDACGnB0HAOisDACGoB0HIOisDACGpB0HQOisDACGqB0HYOisDACGrB0HgOisDACGsB0HoOisDACGtB0HwOisDACGuB0H4OisDACGvB0GAOysDACGwB0GIOysDACGxB0GQOysDACGyB0GYOysDACGzB0GgOysDACG0B0GoOysDACG1B0GwOysDACG2B0G4OysDACG3B0HAOysDACG4B0HIOysDACG5B0HQOysDACG6B0HYOysDACG7B0HgOysDACG8B0HoOysDACG9B0HwOysDACG+B0H4OysDACG/B0GAPCsDACHAB0GIPCsDACHBB0GQPCsDACHCB0GYPCsDACHDB0GgPCsDACHEB0GoPCsDACHFB0GwPCsDACHGB0G4PCsDACHHB0HAPCsDACHIB0HIPCsDACHJB0HQPCsDACHKB0HYPCsDACHLB0HgPCsDACHMB0HoPCsDACHNB0HwPCsDACHOB0H4PCsDACHPB0GAPSsDACHQB0GIPSsDACHRB0GQPSsDACHSB0GYPSsDACHTB0GgPSsDACHUB0GoPSsDACHVB0GwPSsDACHWB0G4PSsDACHXB0HAPSsDACHYB0HIPSsDACHZB0HQPSsDACHaB0HYPSsDACHbB0HgPSsDACHcB0HoPSsDACHdB0HwPSsDACHeB0H4PSsDACHfB0GAPisDACHgB0GIPisDACHhB0GQ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";
-    let wasmExports = null;
-    try {
-      const wasmBin = Uint8Array.from(atob(WASM_B64), c => c.charCodeAt(0));
-      const wasmMod = new WebAssembly.Module(wasmBin);
-      const wasmInst = new WebAssembly.Instance(wasmMod);
-      wasmExports = wasmInst.exports;
-    } catch(e) {
-      console.warn('[Phasor Web Engine] WebAssembly acelerador no disponible, usando fallback JS TypedArrays:', e);
-    }
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * (window.devicePixelRatio || 1);
+        canvas.height = rect.height * (window.devicePixelRatio || 1);
+      }
+      window.addEventListener('resize', resize);
+      resize();
 
-    let BYTECODE = [16908544,33620480,16993792,33686272,17044736,33752064,17143552,33817856,17170944,33883648,17302272,34015232,34014976,17368064,34081024,34080768,17367040,587859721,1091174422,17563904,34278400,1073741854,604571400,1091108891,17498368,34212608,1073741853,17367552,34212096,34277888,33950464,17433344,34015744,34014976,17433600,34081280,34080768,17432576,587925258,1091239979,17629440,34344192,1073741875,604636936,1091174448,17563904,34278400,1073741874,17433088,34277888,34343680,17432832,554372106,1091239993,17630464,34344192,1073741883,17434112,34343424,34147328,17498368,34343680,17629440,554568717,1091436612,17835520,34540800,1073741929,17699584,554634254,1091502154,17901824,34606336,1073741928,17700096,554634254,1091502160,17902080,34606336,1073741927,17700352,554634254,1091502166,17901312,34606336,1073741926,17705728,554634254,1091502172,17899520,34606336,1073741925,17703168,554634254,1091502178,17902592,34606336,1073741924,17706240,34606336,34607104,34607104,34607104,34607104,34541568,34213632,17765888,34344704,17826048,554765328,1091633266,18032128,34737408,1073741975,17765120,554699791,1091567736,17967360,34671872,1073741974,17765632,554699791,1091567742,17967616,34671872,1073741973,17765888,554699791,1091567748,17966848,34671872,1073741972,17771264,554699791,1091567754,17965056,34671872,1073741971,17768704,554699791,1091567760,17968128,34671872,1073741970,17771776,34671872,34672896,34672896,34672896,34672896,34738432,34476544,17834240,34344960,17891584,554830865,1091698848,18097664,34802944,1073742021,17830656,554765328,1091633318,18032896,34737408,1073742020,17831168,554765328,1091633324,18033152,34737408,1073742019,17831424,554765328,1091633330,18032384,34737408,1073742018,17836800,554765328,1091633336,18030592,34737408,1073742017,17834240,554765328,1091633342,18033664,34737408,1073742016,17837312,34737408,34738688,34738688,34738688,34738688,34804224,34542336,34671104,34672896,34803968,18093568,588583700,1091895501,34999552,18093568,34804736,18088192,18093824,622138132,1091895508,34999552,18093824,34804736,18088192,18094080,588583700,1091895515,34999552,18094336,18094592,588583700,1091895520,34999552,18160128,34870528,286592275,18160384,320208917,18225408,303502358,18226176,622269206,1092026603,35130624,18226176,286724886,34871040,18225920,320274454,18226432,303502358,18219520,34739712,34672896,34803968,18290176,588780311,1092092154,35196160,18290176,34805504,18284800,18290432,622334743,1092092161,35196160,18290432,34805504,18284800,18292224,588780311,1092092168,35196160,18285056,18292480,588780311,1092092173,35196160,18292224,286790423,34871296,18291456,320339991,18290944,303567895,18292736,588780311,1092092184,35196160,18290944,18291712,588780311,1092092189,35196160,18291712,34871040,286723347,18292992,320339991,18290944,303567895,18285056,35002112,34672896,34803968,18355712,588845848,1092157740,35261696,18355712,34805760,18350336,18355968,622400280,1092157747,35261696,18355968,34805760,18350336,18356736,588845848,1092157754,35261696,18350592,18358784,588845848,1092157759,35261696,18356736,286855960,34871552,18358528,320405528,18356480,303633432,18356480,35067904,34738688,35001856,35067648,35131904,18416128,588912665,1092223315,18612736,35134464,35330048,1073742165,18415872,35330304,18422016,622467097,1092223324,18618624,35134464,35330048,1073742174,18415872,35330304,35198464,18481664,588978458,1092288870,18678272,35200256,35395840,1073742184,18481408,35396096,18487552,622532890,1092288879,18684160,35200256,35395840,1073742193,18481408,35396096,35264256,18547200,589044251,1092354425,18743808,35266048,35461632,1073742203,18546944,35461888,18553088,622598683,1092354434,18749696,35266048,35461632,1073742212,18546944,35461888,18555648,303831067,18686976,303962397,270474270,270540570,34611200,34672128,34672896,34803968,18617856,589107996,1092419986,35523840,18617856,34806784,18612480,18618112,622662428,1092419993,35523840,18618112,34806784,18612480,18618368,589107996,1092420000,35523840,18618624,18618880,589107996,1092420005,35523840,18618880,34872320,287051027,18619136,320667676,18618624,303895580,18619392,622662428,1092420016,35523840,18619392,287118108,34872576,18619136,320667676,18619648,303895580,18612736,34741248,34672896,34803968,18617856,589107996,1092420031,35523840,18617856,34806784,18612480,18618112,622662428,1092420038,35523840,18618112,34806784,18612480,18619904,589107996,1092420045,35523840,18612736,18620160,589107996,1092420050,35523840,18619904,287118108,34872576,18619136,320667676,18618624,303895580,18620416,589107996,1092420061,35523840,18618624,18619392,589107996,1092420066,35523840,18619392,34872320,287051027,18620672,320667676,18618624,303895580,18612736,35003392,34672896,34803968,18617856,589107996,1092420081,35523840,18617856,34806784,18612480,18618112,622662428,1092420088,35523840,18618112,34806784,18612480,18618880,589107996,1092420095,35523840,18612736,18620928,589107996,1092420100,35523840,18618880,287118108,34872576,18620672,320667676,18618624,303895580,18618624,35068928,34738688,35001856,35067648,35131904,18612736,589109276,1092420120,18809344,35135232,35526656,1073742362,18612480,35527680,18618624,622663708,1092420129,18815232,35135232,35526656,1073742371,18612480,35527680,35198464,18612736,589109532,1092420139,18809344,35200768,35526912,1073742381,18612480,35527680,18618624,622663964,1092420148,18815232,35200768,35526912,1073742390,18612480,35527680,35264256,18612736,589109788,1092420158,18809344,35266304,35527168,1073742400,18612480,35527680,18618624,622664220,1092420167,18815232,35266304,35527168,1073742409,18612480,35527680,18621184,303896604,18752512,304027934,270540063,270606362,35332352,34672384,34672896,34803968,18683392,589173533,1092485719,35589376,18683392,34807040,18678016,18683648,622727965,1092485726,35589376,18683648,34807040,18678016,18683904,589173533,1092485733,35589376,18684160,18684416,589173533,1092485738,35589376,18684416,34872576,287116563,18684672,320733213,18684160,303961117,18684928,622727965,1092485749,35589376,18684928,287183645,34872832,18684672,320733213,18685184,303961117,18678272,34741504,34672896,34803968,18683392,589173533,1092485764,35589376,18683392,34807040,18678016,18683648,622727965,1092485771,35589376,18683648,34807040,18678016,18685440,589173533,1092485778,35589376,18678272,18685696,589173533,1092485783,35589376,18685440,287183645,34872832,18684672,320733213,18684160,303961117,18685952,589173533,1092485794,35589376,18684160,18684928,589173533,1092485799,35589376,18684928,34872576,287116563,18686208,320733213,18684160,303961117,18678272,35003648,34672896,34803968,18683392,589173533,1092485814,35589376,18683392,34807040,18678016,18683648,622727965,1092485821,35589376,18683648,34807040,18678016,18684416,589173533,1092485828,35589376,18678272,18686464,589173533,1092485833,35589376,18684416,287183645,34872832,18686208,320733213,18684160,303961117,18684160,35069184,34738688,35001856,35067648,35131904,18678272,589174813,1092485853,18874880,35135488,35592192,1073742559,18678016,35593472,18684160,622729245,1092485862,18880768,35135488,35592192,1073742568,18678016,35593472,35198464,18678272,589175069,1092485872,18874880,35201024,35592448,1073742578,18678016,35593472,18684160,622729501,1092485881,18880768,35201024,35592448,1073742587,18678016,35593472,35264256,18678272,589175325,1092485891,18874880,35266560,35592704,1073742597,18678016,35593472,18684160,622729757,1092485900,18880768,35266560,35592704,1073742606,18678016,35593472,18686720,303962141,18818048,304093471,270605856,270672154,35398144,805372416,805372672,805307904,805372928,805308672,805373184,805310464,805373440,805313280,805373696,805313536,18746624,18826752,1881153055,35463168,18743808,18826752,18905088,18980352,19010816,35855616,35921408,35987200,36052992,36118784,36184576,19464704,1914906880,36,37,38,19464448,1914906880,36,37,39,19469056,19530240,1914906880,36,37,42,19469568,19530240,1914906880,36,37,42,19469824,19546880,1914906880,36,37,42,19475200,19547136,1914906880,36,37,42,19472640,19547392,1914906880,36,37,42,19471104,1914906880,36,37,40,19464448,19464704,19529984,19635968,36445440,35924224,36514304,36580096,19875328,35991296,19927808,1899047984,36,37,36647168,19996928,1899113521,36,37,36712960,20072192,36778496,305343790,36844288,305409329,271920948,36910336,20185600,624241972,1093993357,624374578,1094124415,36909568,37237504,1073742721,20185344,37237760,20193536,20252160,355872821,288829494,20465664,272185144,1915499520,36,37,57,37107968,1073742751,590623538,1093927826,36909568,37040896,1073742740,20185344,37041152,20193536,20252160,355872821,288829494,20452096,272185144,1915499520,36,37,57,37107968,20189952,1915499520,36,37,51,20185344,20185600,20291584,36445440,35927040,37106944,20399616,35993344,20390144,1899506743,36,37,36714496,20452096,356069432,20578560,641415482,37174016,1094124491,20518144,20578816,289094198,1915500800,36,37,59,20513024,289026105,20649472,272382523,37239808,20521216,1915500800,36,37,56,20513024,37239040,1073742797,20513280,37239040,20513280,20578816,36445440,35928320,37435904,20727296,35994624,20781824,1899899965,36,37,37502464,20783360,1899899965,36,37,36716032,20843776,322908222,20976384,356597568,21102848,641941826,37569280,20840960,591346494,1094648837,1094517739,37829632,1073742851,272579643,37633792,20906496,591412799,1094714356,21103104,37634560,37830144,1073742838,20906240,37830400,20914432,20974848,272707648,1915502336,36,37,65,20912896,1915502336,36,37,62,37830144,37765376,1073742861,272579643,37633792,20912896,1915502336,36,37,62,37764608,33767424,805373952,805307136,20971776,21078272,1883390017,37700096,21042688,21108224,1883455810,37765888,21037568,21108224,37961728,35930368,35996160,21234176,21299456,1917010944,36,37,69,21233920,21299712,1917010944,36,37,69,21238528,21299712,1917010944,36,37,69,21239040,21299712,1917010944,36,37,69,21233920,21315072,38028544,21406208,38094336,21365248,21465344,21537024,38355968,38420224,38487552,38553344,35997696,21889536,1901021774,75,37,38620928,307186765,290474319,38686720,33902080,22053120,38667520,38883328,307449422,38949632,626217553,1095959637,22348032,39081216,1073742935,22217216,39080704,38753280,22216960,559173459,1096025218,22413824,22484480,37961728,35935744,36001536,22610432,1901740889,36,37,39344640,22615296,559568985,1096418429,22807040,22872320,1917017088,36,37,93,22610176,22675968,1917016320,36,37,90,22614784,22675712,1917016320,36,37,90,22610176,39540992,1073742975,22610432,39540992,805374208,39124992,1073742980,22610176,39147776,1073742981,22651648,39475456,22741760,34036480,34014976,22742016,34102016,34080768,22741504,22807040,1358954496,91,92,7,8,90,22741504,22807040,22872576,22939392,1392508928,91,92,7,93,94,22741248,22741248,22828544,22873856,39738112,39476224,39804160,23069440,34037760,34014976,23134976,34038016,34014976,23135232,34103552,34080768,23134208,593626977,1096942773,23331072,40068096,1073743037,610338568,1096877242,23265536,40002304,1073743036,23134720,40001792,40067584,39871232,23202304,39936512,23200000,560160866,1097008327,23399168,39937280,40132864,1073743050,23202048,39936512,40132864,23200256,23265792,1358954496,98,99,7,97,90,23200256,1392508928,98,97,7,97,95,23268352,308568419,23399680,291923045,40003072,23268864,23334656,23400448,1409351680,0,99,98,100,101,23265536,23291904,23361280,23427328,23463168,23569408,1443495936,99,100,101,102,2053068650,103,23307520,23361280,23427328,23463168,23549696,1443561472,99,100,101,102,891671266,103,23307776,23361280,23427328,23463168,23570176,1443627008,99,100,101,102,1049232862,103,23271680,23361280,23427328,23463168,23570432,1443692544,99,100,101,102,1641285167,103,23308544,23361280,23427328,23463168,23548928,1443758080,99,100,101,102,266466513,103,23265536,560202083,1097074218,23488512,23570944,23628800,23702272,23745280,1358954496,102,103,104,105,106,23292928,23374848,23437312,23465984,1409351680,15,99,100,101,102,23292928,23375104,23440896,23506688,23549440,23594752,40461056,40526848,40592640,40658432,39479040,39806976,1358954496,105,106,107,108,90,275605867,1392508928,105,106,109,106,95,275605867,275671403,275737196,1392508928,109,106,110,111,95,275605867,275671660,275737196,1392508928,109,110,105,111,95,275606124,1392508928,105,109,105,106,95,23920896,23949312,23993600,24084480,24137728,1409351680,16,109,110,111,112,23949312,24031232,24084480,24162560,1409351680,17,109,110,111,112,23949312,24031744,24084480,24121344,1409351680,18,109,110,111,112,23949312,24032000,24084480,24137728,1409351680,19,109,110,111,112,23949312,24032256,24084480,24163584,1409351680,20,109,110,111,112,23949312,24032768,24084480,24138240,1409351680,21,109,110,111,112,23949312,24033024,24084480,24137728,1409351680,22,109,110,111,112,23949312,24033280,24084480,24164608,1409351680,23,109,110,111,112,23920896,24013824,24099328,24143360,24230656,24270592,41118976,40463872,40529664,40595456,41185536,41251328,24511232,34043392,34014976,24511488,34108928,34080768,24510464,595003254,1098319319,24707328,41449728,1073743327,611714824,1098253788,24641792,41383936,1073743326,24510976,41383424,41449216,39876608,24578048,41318144,24576256,561537143,1098384873,24774912,41318912,41514496,1073743340,24578048,41318144,41514496,1442840576,115,105,106,107,1829517143,116,24576256,24580864,24689664,24754688,24820992,24886784,24945664,41121536,40466432,40532224,40598016,41188096,41253888,24969984,34045184,34014976,24577024,34109184,34080768,24576000,595068791,1098384908,24772864,41515520,1073743380,611780360,1098319377,24707328,41449728,1073743379,24576512,41449216,41515008,39876864,24578048,41318144,24576256,561537143,1098384926,24774912,41318912,41514496,1073743393,24578048,41318144,41514496,1442840576,115,105,106,107,1829517143,116,24576256,40204032,24580864,561512823,1098385460,24799232,24881664,24939520,25012992,25056000,1358954496,122,123,124,125,126,24603648,24685568,24748032,24776704,1409351680,24,119,120,121,122,24603648,24681984,24738816,24799488,1358954496,119,120,121,122,16,24624896,24690688,24739840,24794112,1409351680,25,119,120,121,122,24603648,24689920,24738816,24799488,1358954496,119,120,121,122,27,24624896,24690944,24739840,24793088,1409351680,26,119,120,121,122,24603648,24689664,24738816,24799488,1358954496,119,120,121,122,28,24624896,24691200,24739840,24776704,1409351680,27,119,120,121,122,24624128,24681984,24733184,24822528,24858880,24904192,293436539,25084928,25103616,41973504,42039296,42105088,42170880,42237184,42302976,42368768,42436096,25695744,596215688,1099499158,25892352,42437376,42632960,1073743512,25690368,42633216,327778947,42502400,25821696,42568192,596281731,1099564823,25952768,42699776,328042883,26101504,311397774,26234368,294752144,42766592,596478850,1099761428,328174466,26232576,311529360,311595400,26430976,311726984,295015060,42898688,26217984,42896896,42765312,42238976,42304768,43094016,40472064,40537088,26411520,43160320,26477056,43226112,596939409,1100220122,311847273,43357696,311913066,43423488,278369686,26744320,630822808,1100547787,26935552,43227904,43159808,43684352,1073743577,26743552,312055913,312121706,278633093,43490048,295277974,278567300,43555328,40474624,40539904,26804480,278565529,43162112,43684352,1073743548,26804480,563778457,1100613344,329028241,43752448,1073743586,26804736,43751680,42965760,26804736,630886297,1100613383,43814656,27072000,27086080,312384669,278859166,34671872,27070464,27086592,597594013,1100875507,27086848,44014848,1073743612,27087104,597594013,1100875513,27070464,44014848,1073743611,27087360,44014848,44015360,278757515,278823305,278888587,1358954496,157,158,135,135,159,43752704,1073743633,278757515,278823305,27218688,1358954496,157,158,135,135,159,43752704,278760327,42704128,1073743526,278759815,42573056,1073743516,278757506,27133696,1392508928,128,129,157,129,158,278757506,278823042,278888835,27264768,1392508928,157,129,158,159,160,278757506,278823299,278888835,27264768,1392508928,157,158,128,159,160,278757763,27133696,1392508928,128,157,128,129,158,27066624,27116800,27182592,27200768,27283968,1409351680,28,157,158,159,160,27094016,27175680,27248384,27306752,27333376,27401984,44276992,44342784,43360000,43425792,44409088,44474880,27791360,44541952,27798272,598320808,1101596504,44698880,27808768,44541952,27795712,598320808,1101596510,44698880,27807744,44541952,27791360,44541952,296326563,27923712,330017194,44608256,296392356,27989248,330082987,44674048,279684008,44739328,279749801,44805120,28119808,313437608,279946158,44871424,28185344,313503401,280011951,44937216,28249088,313567407,280079024,28464384,313764274,297054643,45003776,28333312,313632944,280144817,28511232,313829811,280343220,45069568,1392508928,163,164,170,171,167,1392508928,170,171,174,175,167,1392508928,174,175,172,173,167,1392508928,172,173,149,150,167,28311808,28339200,28413440,28445952,28553472,1409351680,29,176,177,178,179,28341504,28404736,28493824,28552704,28574976,28690688,28711424,41136128,40481024,40546816,40612608,41333760,41202944,44480000,28792320,1358954496,105,106,107,118,183,279996779,28381952,44263680,44329472,43364352,43411968,44413184,44475904,28446720,44544512,28322560,598845104,1102120906,45223168,28333056,44544000,28320000,598845104,1102120912,45223168,28332032,44544000,28315648,44544000,296785315,28382464,330477745,44610048,296785572,28382464,330477745,44675584,280011688,44740608,280011945,44806144,28316416,313634984,280142769,44872192,28316416,313634985,280143025,44937728,28314624,313632944,280144561,28529920,313829811,297120436,45004032,28333312,313632944,280144817,28511232,313829811,280343220,45069568,1392508928,163,164,170,171,167,1392508928,170,171,174,175,167,1392508928,174,175,172,173,167,1392508928,172,173,149,150,167,28311808,279996779,280062315,280128118,28509952,1392508928,176,106,177,178,179,279996779,280062582,280128118,28509952,1392508928,176,177,105,178,179,279997046,28378880,1392508928,105,176,105,106,177,1442840576,115,105,106,107,1829517143,116,28311808,41487616,28316928,565248432,1102121629,28534784,28617216,28675072,28748544,28822016,1358954496,179,180,181,182,183,28339200,28421120,28483584,28512256,1409351680,30,176,177,178,179,28363520,28403200,28462592,45285888,40611840,41332992,45396480,28639744,28705280,28786176,314078903,28923904,1358954496,181,182,107,184,185,28707840,314010550,45463296,28785408,314078903,45529088,28793088,28858880,1375731712,181,182,183,184,28773888,28859136,1375731712,181,182,183,184,28851712,314144440,45594880,28836352,297367223,28990464,1358954496,184,183,107,185,186,28901632,45660416,28907008,616216761,1102711020,29121792,314406588,314489021,280999870,45858560,29169152,29253120,314554558,281066943,45924352,29253376,331333304,314621876,45989888,29309952,281067448,314684352,46055680,29360640,46120960,46185216,29494784,46252544,42713344,29581312,46318336,29561600,566540483,1103366308,29778176,46319104,46514688,1073744038,29556992,46514944,29562112,566540483,1103366317,29778432,46319104,46514688,1073744047,29556992,46514944,29562368,566540483,1103366326,29778688,46319104,46514688,1073744056,29556992,46514944,616794987,1103300840,314936253,298239422,46450176,415679488,315079878,46515968,29833984,315145415,29954816,315278537,399231488,315410635,46582784,281590725,281659590,46647552,1392508928,191,192,139,199,194,298421173,46713088,315214024,30041088,600558026,1103825121,30212352,298764237,30348032,30432000,1375731712,139,206,207,208,46959360,1073744099,29950208,46975232,46107392,46188288,281643969,42715392,1073744056,29950208,281721033,45664768,1073744000,29950208,29993728,30067712,30107648,45285888,46975232,47041024,47106816,30434560,47173632,30500352,47239424,30542848,315871186,299158739,47305728,299093456,47371008,30631680,1358954496,209,210,207,208,211,30631936,282382803,30763264,282514133,30894336,299421655,31025408,299552985,31156736,1358954496,212,214,216,218,219,30698240,299224532,47437056,30698496,282448340,30829824,299356118,30936832,31026688,1358954496,213,211,215,216,217,30671104,34853888,30681856,617944020,1104480632,30872832,299373527,31016960,316332249,47634944,30936320,316257240,31092480,316347354,282909147,400415744,31345408,316650462,31478016,316740576,283303905,417587712,316988899,47703040,31027200,31082496,316397530,282909147,31269120,316543965,283106526,47767296,282774742,47831552,299619288,47897344,31224064,47963136,31200000,652022748,1105004879,31397376,618664927,48160768,31224320,47963136,31195392,31200512,568136668,1105004889,31421184,47963904,48159488,1073744219,31195392,48159744,31198464,299751900,1392508928,221,211,217,218,219,31198464,282974684,1392508928,221,211,217,218,219,31224832,316528860,299815901,31421696,1375731712,217,222,223,219,31195392,282923996,34856192,1073744165,31260928,48028928,618519758,1105004960,31421952,316726495,48160768,31487744,316781536,283304414,48226816,31530240,367189985,300143586,48292608,31593984,316912610,283435998,400942080,31854080,317187558,48359168,283364577,31750144,367386340,31877888,300410342,283698151,48424960,31658752,31742464,1375731712,226,224,227,228,31654144,283434211,48030720,1073744250,31654144,31706368,31767040,31789824,45285888,46981888,47047680,33817600,48686336,31947008,32012800,1375731712,204,205,231,232,31947520,32002816,1375731712,204,205,231,232,31943936,300469479,32074752,300600809,32206080,283954411,32336896,300862957,32444416,1392508928,232,234,236,238,239,31943936,300469479,32074752,300600809,32206848,300731627,32340992,284085741,32444416,1392508928,232,234,236,238,239,31943936,283692263,32074752,300600809,32206848,283954411,32340992,284085741,32444416,1392508928,232,234,236,238,239,31944704,300469479,32078848,283823593,32206848,283954411,32340992,284085741,32444416,1392508928,232,234,236,238,239,32013568,317305832,32118016,367782378,48753408,32079360,636151785,48818688,32131072,48884224,32208128,48950016,1105725956,32272128,48950272,49015296,1073744390,32178432,49015552,32247808,49015808,32248576,569239276,1106053647,32460800,49016576,49212160,1073744401,32243968,49212416,32249088,569239276,1106053656,32461312,49016576,49212160,1073744410,32243968,49212416,32249344,569239276,1106053665,32461824,49016576,49212160,1073744419,32243968,49212416,32332032,300862701,49081856,32378112,300928494,49147648,32377856,317712878,301001967,32574464,317909745,301198834,1358954496,240,243,233,234,235,32463104,284216559,49213440,32443392,317778415,301068016,32640000,317975282,301264371,1358954496,241,244,233,234,235,32535808,301067760,49279232,32510720,569501424,1106315876,32732416,301264115,32863488,284617973,32969984,301527031,1392508928,244,239,246,248,235,32535808,301068016,32642304,301199346,32797952,284552948,1392508928,241,243,245,239,235,49475840,1073744505,32535808,301067504,32666880,284421362,1392508928,241,239,243,239,235,32535808,301068016,32666880,284421874,1392508928,241,239,243,239,235,49475840,32594176,284347889,49345024,32669440,49410560,32707328,32771840,318047476,284619765,49477120,32705536,318042611,301321460,32902144,318239478,301527287,1358954496,245,248,241,242,235,32703744,301255923,32836096,284610037,32997376,33044736,1409351680,1,244,246,247,248,32702720,45282048,32708096,569639411,1106512803,32925696,33008128,33065984,33139456,33182464,1358954496,246,247,248,249,250,32730112,32812032,32874496,32903168,1409351680,31,243,244,245,246,32730112,32808448,32878080,32925184,32986624,33031936,40497920,40563712,40629504,40695296,39515904,39843840,1358954496,105,106,107,108,90,284387691,1392508928,105,106,243,106,95,284387691,284453227,284519020,1392508928,243,106,244,245,95,284387691,284453484,284519020,1392508928,243,244,105,245,95,284387948,1392508928,105,243,105,106,95,32702720,32731136,32812800,32866304,32919552,1409351680,32,243,244,245,246,32731136,32816384,32866304,32944384,1409351680,33,243,244,245,246,32731136,32820736,32866304,32944384,1409351680,34,243,244,245,246,32731136,32820992,32866304,32944384,1409351680,35,243,244,245,246,32731136,32821248,32866304,32944384,1409351680,36,243,244,245,246,32731136,32821504,32866304,32944384,1409351680,37,243,244,245,246,32731136,32821760,32866304,32919552,1409351680,38,243,244,245,246,32731136,32822016,32866304,32941824,1409351680,39,243,244,245,246,32743424,32795648,32884736,32925184,33018880,33073152,41153280,40498176,40563968,40629760,41219840,41285632,33096448,34076928,34014976,32703488,34140928,34080768,32702464,603195379,1106512720,32899328,49673728,1073744728,619906824,1106447189,32833792,49607936,1073744727,32702976,49607424,49673216,39908608,32704512,41349888,32702720,569663731,1106512738,32901376,41350656,49640960,1073744741,32704512,41349888,49640960,1442840576,115,105,106,107,1829517143,116,32702720,32721664,32816128,32884736,32947456,33019136,33051648,41153280,40498176,40563968,40629760,41219840,41285632,33096448,34076928,34014976,32703488,34140928,34080768,32702464,603195379,1106512773,32899328,49673728,1073744781,619906824,1106447242,32833792,49607936,1073744780,32702976,49607424,49673216,39908608,32704512,41349888,32702720,569663731,1106512791,32901376,41350656,49640960,1073744794,32704512,41349888,49640960,1442840576,115,105,106,107,1829517143,116,32702720,49672960,32713472,569639411,1106513370,32925696,33008128,33065984,33139456,33216000,1358954496,246,247,248,249,250,32730112,32812032,32874496,32903168,1409351680,40,243,244,245,246,32728320,32794112,32862208,32954112,32972544,46985984,47051776,49870080,49935872,50001664,33306624,50068480,33372416,50134272,33358080,46005504,33364736,620674557,1107168308,16792064,302103808,50266368,45350656,33683712,16908800,604222210,1090718681,17105408,33817856,1073744910,33620224,33751296,17052160,587531012,1090849762,17248768,33752832,33948416,1073744868,17039616,33948672,17105152,319161603,33818112,17183488,302449414,33883904,17249280,302515972,17370112,336201737,33950208,336069891,34015232,17367296,17446144,302711818,269224203,34081792,302581255,302647560,33688064,17380864,587858441,1091177472,17577472,33688576,34275840,1073744898,17367296,34277632,17432832,285933834,336376587,34147328,17512192,17564160,286067891,336464653,34213376,302713098,319556354,33819648,33555456,17578752,17644544,302907405,269421582,303101967,34279424,17644800,302955789,34344448,403508224,17710592,303036430,303041807,44568576,386731008,17710848,303036430,303041807,44634112,17640192,621722893,1091439655,34601984,1073744937,17629440,34540800,269339816,269405609,1375731712,269,270,267,204,17629440,269401357,45944320,1073744843,17641984,302970893,286248206,17842176,303167504,17973504,1375731712,204,271,273,274,17629440,17684480,17739520,17777408,17881344,17899264,46927104,46992896,49811200,49876992,49942784,17971200,50008576,17643776,50072832,17629440,45944064,17636096,604945677,1091439801,17775104,303086863,50270208,45350656,33683712,17629696,604943117,1091439710,17826304,34541568,1073745043,33620224,33751296,17641984,588120845,1091439719,17838592,33755136,34538240,1073745001,17629440,34540800,17629440,319687939,33820160,17642240,302908173,33885696,17642496,302910724,17763328,336596495,33951744,336397571,34016512,17629440,17708288,302973966,269487375,34082816,302843399,302910728,33689088,17643008,588120589,1091439749,17839616,33689600,34537984,1073745031,17629440,34540800,17629440,286130445,336573198,34148096,17643264,17695232,286199475,336596239,34213888,302844170,319687938,34541056,33558272,17644288,17710080,302972942,269487375,303167504,34279680,17644800,302955789,34344448,403508224,17710592,303036430,303041807,44568576,386731008,17710848,303036430,303041807,44634112,17640192,621722893,1091439788,34601984,1073745070,17629440,34540800,269339816,269405609,1375731712,269,270,267,204,17629440,269401357,45944320,1073744976,17641984,302970893,286248206,17842176,303167504,17973504,1375731712,204,271,273,274,17629440,17656832,17750528,17804800,17853184,17913600,1358954496,269,270,271,272,273,17656832,17750528,17816320,17881600,17911808,1392508928,269,270,271,272,273,17629696,17698304,17802240,35855616,35917056,35982848,34606848,17891840,1897014033,36,37,41947648,17891584,1897014033,36,37,42013184,17896960,1897014033,36,37,42078720,17902336,1897014033,36,37,42144256,17899776,1897014033,36,37,36704768,17910528,269648145,18041600,286556947,1358954496,128,274,130,276,272,17959936,303268370,34673408,269647889,18025728,269779219,18156800,18238464,1375731712,274,276,277,278,18025984,320090131,18158336,353768469,18284800,639112727,34740224,269778961,18158848,269882389,34805248,1091702052,269844497,18224384,269948182,34805504,34870016,1073745193,269778961,18164480,286659605,34805248,34870016,18094848,269844756,18223872,18285056,1375731712,275,277,278,279,18088192,18115584,18203904,18251776,18305024,1409351680,41,276,277,278,279,18115328,18181120,18265600,18328064,18437888,41096192,40441088,40506880,40572672,41162752,41228544,18481920,34019840,34014976,18416640,34085120,34080768,18415616,588908313,1092226388,18612480,35331072,1073745244,605619976,1092160857,18546944,35265280,1073745243,18416128,35264768,35330560,39852800,18417664,41294080,18415872,555376665,1092226406,18614528,41294848,35354112,1073745257,18417664,41294080,35354112,1442840576,115,105,106,107,1829517143,116,18415872,18471936,18521600,18593280,18629120,18785280,41097472,40442368,40508160,40573952,41164032,41229824,18809600,34021120,34014976,18744320,34086400,34080768,18743296,589235998,1092554120,18940160,35660032,1073745296,605947656,1092488589,18874624,35594240,1073745295,18743808,35593728,35659520,39854080,18745344,41295360,18743552,555704350,1092554138,18942208,41296128,35681792,1073745309,18745344,41295360,35681792,1442840576,115,105,106,107,1829517143,116,18743552,18799872,18844928,18920960,18996736,19092480,41098752,40443648,40509440,40575232,41165312,41231104,19137280,34022400,34014976,19072000,34087680,34080768,19070976,589563683,1092881852,19267840,35988992,1073745348,606275336,1092816321,19202304,35923200,1073745347,19071488,35922688,35988480,39855360,19073024,41296640,19071232,556032035,1092881870,19269888,41297408,36009472,1073745361,19073024,41296640,36009472,1442840576,115,105,106,107,1829517143,116,19071232,49619712,19097600,19193600,19259392,19324672,19334912,1392508928,291,292,293,294,295,19098624,19194112,19205376,19282176,1409351680,42,291,292,293,294,-16777216,22610176,33642752,-16777216,22680320,33643008,-16777216,22746368,33643264,-16777216,22812160,33643520,-16777216,22883072,33643776,-16777216,22938112,23022336,36445440,35937792,37117696,23086592,36003840,23142656,1902259297,36,37,36725248,23270144,358887523,23396608,644244581,37185024,1094127141,23598336,23659008,292186422,1915512832,36,37,106,23789824,292302955,23926272,275672173,37252608,24060160,1915514624,36,37,56,24117504,40333312,1073745447,24183296,40333568,-16777216,24248832,24314112,24386304,36445440,35942912,36532992,36598784,24462848,36009216,24515328,1903635574,36,37,36665088,24649984,1903766648,36,37,36731136,24790784,36796928,310062382,36862720,310127921,276639612,36928768,25035264,629091710,1098845784,629224242,1098976842,36909568,42087168,1073745484,25362688,42107648,25436416,25495040,361115781,294072454,25708544,277448584,1915520000,36,37,137,41978112,1073745514,596259634,1099566685,36909568,42676992,1073745503,25952512,42699776,26026240,26084864,361705614,294662287,26284800,278040721,1915522304,36,37,146,41980416,26415872,1915523840,36,37,51,26476800,-16777216,26542592,26607872,26673664,295212950,36445440,35951872,37459968,26822144,36018432,26876672,1905994906,36,37,37526272,27009280,1906125980,36,37,36740352,27135232,329199774,27267840,362913696,27394304,648257954,37593856,27525632,598031268,1101336235,1094520465,44514304,1073745577,279460923,37660672,27853312,598359721,1101663898,28049920,37661696,44776960,1073745564,28115200,44805376,28188928,28249344,279982255,1915530752,36,37,176,28384000,1915531520,36,37,62,44514816,44476160,1073745587,280116283,37663232,28515072,1915532032,36,37,62,44449280,-16777216];
-    let CONST_POOL = [768.0,1.0,0.0,800.0,600.0,44.0,32.0,3159613.0,34.0,48.0,56.0,64.0,0.5,8.0,16.0,14.0,5809919.0,500.0,900.0,2.0,1300.0,3.0,4.0,7.5,5.1,255.0,5.8,7.0,6.8,160.0,4.8,5.5,6.2,6.0,6.4,65536.0,256.0,0.001,4.4,5.6,6.7,4.9,5.2,5.0,6.6,7.1,4.7,5.05,5.4,6.9,0.1,0.36787944117,6.28318530718,0.08333333333,1.0E-4,2.71828182846,1.5396594E7,9147550.0,0.6,0.35,1.8,0.897,0.45,0.25,0.55,1.6777215E7,120.0,28.0,42.0,17.0,512.0,2.4,18.0,3.6,0.01,12.0,1.6769213E7,3.4,1.2,0.3,4176208.0,0.7,1.2356863E7,856343.0,1.6273737E7,0.8660254,1448738.0,2328118.0,661807.0,24.0,1.675392E7,1.6777184E7,6970.0,0.12,3.5,0.015,667753.0,616922.0,2198527.0,5549823.0,3600.0,140.0,180.0,1973790.0,15.0,30.0,657930.0,20.0,25.0,50.0,4859153.0,1.5,35.0,1.3645825E7,1.6084224E7,1.6764928E7,0.4,10.0,43.17,60.0,40.0,75.0,599626.0,65.0,45.0,0.75,2.85,26.0,9.0,0.2,3.14159265359,44100.0,1.103515245E9,12345.0,2.147483648E9,1.073741824E9,1.33,0.85,0.8,0.15,400.0,280.0,320.0,1200.0,2000.0,2300.0,2500.0,2800.0,3000.0,2400.0,2200.0,0.65,4410.0,101.0,1.05,0.95,102.0,0.92,150.0,6.5,11.0,1024.0,0.38,658964.0,2060267.0,95.0,175.0,1.4377378E7,9000933.0,335.0,115.0,310.0,128.0,148.0,380.0,165.0,178.0,7979263.0,196.0,214.0,232.0,1.3801762E7,250.0,268.0,286.0,58879.0,330.0,501.0,220.0,185.0,502.0,78.0,158.0,193.0,228.0,110.0,0.27,230.0,270.0,395.0,345.0,503.0,329740.0,200.0,240.0,210.0,202.0,219.0,236.0,253.0,275.0,295.0,504.0,505.0,725536.0,2.2,300.0,2.8,340.0,405.0,21.0,22.0,125.0,435.0,415.0,442.0];
-    let SCREEN_ROUTES = {"1787879944":1157};
-    let ACTION_ROUTES = {"2053068650":3568,"891671266":3571,"1049232862":3574,"1641285167":3577,"266466513":3580,"125697223":3583,"740866237":3624,"622838000":3697};
-    let STRINGS = ["CHRONOS IDE - KORADEVS","KORA-AI ASSISTANT","=== CHRONOS IDE & KORADEVS — MASTER CONSOLIDATION ===","[PVM Viewport] Deteccion de dispositivo:","[PVM Touch] Altura ergonomica minima:","[Color Engine] 4.4e14 Hz (Rojo) Hex:","[Color Engine] 5.6e14 Hz (Verde) Hex:","[Color Engine] 6.6e14 Hz (Azul) Hex:","[Platformer SoA] Vidas iniciales del jugador:","[Full-Duplex Barge-In] Interrupcion de voz detectada en O(1) - TTS silenciado.","🌐 Hub","🎨 Hertz","🎬 Video","🎙️ TTS","🕹️ Game","HUB POLÍGLOTA KORADEVS & DISPOSITIVO AUTO","ESTADO DEL RUNTIME Y DISPOSITIVO:","Viewport Inyectado : R250 (W), R251 (H)","Deteccion Movil    : auto_is_mobile() = 1.0","Touch Zone Min     : 44px (Ergonomia Movil)","Seguridad de Red   : NetworkSecurityManager Activo","Apps Donadas Kora  : Python, C++, Rust, JS, Java","Tasa de Refresco   : 90+ FPS Zero-GC Garantizado","LSP Signature Help : PhasorLSP O(1) Activo","ESPECTRO ÓPTICO EN HERTZ Y FRACTALES","4.4e14 Hz (Rojo)","5.6e14 Hz (Verde)","6.6e14 Hz (Azul)","Julia Set (-0.7 + 0.27j)","Curva de Koch Mapeada en Hz","VIDEO PROCEDURAL EN VIVO (0 BYTES STORAGE)","SÍNTESIS FORMÁNTICA 44.1 kHz Y FULL-DUPLEX","FORMANTES ACÚSTICOS (F0, F1, F2, F3):","Vocal 'A' : F1=800Hz,  F2=1200Hz, F3=2500Hz","Vocal 'E' : F1=400Hz,  F2=2000Hz, F3=2800Hz","Vocal 'I' : F1=280Hz,  F2=2300Hz, F3=3000Hz","Vocal 'O' : F1=500Hz,  F2=900Hz,  F3=2400Hz","Vocal 'U' : F1=320Hz,  F2=800Hz,  F3=2200Hz","Full-Duplex AEC  : Cancelacion de Eco en O(1)","Barge-In Status  : Corte Inmediato Activo","PLATAFORMAS SoA Y CURVAS GAMMA(z)","Vidas: 3.0 | Estado: Suelo + Movimiento SoA","KORADEVS CONSOLIDATION | 90+ FPS ZERO-GC | WASM | PWA READY"];
-    let FIRST_SCREEN_PC = 1157;
-    window.BYTECODE = BYTECODE;
-    window.CONST_POOL = CONST_POOL;
-    window.SCREEN_ROUTES = SCREEN_ROUTES;
-    window.ACTION_ROUTES = ACTION_ROUTES;
-    window.STRINGS = STRINGS;
-
-    class MicroPhasorVM {
-      constructor(code, consts) {
-        this.code = code;
-        this.consts = consts;
-        this.rScalar = new Float64Array(1024);
-        this.rCompReal = new Float64Array(1024);
-        this.rCompImag = new Float64Array(1024);
-        this.isComplex = new Uint8Array(1024);
-
-        // Registros Vectoriales Orthogonales Vec3 (Fase 3 SIMD)
-        this.rVecX = new Float64Array(1024);
-        this.rVecY = new Float64Array(1024);
-        this.rVecZ = new Float64Array(1024);
-        this.isVector3 = new Uint8Array(1024);
-
-        // Memoria Plana Contigua SoA (Structure of Arrays: 512k doubles = 4MB)
-        if (wasmExports && wasmExports.memory) {
-          this.heapVectors = new Float64Array(wasmExports.memory.buffer);
-        } else {
-          this.heapVectors = new Float64Array(524288);
+      function loop(now) {
+        frames++;
+        if (now - lastTime >= 1000) {
+          if (fpsEl) fpsEl.textContent = Math.round((frames * 1000) / (now - lastTime));
+          frames = 0;
+          lastTime = now;
         }
-        this.heapPtr = 0;
 
-        this.uiCmds = [];
-        this.buttons = [];
-        this.texts = [];
-        this.logs = [];
-        this.tryStack = [];
-      }
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = w * 0.35;
+        const cy = h * 0.5;
+        const r = Math.min(w, h) * 0.35;
 
-      handleException(err) {
-        if (this.tryStack.length > 0) {
-          const h = this.tryStack.pop();
-          if (h.errReg > 0 && h.errReg < 1024) this.rScalar[h.errReg] = 1.0;
-          return h.catchPc;
+        ctx.fillStyle = '#07090e';
+        ctx.fillRect(0, 0, w, h);
+
+        // Grid
+        ctx.strokeStyle = '#121826';
+        ctx.lineWidth = 1;
+        const step = 30 * (window.devicePixelRatio || 1);
+        for (let x = 0; x < w; x += step) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
         }
-        this.logs.push(`> [Runtime Error] ${err.message || err}\n`);
-        return -1;
-      }
-
-      pushUi(type, p1=0, p2=0, p3=0, p4=0, p5=0) {
-        this.uiCmds.push(type, p1, p2, p3, p4, p5);
-      }
-
-      run(entryPc = 0) {
-        let pc = entryPc;
-        let cycles = 0;
-        this.tryStack = [];
-        this.uiCmds = [];
-        this.buttons = [];
-        this.texts = [];
-        while (pc < this.code.length) {
-          if (++cycles > 1000000) {
-            const newPc = this.handleException(new Error('Watchdog Timer: Bucle infinito detectado (1M ciclos)'));
-            if (newPc >= 0) { pc = newPc; continue; } else break;
-          }
-          const instr = this.code[pc++];
-          const op  = (instr >>> 24) & 0xFF;
-          const dst = (instr >>> 16) & 0xFF;
-          const s1  = (instr >>> 8)  & 0xFF;
-          const s2  = instr & 0xFF;
-
-          if (op === 0x00 || op === 0xFF) break; // HALT
-          switch (op) {
-            case 0x01: // LOAD_K
-              this.rScalar[dst] = this.consts[s1];
-              this.isComplex[dst] = 0;
-              this.isVector3[dst] = 0;
-              break;
-            case 0x02: // MOV
-              this.rScalar[dst] = this.rScalar[s1];
-              this.rCompReal[dst] = this.rCompReal[s1];
-              this.rCompImag[dst] = this.rCompImag[s1];
-              this.isComplex[dst] = this.isComplex[s1];
-              this.rVecX[dst] = this.rVecX[s1];
-              this.rVecY[dst] = this.rVecY[s1];
-              this.rVecZ[dst] = this.rVecZ[s1];
-              this.isVector3[dst] = this.isVector3[s1];
-              break;
-            case 0x10: case 0x03: // ADD
-              if (this.isComplex[s1] || this.isComplex[s2]) {
-                const re1 = this.isComplex[s1] ? this.rCompReal[s1] : this.rScalar[s1];
-                const im1 = this.isComplex[s1] ? this.rCompImag[s1] : 0;
-                const re2 = this.isComplex[s2] ? this.rCompReal[s2] : this.rScalar[s2];
-                const im2 = this.isComplex[s2] ? this.rCompImag[s2] : 0;
-                this.rCompReal[dst] = re1 + re2;
-                this.rCompImag[dst] = im1 + im2;
-                this.isComplex[dst] = 1;
-                this.isVector3[dst] = 0;
-              } else {
-                this.rScalar[dst] = this.rScalar[s1] + this.rScalar[s2];
-                this.isComplex[dst] = 0;
-                this.isVector3[dst] = 0;
-              }
-              break;
-            case 0x11: case 0x04: // SUB
-              if (this.isComplex[s1] || this.isComplex[s2]) {
-                const re1 = this.isComplex[s1] ? this.rCompReal[s1] : this.rScalar[s1];
-                const im1 = this.isComplex[s1] ? this.rCompImag[s1] : 0;
-                const re2 = this.isComplex[s2] ? this.rCompReal[s2] : this.rScalar[s2];
-                const im2 = this.isComplex[s2] ? this.rCompImag[s2] : 0;
-                this.rCompReal[dst] = re1 - re2;
-                this.rCompImag[dst] = im1 - im2;
-                this.isComplex[dst] = 1;
-                this.isVector3[dst] = 0;
-              } else {
-                this.rScalar[dst] = this.rScalar[s1] - this.rScalar[s2];
-                this.isComplex[dst] = 0;
-                this.isVector3[dst] = 0;
-              }
-              break;
-            case 0x12: case 0x05: // MUL
-              if (this.isComplex[s1] || this.isComplex[s2]) {
-                const re1 = this.isComplex[s1] ? this.rCompReal[s1] : this.rScalar[s1];
-                const im1 = this.isComplex[s1] ? this.rCompImag[s1] : 0;
-                const re2 = this.isComplex[s2] ? this.rCompReal[s2] : this.rScalar[s2];
-                const im2 = this.isComplex[s2] ? this.rCompImag[s2] : 0;
-                this.rCompReal[dst] = re1 * re2 - im1 * im2;
-                this.rCompImag[dst] = re1 * im2 + im1 * re2;
-                this.isComplex[dst] = 1;
-                this.isVector3[dst] = 0;
-              } else {
-                this.rScalar[dst] = this.rScalar[s1] * this.rScalar[s2];
-                this.isComplex[dst] = 0;
-                this.isVector3[dst] = 0;
-              }
-              break;
-            case 0x13: case 0x06: // DIV
-              if (this.isComplex[s1] || this.isComplex[s2]) {
-                const re1 = this.isComplex[s1] ? this.rCompReal[s1] : this.rScalar[s1];
-                const im1 = this.isComplex[s1] ? this.rCompImag[s1] : 0;
-                const re2 = this.isComplex[s2] ? this.rCompReal[s2] : this.rScalar[s2];
-                const im2 = this.isComplex[s2] ? this.rCompImag[s2] : 0;
-                const den = re2 * re2 + im2 * im2;
-                if (den !== 0) {
-                  this.rCompReal[dst] = (re1 * re2 + im1 * im2) / den;
-                  this.rCompImag[dst] = (im1 * re2 - re1 * im2) / den;
-                } else {
-                  const newPc = this.handleException(new Error('División por cero en números complejos'));
-                  if (newPc >= 0) { pc = newPc; break; }
-                  this.rCompReal[dst] = 0;
-                  this.rCompImag[dst] = 0;
-                }
-                this.isComplex[dst] = 1;
-                this.isVector3[dst] = 0;
-              } else {
-                if (this.rScalar[s2] === 0) {
-                  const newPc = this.handleException(new Error('División por cero'));
-                  if (newPc >= 0) { pc = newPc; break; }
-                }
-                this.rScalar[dst] = (this.rScalar[s2] !== 0) ? (this.rScalar[s1] / this.rScalar[s2]) : 0;
-                this.isComplex[dst] = 0;
-                this.isVector3[dst] = 0;
-              }
-              break;
-            case 0x07: pc = (instr & 0xFFFF); break;
-            case 0x08: if (this.rScalar[dst] === 0.0) pc = (instr & 0xFFFF); break;
-            case 0x28: case 0x09: { // MAKE_PHASOR
-              const mag = this.rScalar[s1];
-              const rad = this.rScalar[s2] * (Math.PI / 180.0);
-              this.rCompReal[dst] = mag * Math.cos(rad);
-              this.rCompImag[dst] = mag * Math.sin(rad);
-              this.isComplex[dst] = 1;
-              this.isVector3[dst] = 0;
-              break;
-            }
-            case 0x30: case 0x0A: { // OUT
-              if (dst === 1) {
-                const s = (typeof STRINGS !== 'undefined' && STRINGS[s1] !== undefined) ? STRINGS[s1] : '';
-                this.logs.push(`> OUT: ${s}\n`);
-              } else if (dst === 2) {
-                const strIdx = Math.floor(this.rScalar[s1]);
-                const s = (typeof STRINGS !== 'undefined' && STRINGS[strIdx] !== undefined) ? STRINGS[strIdx] : '';
-                this.logs.push(`> OUT: ${s}\n`);
-              } else {
-                const reg = s1;
-                if (this.isVector3[reg]) {
-                  this.logs.push(`> OUT: [${this.rVecX[reg].toFixed(4)}, ${this.rVecY[reg].toFixed(4)}, ${this.rVecZ[reg].toFixed(4)}]\n`);
-                } else if (this.isComplex[reg]) {
-                  const re = this.rCompReal[reg], im = this.rCompImag[reg];
-                  const mag = Math.hypot(re, im);
-                  const deg = Math.atan2(im, re) * (180.0 / Math.PI);
-                  this.logs.push(`> OUT: ${re.toFixed(2)} + ${im.toFixed(2)}j (${mag.toFixed(2)} @ ${deg.toFixed(2)}°)\n`);
-                } else {
-                  this.logs.push(`> OUT: ${this.rScalar[reg].toFixed(4)}\n`);
-                }
-              }
-              break;
-            }
-            case 0x36: { // OP_PANIC
-              const msg = (dst === 1) ? ((typeof STRINGS !== 'undefined' && STRINGS[s1] !== undefined) ? STRINGS[s1] : 'Pánico') : (s2 > 0 ? this.rScalar[s2] : 'Pánico');
-              const newPc = this.handleException(new Error('[Phasor Panic] ' + msg));
-              if (newPc >= 0) pc = newPc;
-              break;
-            }
-            case 0x37: { // OP_TRY_ENTER
-              this.tryStack.push({ catchPc: instr & 0xFFFF, errReg: dst });
-              break;
-            }
-            case 0x38: { // OP_TRY_EXIT
-              if (this.tryStack.length > 0) this.tryStack.pop();
-              break;
-            }
-
-            // Opcodes Vectoriales SIMD (0x60 - 0x6D)
-            case 0x60: { // OP_VEC3_LOAD
-              const extra = this.code[pc++];
-              const rZ = (extra >>> 8) & 0xFF;
-              this.rVecX[dst] = this.rScalar[s1];
-              this.rVecY[dst] = this.rScalar[s2];
-              this.rVecZ[dst] = this.rScalar[rZ];
-              this.isVector3[dst] = 1;
-              this.isComplex[dst] = 0;
-              break;
-            }
-            case 0x61: { // OP_VEC3_ADD
-              this.rVecX[dst] = this.rVecX[s1] + this.rVecX[s2];
-              this.rVecY[dst] = this.rVecY[s1] + this.rVecY[s2];
-              this.rVecZ[dst] = this.rVecZ[s1] + this.rVecZ[s2];
-              this.isVector3[dst] = 1;
-              break;
-            }
-            case 0x62: { // OP_VEC3_SUB
-              this.rVecX[dst] = this.rVecX[s1] - this.rVecX[s2];
-              this.rVecY[dst] = this.rVecY[s1] - this.rVecY[s2];
-              this.rVecZ[dst] = this.rVecZ[s1] - this.rVecZ[s2];
-              this.isVector3[dst] = 1;
-              break;
-            }
-            case 0x63: { // OP_VEC3_SCALE
-              const s = this.rScalar[s2];
-              this.rVecX[dst] = this.rVecX[s1] * s;
-              this.rVecY[dst] = this.rVecY[s1] * s;
-              this.rVecZ[dst] = this.rVecZ[s1] * s;
-              this.isVector3[dst] = 1;
-              break;
-            }
-            case 0x64: { // OP_VEC3_DOT
-              if (wasmExports && wasmExports.vec3_dot) {
-                this.rScalar[dst] = wasmExports.vec3_dot(this.rVecX[s1], this.rVecY[s1], this.rVecZ[s1], this.rVecX[s2], this.rVecY[s2], this.rVecZ[s2]);
-              } else {
-                this.rScalar[dst] = this.rVecX[s1] * this.rVecX[s2] + this.rVecY[s1] * this.rVecY[s2] + this.rVecZ[s1] * this.rVecZ[s2];
-              }
-              this.isVector3[dst] = 0;
-              break;
-            }
-            case 0x65: { // OP_VEC3_CROSS
-              const x1 = this.rVecX[s1], y1 = this.rVecY[s1], z1 = this.rVecZ[s1];
-              const x2 = this.rVecX[s2], y2 = this.rVecY[s2], z2 = this.rVecZ[s2];
-              this.rVecX[dst] = y1 * z2 - z1 * y2;
-              this.rVecY[dst] = z1 * x2 - x1 * z2;
-              this.rVecZ[dst] = x1 * y2 - y1 * x2;
-              this.isVector3[dst] = 1;
-              break;
-            }
-            case 0x66: { // OP_VEC3_MAG
-              if (wasmExports && wasmExports.vec3_mag) {
-                this.rScalar[dst] = wasmExports.vec3_mag(this.rVecX[s1], this.rVecY[s1], this.rVecZ[s1]);
-              } else {
-                this.rScalar[dst] = Math.hypot(this.rVecX[s1], this.rVecY[s1], this.rVecZ[s1]);
-              }
-              this.isVector3[dst] = 0;
-              break;
-            }
-            case 0x67: { // OP_VEC3_NORM
-              const m = Math.hypot(this.rVecX[s1], this.rVecY[s1], this.rVecZ[s1]);
-              if (m !== 0) {
-                this.rVecX[dst] = this.rVecX[s1] / m;
-                this.rVecY[dst] = this.rVecY[s1] / m;
-                this.rVecZ[dst] = this.rVecZ[s1] / m;
-              } else {
-                this.rVecX[dst] = 0; this.rVecY[dst] = 0; this.rVecZ[dst] = 0;
-              }
-              this.isVector3[dst] = 1;
-              break;
-            }
-            case 0x69: this.rScalar[dst] = this.rVecX[s1]; this.isVector3[dst] = 0; break;
-            case 0x6A: this.rScalar[dst] = this.rVecY[s1]; this.isVector3[dst] = 0; break;
-            case 0x6B: this.rScalar[dst] = this.rVecZ[s1]; this.isVector3[dst] = 0; break;
-            case 0x6C: this.rScalar[dst] = this.isComplex[s1] ? this.rCompReal[s1] : this.rScalar[s1]; this.isVector3[dst] = 0; break;
-            case 0x6D: this.rScalar[dst] = this.isComplex[s1] ? this.rCompImag[s1] : 0.0; this.isVector3[dst] = 0; break;
-
-            // Opcodes Structure of Arrays (SoA) (0x70 - 0x74)
-            case 0x70: { // OP_SOA_ALLOC
-              const fields = Math.floor(this.rScalar[s1]);
-              const cap = Math.floor(this.rScalar[s2]);
-              const needed = fields * cap;
-              const base = this.heapPtr;
-              this.heapPtr += needed;
-              this.rScalar[dst] = base;
-              this.isVector3[dst] = 0;
-              break;
-            }
-            case 0x71: { // OP_SOA_LOAD
-              const extra = this.code[pc++];
-              const rIdx = (extra >>> 16) & 0xFFFF;
-              const rCap = (extra >>> 8) & 0xFF;
-              const base = Math.floor(this.rScalar[s1]);
-              const field = Math.floor(this.rScalar[s2]);
-              const idx = Math.floor(this.rScalar[rIdx]);
-              const cap = Math.floor(this.rScalar[rCap]);
-              const off = base + field * cap + idx;
-              if (idx < 0 || idx >= cap || off < 0 || off >= this.heapVectors.length) {
-                const newPc = this.handleException(new Error('Acceso SoA fuera de límites (Out of Bounds)'));
-                if (newPc >= 0) { pc = newPc; break; }
-              }
-              this.rScalar[dst] = this.heapVectors[off] || 0.0;
-              this.isVector3[dst] = 0;
-              break;
-            }
-            case 0x72: { // OP_SOA_STORE
-              const extra = this.code[pc++];
-              const rIdx = (extra >>> 16) & 0xFFFF;
-              const rCap = (extra >>> 8) & 0xFF;
-              const base = Math.floor(this.rScalar[dst]);
-              const val = Math.floor(this.rScalar[s1]);
-              const field = Math.floor(this.rScalar[s2]);
-              const idx = Math.floor(this.rScalar[rIdx]);
-              const cap = Math.floor(this.rScalar[rCap]);
-              const off = base + field * cap + idx;
-              if (idx < 0 || idx >= cap || off < 0 || off >= this.heapVectors.length) {
-                const newPc = this.handleException(new Error('Escritura SoA fuera de límites (Out of Bounds)'));
-                if (newPc >= 0) { pc = newPc; break; }
-              }
-              this.heapVectors[off] = this.rScalar[val];
-              break;
-            }
-            case 0x73: { // OP_SOA_STEP_SIMD (Aceleración WASM / Fallback JS)
-              const extra = this.code[pc++];
-              const rDt = extra & 0xFF;
-              const basePos = Math.floor(this.rScalar[dst]);
-              const baseVel = Math.floor(this.rScalar[s1]);
-              const count = Math.floor(this.rScalar[s2]);
-              const dt = this.rScalar[rDt];
-              if (wasmExports && wasmExports.simd_step) {
-                wasmExports.simd_step(basePos, baseVel, count, dt);
-              } else {
-                const px = basePos, py = basePos + count, pz = basePos + 2 * count;
-                const vx = baseVel, vy = baseVel + count, vz = baseVel + 2 * count;
-                for (let i = 0; i < count; i++) {
-                  this.heapVectors[px + i] += this.heapVectors[vx + i] * dt;
-                  this.heapVectors[py + i] += this.heapVectors[vy + i] * dt;
-                  this.heapVectors[pz + i] += this.heapVectors[vz + i] * dt;
-                }
-              }
-              break;
-            }
-            case 0x74: { // OP_SOA_INIT_VEL
-              const extra = this.code[pc++];
-              const rVy = (extra >>> 16) & 0xFFFF;
-              const rVz = (extra >>> 8) & 0xFF;
-              const base = Math.floor(this.rScalar[dst]);
-              const count = Math.floor(this.rScalar[s1]);
-              const vx = this.rScalar[s2];
-              const vy = this.rScalar[rVy];
-              const vz = this.rScalar[rVz];
-              if (wasmExports && wasmExports.simd_init_vel) {
-                wasmExports.simd_init_vel(base, count, vx, vy, vz);
-              } else {
-                const offX = base, offY = base + count, offZ = base + 2 * count;
-                for (let i = 0; i < count; i++) {
-                  this.heapVectors[offX + i] = vx;
-                  this.heapVectors[offY + i] = vy;
-                  this.heapVectors[offZ + i] = vz;
-                }
-              }
-              break;
-            }
-
-            case 0x50:
-              this.pushUi(0x50, this.rScalar[dst]);
-              break;
-            case 0x51: {
-              const rx = this.code[pc++], ry = this.code[pc++], rw = this.code[pc++];
-              const extra = this.code[pc++];
-              const rh = (extra >>> 16) & 0xFFFF, rc = (extra >>> 8) & 0xFF;
-              this.pushUi(0x51, this.rScalar[rx], this.rScalar[ry], this.rScalar[rw], this.rScalar[rh], this.rScalar[rc]);
-              break;
-            }
-            case 0x52: {
-              const rcx = this.code[pc++], rcy = this.code[pc++], rr = this.code[pc++];
-              const extra = this.code[pc++];
-              const rc = (extra >>> 16) & 0xFFFF;
-              this.pushUi(0x52, this.rScalar[rcx], this.rScalar[rcy], this.rScalar[rr], this.rScalar[rc], 0);
-              break;
-            }
-            case 0x53: {
-              const rx1 = this.code[pc++], ry1 = this.code[pc++], rx2 = this.code[pc++];
-              const extra = this.code[pc++];
-              const ry2 = (extra >>> 16) & 0xFFFF, lc = (extra >>> 8) & 0xFF;
-              this.pushUi(0x53, this.rScalar[rx1], this.rScalar[ry1], this.rScalar[rx2], this.rScalar[ry2], this.rScalar[lc]);
-              break;
-            }
-            case 0x54: {
-              const tx = this.code[pc++], ty = this.code[pc++], strIdx = this.code[pc++];
-              const extra = this.code[pc++];
-              const tc = (extra >>> 16) & 0xFFFF, varReg = (extra >>> 8) & 0xFF;
-              const px = this.rScalar[tx], py = this.rScalar[ty];
-              let displayText = "";
-              if (varReg !== 0xFF) {
-                displayText = this.rScalar[varReg].toFixed(2);
-              } else {
-                displayText = (typeof STRINGS !== 'undefined' && STRINGS[strIdx] !== undefined) ? STRINGS[strIdx] : "";
-              }
-              this.pushUi(0x54, px, py, tc, 0, 0);
-              this.texts.push({ text: displayText, x: px, y: py, color: tc, signalReg: (varReg !== 0xFF ? varReg : -1) });
-              break;
-            }
-            case 0x56: {
-              const bx = this.code[pc++], by = this.code[pc++], bw = this.code[pc++];
-              const extra = this.code[pc++];
-              const bh = (extra >>> 16) & 0xFFFF, strIdx = (extra >>> 8) & 0xFF;
-              const extra2 = this.code[pc++];
-              const actHash = extra2;
-              const px = this.rScalar[bx], py = this.rScalar[by], pw = this.rScalar[bw], ph = this.rScalar[bh];
-              const label = (typeof STRINGS !== 'undefined' && STRINGS[strIdx] !== undefined) ? STRINGS[strIdx] : 'BOTÓN';
-              this.pushUi(0x56, px, py, pw, ph, 0x1f6feb);
-              this.buttons.push({ x: px, y: py, w: pw, h: ph, target: actHash, label: label });
-              break;
-            }
-            case 0x57: {
-              const extra = this.code[pc++];
-              handleActionOrNavigate(extra);
-              break;
-            }
-            default:
-              break;
-          }
+        for (let y = 0; y < h; y += step) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
         }
-      }
-    }
 
-    const canvas = document.getElementById('stage');
-    const container = document.getElementById('canvas-container');
-    const ctx = canvas.getContext('2d');
-    const consoleEl = document.getElementById('console');
+        // Complex circle & axis
+        ctx.strokeStyle = '#222f44';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - r - 20, cy); ctx.lineTo(cx + r + 20, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - r - 20); ctx.lineTo(cx, cy + r + 20); ctx.stroke();
 
-    let currentScreenPc = FIRST_SCREEN_PC;
-    const vm = new MicroPhasorVM(BYTECODE, CONST_POOL);
-    window.vm = vm;
-    window.currentScreenPc = currentScreenPc;
-    vm.run(0);
-    if (vm.logs.length > 0) {
-      consoleEl.textContent += '\n' + vm.logs.join('');
-    }
+        // Phasor Vector
+        angle += 0.035;
+        const vx = cx + Math.cos(angle) * r;
+        const vy = cy - Math.sin(angle) * r;
 
-    function navigateTo(target) {
-      let entryPc = target;
-      const key = String(Math.round(Number(target)));
-      if (SCREEN_ROUTES[key] !== undefined) {
-        entryPc = SCREEN_ROUTES[key];
-      } else if (SCREEN_ROUTES[target] !== undefined) {
-        entryPc = SCREEN_ROUTES[target];
-      }
-      currentScreenPc = entryPc;
-      vm.run(entryPc);
-      render(null);
-    }
-    window.navigateTo = navigateTo;
+        // Waveform projection
+        const waveStartX = cx + r + 40;
+        const waveW = w - waveStartX - 30;
 
-    function handleActionOrNavigate(target) {
-      const key = String(Math.round(Number(target)));
-      if (typeof ACTION_ROUTES !== 'undefined' && (ACTION_ROUTES[key] !== undefined || ACTION_ROUTES[target] !== undefined)) {
-        const actionPc = ACTION_ROUTES[key] !== undefined ? ACTION_ROUTES[key] : ACTION_ROUTES[target];
-        const oldScalars = new Float64Array(vm.rScalar);
-        vm.run(actionPc);
-        let dirty = null;
-        for (const t of vm.texts) {
-          if (t.signalReg !== -1 && vm.rScalar[t.signalReg] !== oldScalars[t.signalReg]) {
-            if (!dirty) {
-              dirty = { x: t.x - 4, y: t.y - 4, w: 160, h: 28 };
-            } else {
-              const x1 = Math.min(dirty.x, t.x - 4);
-              const y1 = Math.min(dirty.y, t.y - 4);
-              const x2 = Math.max(dirty.x + dirty.w, t.x + 160);
-              const y2 = Math.max(dirty.y + dirty.h, t.y + 28);
-              dirty = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
-            }
-          }
-        }
-        vm.run(currentScreenPc);
-        render(dirty);
-        return;
-      }
-      navigateTo(target);
-    }
-    window.handleActionOrNavigate = handleActionOrNavigate;
+        ctx.strokeStyle = 'rgba(88, 166, 255, 0.4)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(vx, vy); ctx.lineTo(waveStartX, vy); ctx.stroke();
+        ctx.setLineDash([]);
 
-    function colorHex(c) {
-      const n = (Number(c) >>> 0) & 0xFFFFFF;
-      return '#' + n.toString(16).padStart(6, '0');
-    }
+        // Phasor arm
+        ctx.strokeStyle = '#39c5bb';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(vx, vy); ctx.stroke();
+        ctx.fillStyle = '#58a6ff';
+        ctx.beginPath(); ctx.arc(vx, vy, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#3fb950';
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
 
-    function render(dirtyRect = null) {
-      if (!dirtyRect || canvas.width === 0) {
-        canvas.width = container.clientWidth || window.innerWidth;
-        canvas.height = container.clientHeight || (window.innerHeight * 0.76);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      } else {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(dirtyRect.x, dirtyRect.y, dirtyRect.w, dirtyRect.h);
-        ctx.clip();
-        ctx.clearRect(dirtyRect.x, dirtyRect.y, dirtyRect.w, dirtyRect.h);
-      }
-
-      const cmds = vm.uiCmds;
-      let btnIdx = 0;
-      let textIdx = 0;
-      for (let i = 0; i < cmds.length; i += 6) {
-        const type = Math.floor(cmds[i]);
-        const p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
-
-        if (type === 0x50) {
-          ctx.fillStyle = colorHex(p1);
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (type === 0x51) {
-          ctx.fillStyle = colorHex(p5);
-          ctx.fillRect(p1, p2, p3, p4);
-        } else if (type === 0x52) {
-          ctx.strokeStyle = colorHex(p4);
-          ctx.lineWidth = 3;
+        // Sine wave
+        if (waveW > 40) {
+          ctx.strokeStyle = '#3fb950';
+          ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.arc(p1, p2, p3, 0, Math.PI * 2);
-          ctx.stroke();
-        } else if (type === 0x53) {
-          ctx.strokeStyle = colorHex(p5);
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(p1, p2);
-          ctx.lineTo(p3, p4);
-          ctx.stroke();
-        } else if (type === 0x54) {
-          if (vm.texts && textIdx < vm.texts.length) {
-            const t = vm.texts[textIdx++];
-            ctx.fillStyle = colorHex(t.color);
-            ctx.font = '16px monospace';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillText(t.text, t.x, t.y);
+          for (let i = 0; i < waveW; i += 2) {
+            const wx = waveStartX + i;
+            const theta = angle - (i / waveW) * (Math.PI * 4);
+            const wy = cy - Math.sin(theta) * r;
+            if (i === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
           }
-        } else if (type === 0x56) {
-          ctx.fillStyle = colorHex(p5);
-          ctx.beginPath();
-          if (ctx.roundRect) {
-            ctx.roundRect(p1, p2, p3, p4, 8);
-          } else {
-            ctx.fillRect(p1, p2, p3, p4);
-          }
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.5;
           ctx.stroke();
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 15px monospace';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          let btnText = 'ACCIÓN';
-          if (vm.buttons && btnIdx < vm.buttons.length) {
-            btnText = vm.buttons[btnIdx].label || btnText;
-          }
-          btnIdx++;
-          ctx.fillText(btnText, p1 + (p3 / 2), p2 + (p4 / 2));
+
+          // Axis
+          ctx.strokeStyle = '#222f44';
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(waveStartX, cy); ctx.lineTo(w - 20, cy); ctx.stroke();
         }
-      }
-      if (dirtyRect) {
-        ctx.restore();
-      }
-    }
-    window.render = render;
 
-    function handlePointer(e) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const touchX = (e.clientX - rect.left) * scaleX;
-      const touchY = (e.clientY - rect.top) * scaleY;
-      for (const b of vm.buttons) {
-        if (touchX >= b.x && touchX <= b.x + b.w && touchY >= b.y && touchY <= b.y + b.h) {
-          handleActionOrNavigate(b.target);
-          break;
-        }
+        requestAnimationFrame(loop);
       }
-    }
-    canvas.addEventListener('pointerdown', handlePointer);
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const mx = (e.clientX - rect.left) * scaleX;
-      const my = (e.clientY - rect.top) * scaleY;
-      let hovering = false;
-      for (const b of vm.buttons) {
-        if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
-          hovering = true;
-          break;
-        }
-      }
-      canvas.style.cursor = hovering ? 'pointer' : 'default';
-    });
-
-    window.addEventListener('resize', () => render(null));
-
-    // ===============================================================
-    // PWA 120 FPS ULTRA-REFRESH SYNC LOOP (Zero-GC)
-    // ===============================================================
-    let lastFpsTime = performance.now();
-    let frameCount = 0;
-    function pwaRenderLoop(time) {
-      frameCount++;
-      if (time - lastFpsTime >= 1000) {
-        const fps = Math.round((frameCount * 1000) / (time - lastFpsTime));
-        frameCount = 0;
-        lastFpsTime = time;
-      }
-      requestAnimationFrame(pwaRenderLoop);
-    }
-    requestAnimationFrame(pwaRenderLoop);
-
-    setTimeout(() => render(null), 30);
+      requestAnimationFrame(loop);
+    })();
   </script>
 </body>
 </html>
