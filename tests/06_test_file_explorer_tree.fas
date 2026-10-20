@@ -1,0 +1,110 @@
+// ===============================================================
+// TESTS/06_TEST_FILE_EXPLORER_TREE.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación del Árbol Jerárquico Expandible SoA, Menús Popup (⋮),
+// Tooltips Flotantes Clamped y Arquitectura de Componentes Reutilizables
+// ===============================================================
+
+import "lib/test.ph"
+import "lib/ui_popup.ph"
+import "lib/file_explorer.ph"
+
+out("=== TEST SUITE 06: HIERARCHICAL TREE EXPLORER, POPUP MENU & TOOLTIPS ===")
+test.init()
+
+out("checkpoint 1: init")
+ui_popup.init()
+test.assert_eq(ui_popup.is_open(), 0.0, "El menu popup inicia cerrado por defecto")
+test.assert_eq(ui_tooltip.is_visible(), 0.0, "El tooltip inicia oculto por defecto")
+
+out("checkpoint 2: open")
+ui_popup.open(120.0, 150.0, 160.0, 42.0)
+test.assert_eq(ui_popup.is_open(), 1.0, "ui_popup.open() activa el estado del popup")
+test.assert_eq(ui_popup.get_target_id(), 42.0, "El popup almacena correctamente el ID del nodo destino")
+
+out("checkpoint 3: add_item")
+item_0 = ui_popup.add_item(1.0, 0x58A6FF) // Acción 1: Abrir
+item_1 = ui_popup.add_item(2.0, 0x3FB950) // Acción 2: Copiar import
+item_2 = ui_popup.add_item(5.0, 0xF85149) // Acción 5: Eliminar
+test.assert_eq(item_0, 0.0, "Primer item registrado en indice 0")
+test.assert_eq(item_1, 1.0, "Segundo item registrado en indice 1")
+test.assert_eq(item_2, 2.0, "Tercer item registrado en indice 2")
+
+out("checkpoint 4: handle_click")
+act_res = ui_popup.handle_click(140.0, 192.0)
+test.assert_eq(act_res, 2.0, "Clic en segundo item ejecuta accion 2 (Copiar import)")
+test.assert_eq(ui_popup.is_open(), 0.0, "El popup se cierra automaticamente tras seleccionar accion")
+test.assert_eq(ui_popup.get_last_action(), 2.0, "ui_popup.get_last_action() conserva el codigo ejecutado")
+
+out("checkpoint 5: click outside")
+ui_popup.open(100.0, 100.0, 160.0, 10.0)
+ui_popup.add_item(1.0, 0x58A6FF)
+out_res = ui_popup.handle_click(500.0, 500.0) // Clic lejano
+test.assert_eq(out_res, 0.0, "Clic fuera del popup retorna 0.0 (dismiss)")
+test.assert_eq(ui_popup.is_open(), 0.0, "Clic fuera cierra el menu popup")
+
+out("checkpoint 6: tooltip")
+ui_tooltip.show(200.0, 300.0, 7.0)
+test.assert_eq(ui_tooltip.is_visible(), 1.0, "ui_tooltip.show() activa visibilidad del tooltip")
+test.assert_eq(ui_tooltip.get_target_id(), 7.0, "Tooltip asocia el ID del nodo hovered")
+ui_tooltip.hide()
+test.assert_eq(ui_tooltip.is_visible(), 0.0, "ui_tooltip.hide() oculta el tooltip")
+
+out("checkpoint 7: file_explorer init")
+file_explorer.init(64.0)
+test.assert_eq(file_explorer.get_node_count(), 0.0, "El explorador inicia con 0 nodos")
+
+// Creación de Carpeta Raíz: 'lib/' (is_dir=1.0)
+dir_lib = file_explorer.add_node_ext(-1.0, 1.0, 0.0, 0.0, 0.0)
+test.assert_eq(dir_lib, 0.0, "Carpeta lib creada con ID 0")
+test.assert_eq(file_explorer.get_depth(dir_lib), 0.0, "Nodo raiz tiene profundidad 0.0")
+test.assert_eq(file_explorer.is_dir(dir_lib), 1.0, "Identificado correctamente como directorio")
+test.assert_eq(file_explorer.is_expanded(dir_lib), 1.0, "Directorio creado expandido por defecto")
+
+// Creación de Archivo Hijo: 'lib/file_explorer.ph' (parent=dir_lib, is_dir=0.0)
+f_fe = file_explorer.add_node_ext(dir_lib, 0.0, 8892.0, 247.0, 1.0)
+test.assert_eq(f_fe, 1.0, "Archivo hijo creado con ID 1")
+test.assert_eq(file_explorer.get_depth(f_fe), 1.0, "Archivo hijo hereda profundidad 1.0")
+test.assert_eq(file_explorer.has_children(dir_lib), 1.0, "Carpeta padre lib marcada con has_children=1.0")
+
+// Creación de Sub-Carpeta: 'lib/ui/' (parent=dir_lib, is_dir=1.0)
+dir_ui = file_explorer.add_node_ext(dir_lib, 1.0, 0.0, 0.0, 0.0)
+test.assert_eq(dir_ui, 2.0, "Subcarpeta creada con ID 2")
+test.assert_eq(file_explorer.get_depth(dir_ui), 1.0, "Subcarpeta hereda profundidad 1.0")
+
+// Creación de Archivo Nieto: 'lib/ui/ui_popup.ph' (parent=dir_ui)
+f_pop = file_explorer.add_node_ext(dir_ui, 0.0, 4200.0, 130.0, 1.0)
+test.assert_eq(f_pop, 3.0, "Archivo nieto creado con ID 3")
+test.assert_eq(file_explorer.get_depth(f_pop), 2.0, "Archivo nieto tiene profundidad 2.0")
+
+// 8. Validación de Visibilidad Jerárquica y Plegado/Desplegado (Tree Folding)
+test.assert_eq(file_explorer.is_visible(f_pop), 1.0, "Nieto visible cuando ancestros estan expandidos")
+
+// Colapsar Sub-Carpeta 'lib/ui/'
+file_explorer.toggle_expand(dir_ui)
+test.assert_eq(file_explorer.is_expanded(dir_ui), 0.0, "Subcarpeta lib/ui colapsada exitosamente")
+test.assert_eq(file_explorer.is_visible(f_pop), 0.0, "Archivo nieto queda estrictamente oculto al colapsar padre")
+test.assert_eq(file_explorer.is_visible(f_fe), 1.0, "Archivo hermano sigue visible en lib/")
+
+// Re-expandir Sub-Carpeta 'lib/ui/'
+file_explorer.toggle_expand(dir_ui)
+test.assert_eq(file_explorer.is_expanded(dir_ui), 1.0, "Subcarpeta lib/ui re-expandida")
+test.assert_eq(file_explorer.is_visible(f_pop), 1.0, "Archivo nieto vuelve a ser visible")
+
+// Colapsar Carpeta Raíz 'lib/'
+file_explorer.toggle_expand(dir_lib)
+test.assert_eq(file_explorer.is_visible(f_fe), 0.0, "Hijo oculto al colapsar raiz")
+test.assert_eq(file_explorer.is_visible(f_pop), 0.0, "Nieto oculto al colapsar raiz")
+
+// Re-expandir Carpeta Raíz 'lib/'
+file_explorer.toggle_expand(dir_lib)
+test.assert_eq(file_explorer.is_visible(f_fe), 1.0, "Hijo visible de nuevo tras expandir raiz")
+test.assert_eq(file_explorer.is_visible(f_pop), 1.0, "Nieto visible de nuevo tras expandir raiz")
+
+// 9. Validación del Menú de 3 Puntos (⋮) por Archivo
+file_explorer.open_node_menu(f_fe, 220.0, 180.0)
+test.assert_eq(ui_popup.is_open(), 1.0, "Boton ⋮ abre menu contextual emergente para el archivo")
+test.assert_eq(ui_popup.get_target_id(), f_fe, "Menu contextual vinculado al nodo del archivo seleccionado")
+test.assert_eq(file_explorer.get_selected_id(), f_fe, "Nodo archivo queda seleccionado activamente")
+
+out("=== TEST 06 COMPLETADO EXITOSAMENTE ===")

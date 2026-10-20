@@ -3,6 +3,7 @@
 // PhasorLang v1.0 [KoraDevs Autonomous Ecosystem]
 // Arquitectura Unificada Multi-Ventana: 6 Ventanas Ortogonales SoA a 120 FPS
 // ===============================================================================
+import "lib/file_explorer.ph"
 import "lib/color.ph"
 import "lib/ui.ph"
 import "lib/view.ph"
@@ -20,8 +21,11 @@ ide_dbg_paused = 0.0       // 1.0 = Pausado en breakpoint, 0.0 = Ejecutando
 ide_dbg_line = 4.0         // Línea de código activa en depurador
 ide_sec_modal = 0.0        // 1.0 = Diálogo modal de seguridad de red abierto
 ide_build_count = 1.0      // Conteo de ciclos de auto-recompilación
+ide_editor_subtab = 1.0    // 1.0 = Editor de Código, 2.0 = Documentación Interactiva
 
 // 2. ACCIONES DE MENÚ Y NAVEGACIÓN
+action act_subtab_code { ide_editor_subtab = 1.0 }
+action act_subtab_docs { ide_editor_subtab = 2.0 }
 action act_tab_editor { ide_panel_activo = 1.0 }
 action act_tab_files  { ide_panel_activo = 2.0 }
 action act_tab_stage  { ide_panel_activo = 3.0 }
@@ -116,97 +120,127 @@ render_ide_header(vw, vh) = {
     1.0
 }
 
-// 4. VENTANA 1: EXPLORADOR DE PROYECTO (phasor.toml)
+// 4. VENTANA 1: EXPLORADOR DE PROYECTO (Módulo Reutilizable lib/file_explorer.ph)
 render_window_explorer(vx, vy, vw, vh) = {
-    rect(vx, vy, vw, vh, 0x0D1117)
-    rect(vx, vy, vw, 30.0, 0x161B22)
-    line(vx, vy + 30.0, vx + vw, vy + 30.0, 0x30363D)
-    text("📁 EXPLORADOR DE PROYECTO (phasor.toml)", vx + 12.0, vy + 10.0, 11, 0x58A6FF)
-
-    text("[PROYECTO] ChronosAutonomous v1.0.0", vx + 15.0, vy + 45.0, 11, 0x3FB950)
-    text("  |-- [TOML] phasor.toml (Configuracion declarativa)", vx + 15.0, vy + 70.0, 10, 0xD29922)
-    text("  |-- [DIR]  src/", vx + 15.0, vy + 95.0, 10, 0x79C0FF)
-    text("  |     \\-- [FILE] main.fas (Punto de entrada)", vx + 30.0, vy + 115.0, 10, 0xFFFFFF)
-    text("  |-- [DIR]  lib/ (Librerias Estandar)", vx + 15.0, vy + 140.0, 10, 0x79C0FF)
-    text("  |     |-- ui.ph (Docking 8D & Snap 100%)", vx + 30.0, vy + 160.0, 10, 0xBC8CFF)
-    text("  |     |-- view.ph (Smith Chart & Lissajous)", vx + 30.0, vy + 180.0, 10, 0x00E5FF)
-    text("  |     |-- barge_in_assistant.ph (AEC Full-Duplex)", vx + 30.0, vy + 200.0, 10, 0xF778BA)
-    text("  |     \\-- procedural_video.ph (Rostros IA)", vx + 30.0, vy + 220.0, 10, 0xDB61A2)
-    text("  |-- [DIR]  samples/", vx + 15.0, vy + 245.0, 10, 0x79C0FF)
-    text("  |     |-- [FILE] phasor_ide.ph (Codigo del Propio IDE)", vx + 30.0, vy + 265.0, 10, 0x3FB950)
-    text("  |     \\-- [FILE] phasorc.ph (Autocompilador Soberano)", vx + 30.0, vy + 285.0, 10, 0xD29922)
-    text("  \\-- [DIR]  dist/ (WASM AOT Standalone)", vx + 15.0, vy + 310.0, 10, 0x8B949E)
-
-    // Botón para editar el código del propio IDE
-    btn("Abrir samples/phasor_ide.ph (Self-Host)", vx + 15.0, vy + vh - 45.0, vw - 30.0, 34.0, act_tab_editor, 0x238636)
-    1.0
+    file_explorer.render(vx, vy, vw, vh)
 }
 
-// 5. VENTANA 2: EDITOR DE CÓDIGO INTELIGENTE (Gap Buffer SoA)
+// 5. VENTANA 2: EDITOR DE CÓDIGO INTELIGENTE & DOCS PHASORLANG
 render_window_editor(vx, vy, vw, vh, t_frame) = {
     rect(vx, vy, vw, vh, 0x0D1117)
 
-    // Barra de pestañas del editor
-    rect(vx, vy, vw, 30.0, 0x161B22)
-    line(vx, vy + 30.0, vx + vw, vy + 30.0, 0x30363D)
-    rect(vx, vy, 200.0, 30.0, 0x0D1117)
-    line(vx + 200.0, vy, vx + 200.0, vy + 30.0, 0x30363D)
-    text("⚡ samples/phasor_ide.ph (Self-Hosted)", vx + 12.0, vy + 10.0, 10, 0x58A6FF)
-
-    // Canaleta lateral de números de línea (Gutter)
-    gutter_w = 40.0
-    rect(vx, vy + 30.0, gutter_w, vh - 55.0, 0x161B22)
-    line(vx + gutter_w, vy + 30.0, vx + gutter_w, vy + vh - 25.0, 0x30363D)
-
-    // Breakpoints visuales en el gutter
-    circle(vx + 14.0, vy + 115.0, 4.0, 0xF85149) // Breakpoint línea 4
-    circle(vx + 14.0, vy + 175.0, 4.0, 0xF85149) // Breakpoint línea 7
-
-    // Numeración
-    text("1", vx + 22.0, vy + 55.0, 10, 0x8B949E)
-    text("2", vx + 22.0, vy + 75.0, 10, 0x8B949E)
-    text("3", vx + 22.0, vy + 95.0, 10, 0x8B949E)
-    text("4", vx + 22.0, vy + 115.0, 10, 0xF85149)
-    text("5", vx + 22.0, vy + 135.0, 10, 0x8B949E)
-    text("6", vx + 22.0, vy + 155.0, 10, 0x8B949E)
-    text("7", vx + 22.0, vy + 175.0, 10, 0xF85149)
-    text("8", vx + 22.0, vy + 195.0, 10, 0x8B949E)
-    text("9", vx + 22.0, vy + 215.0, 10, 0x8B949E)
-    text("10", vx + 16.0, vy + 235.0, 10, 0x8B949E)
-
-    // Resaltado de pausa en depuración
-    if (ide_dbg_paused == 1.0) {
-        rect(vx + gutter_w, vy + 107.0, vw - gutter_w, 20.0, 0x2E2412)
-        line(vx + gutter_w, vy + 107.0, vx + gutter_w, vy + 127.0, 0xD29922)
-        text("▶", vx + gutter_w - 12.0, vy + 115.0, 9, 0xD29922)
-    }
-
-    // Código del IDE cargado en el propio IDE (Homoicónico / Recursivo)
-    tx = vx + gutter_w + 14.0
-    text("// CHRONOS IDE — Codigo fuente del IDE autohospedado en ejecucion", tx, vy + 55.0, 11, 0x8B949E)
-    text("import ui_ide_menu", tx, vy + 75.0, 11, 0xBC8CFF)
-    text("signal ide_fps = 120.0", tx, vy + 95.0, 11, 0x3FB950)
-    text("v_smith: Vec3 = [120.0, 45.0, 0.0]  // Fasor (Mag ∠ Ang)", tx, vy + 115.0, 11, 0x79C0FF)
-    text("screen \"main\" {", tx, vy + 135.0, 11, 0x58A6FF)
-    text("    cls(0x0D1117)", tx, vy + 155.0, 11, 0x58A6FF)
-    text("    ui_ide_menu.render_ide_workspace(R250, R251, t_global)", tx, vy + 175.0, 11, 0xD2A8FF)
-    text("    smith_chart(cx, cy, 75.0, 0.35, 0.42)", tx, vy + 195.0, 11, 0x00E5FF)
-    text("    procedural_ai_face(t_global, cx, cy, talking, 1.0)", tx, vy + 215.0, 11, 0xF778BA)
-    text("}", tx, vy + 235.0, 11, 0x58A6FF)
-
-    // Cursor parpadeante Zero-GC
-    blink = (t_frame * 0.05) % 2.0
-    if (blink > 1.0) {
-        line(tx + 280.0, vy + 112.0, tx + 280.0, vy + 128.0, 0x00E5FF)
+    // Selector Superior de Sub-pestañas: [ 📝 Editor ] vs [ 📚 Docs PhasorLang ]
+    half_w = vw * 0.5
+    if (ide_editor_subtab == 1.0) {
+        rect(vx, vy, half_w, 28.0, 0x1F6FEB)
+        text("📝 Editor de Código", vx + 16.0, vy + 8.0, 10, 0xFFFFFF)
+        rect(vx + half_w, vy, half_w, 28.0, 0x161B22)
+        text("📚 Docs PhasorLang", vx + half_w + 16.0, vy + 8.0, 10, 0x8B949E)
+        btn("📚 Docs", vx + half_w, vy, half_w, 28.0, act_subtab_docs, 0x21262D)
     } else {
+        rect(vx, vy, half_w, 28.0, 0x161B22)
+        text("📝 Editor de Código", vx + 16.0, vy + 8.0, 10, 0x8B949E)
+        btn("📝 Editor", vx, vy, half_w, 28.0, act_subtab_code, 0x21262D)
+        rect(vx + half_w, vy, half_w, 28.0, 0x238636)
+        text("📚 Docs PhasorLang", vx + half_w + 16.0, vy + 8.0, 10, 0xFFFFFF)
+    }
+    line(vx, vy + 28.0, vx + vw, vy + 28.0, 0x30363D)
+
+    if (ide_editor_subtab == 2.0) {
+        // --- PESTAÑA DE DOCUMENTACIÓN INTERACTIVA PHASORLANG ---
+        dy = vy + 36.0
+        text("GUÍA RÁPIDA DE SINTAXIS PHASORLANG & SNIPPETS", vx + 16.0, dy, 11, 0x58A6FF)
+        text("Lenguaje vectorial Zero-GC de ultra-alto rendimiento (120 FPS)", vx + 16.0, dy + 18.0, 9, 0x8B949E)
+
+        // Snippet 1
+        rect(vx + 14.0, dy + 38.0, vw - 28.0, 64.0, 0x161B22)
+        line(vx + 14.0, dy + 38.0, vx + 14.0, dy + 102.0, 0x1F6FEB)
+        text("1. Variables y Fasores Polares (Vec3 SIMD)", vx + 24.0, dy + 46.0, 10, 0x79C0FF)
+        text("v: Vec3 = [120.0, 45.0, 0.0]  // Mag ∠ Ang", vx + 24.0, dy + 62.0, 10, 0xFFFFFF)
+        text("f = 60.0; w = 2.0 * 3.14159 * f", vx + 24.0, dy + 78.0, 10, 0x3FB950)
+
+        // Snippet 2
+        rect(vx + 14.0, dy + 110.0, vw - 28.0, 64.0, 0x161B22)
+        line(vx + 14.0, dy + 110.0, vx + 14.0, dy + 174.0, 0x238636)
+        text("2. Pantallas Reactivas y Renderizado", vx + 24.0, dy + 118.0, 10, 0x3FB950)
+        text("screen \"main\" { cls(0x0D1117); circle(cx, cy, 50.0, 0x58A6FF) }", vx + 24.0, dy + 134.0, 10, 0xFFFFFF)
+        text("rect(x, y, w, h, col); line(x1, y1, x2, y2, col)", vx + 24.0, dy + 150.0, 10, 0xD29922)
+
+        // Snippet 3
+        rect(vx + 14.0, dy + 182.0, vw - 28.0, 64.0, 0x161B22)
+        line(vx + 14.0, dy + 182.0, vx + 14.0, dy + 246.0, 0xD29922)
+        text("3. Memoria SoA Zero-GC y Registros Hardware", vx + 24.0, dy + 190.0, 10, 0xD29922)
+        text("buf = alloc_soa(3, 512)  // Structure of Arrays", vx + 24.0, dy + 206.0, 10, 0xFFFFFF)
+        text("vw = R250; vh = R251; ptr_x = R252; ptr_y = R253", vx + 24.0, dy + 222.0, 10, 0x79C0FF)
+
+        // Pie de docs
+        rect(vx, vy + vh - 24.0, vw, 24.0, 0x161B22)
+        line(vx, vy + vh - 24.0, vx + vw, vy + vh - 24.0, 0x30363D)
+        text("Sintaxis Oficial PhasorLang v1.0 • KoraDevs Autonomous Ecosystem", vx + 12.0, vy + vh - 17.0, 10, 0x8B949E)
+        1.0
+    } else {
+        // Barra de pestañas del editor (existente)
+        rect(vx, vy + 28.0, vw, 30.0, 0x161B22)
+        line(vx, vy + 58.0, vx + vw, vy + 58.0, 0x30363D)
+        rect(vx, vy + 28.0, 200.0, 30.0, 0x0D1117)
+        line(vx + 200.0, vy + 28.0, vx + 200.0, vy + 58.0, 0x30363D)
+        text("⚡ samples/phasor_ide.ph (Self-Hosted)", vx + 12.0, vy + 38.0, 10, 0x58A6FF)
+
+        // Canaleta lateral de números de línea (Gutter)
+        gutter_w = 40.0
+        rect(vx, vy + 58.0, gutter_w, vh - 82.0, 0x161B22)
+        line(vx + gutter_w, vy + 58.0, vx + gutter_w, vy + vh - 24.0, 0x30363D)
+
+        // Breakpoints visuales en el gutter
+        circle(vx + 14.0, vy + 145.0, 4.0, 0xF85149) // Breakpoint línea 4
+        circle(vx + 14.0, vy + 205.0, 4.0, 0xF85149) // Breakpoint línea 7
+
+        // Numeración
+        text("1", vx + 22.0, vy + 85.0, 10, 0x8B949E)
+        text("2", vx + 22.0, vy + 105.0, 10, 0x8B949E)
+        text("3", vx + 22.0, vy + 125.0, 10, 0x8B949E)
+        text("4", vx + 22.0, vy + 145.0, 10, 0xF85149)
+        text("5", vx + 22.0, vy + 165.0, 10, 0x8B949E)
+        text("6", vx + 22.0, vy + 185.0, 10, 0x8B949E)
+        text("7", vx + 22.0, vy + 205.0, 10, 0xF85149)
+        text("8", vx + 22.0, vy + 225.0, 10, 0x8B949E)
+        text("9", vx + 22.0, vy + 245.0, 10, 0x8B949E)
+        text("10", vx + 16.0, vy + 265.0, 10, 0x8B949E)
+
+        // Resaltado de pausa en depuración
+        if (ide_dbg_paused == 1.0) {
+            rect(vx + gutter_w, vy + 137.0, vw - gutter_w, 20.0, 0x2E2412)
+            line(vx + gutter_w, vy + 137.0, vx + gutter_w, vy + 157.0, 0xD29922)
+            text("▶", vx + gutter_w - 12.0, vy + 145.0, 9, 0xD29922)
+        }
+
+        // Código del IDE cargado en el propio IDE (Homoicónico / Recursivo)
+        tx = vx + gutter_w + 14.0
+        text("// CHRONOS IDE — Codigo fuente del IDE autohospedado en ejecucion", tx, vy + 85.0, 11, 0x8B949E)
+        text("import ui_ide_menu", tx, vy + 105.0, 11, 0xBC8CFF)
+        text("signal ide_fps = 120.0", tx, vy + 125.0, 11, 0x3FB950)
+        text("v_smith: Vec3 = [120.0, 45.0, 0.0]  // Fasor (Mag ∠ Ang)", tx, vy + 145.0, 11, 0x79C0FF)
+        text("screen \"main\" {", tx, vy + 165.0, 11, 0x58A6FF)
+        text("    cls(0x0D1117)", tx, vy + 185.0, 11, 0x58A6FF)
+        text("    ui_ide_menu.render_ide_workspace(R250, R251, t_global)", tx, vy + 205.0, 11, 0xD2A8FF)
+        text("    smith_chart(cx, cy, 75.0, 0.35, 0.42)", tx, vy + 225.0, 11, 0x00E5FF)
+        text("    procedural_ai_face(t_global, cx, cy, talking, 1.0)", tx, vy + 245.0, 11, 0xF778BA)
+        text("}", tx, vy + 265.0, 11, 0x58A6FF)
+
+        // Cursor parpadeante Zero-GC
+        blink = (t_frame * 0.05) % 2.0
+        if (blink > 1.0) {
+            line(tx + 280.0, vy + 142.0, tx + 280.0, vy + 158.0, 0x00E5FF)
+        } else {
+            1.0
+        }
+
+        // Barra de estado del editor
+        rect(vx, vy + vh - 24.0, vw, 24.0, 0x161B22)
+        line(vx, vy + vh - 24.0, vx + vw, vy + vh - 24.0, 0x30363D)
+        text("Ln 4, Col 32 | UTF-8 | GapBuffer SoA (64 KB) | FlatLexer O(N) | Breakpoints: 2", vx + 12.0, vy + vh - 17.0, 10, 0x8B949E)
         1.0
     }
-
-    // Barra de estado del editor
-    rect(vx, vy + vh - 24.0, vw, 24.0, 0x161B22)
-    line(vx, vy + vh - 24.0, vx + vw, vy + vh - 24.0, 0x30363D)
-    text("Ln 4, Col 32 | UTF-8 | GapBuffer SoA (64 KB) | FlatLexer O(N) | Breakpoints: 2", vx + 12.0, vy + vh - 17.0, 10, 0x8B949E)
-    1.0
 }
 
 // 6. VENTANA 3: ESCENARIO PVM & VISORES CIENTÍFICOS HZ (120 FPS)

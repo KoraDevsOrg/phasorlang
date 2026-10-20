@@ -6,6 +6,7 @@
 // ===============================================================================
 
 import "lib/ui_ide_menu.ph"
+import "lib/file_explorer.ph"
 import "lib/color.ph"
 import "lib/ui.ph"
 import "lib/view.ph"
@@ -154,3 +155,65 @@ screen preview {
     text("Zero-GC: 0 allocations en bucle tick() | 120 FPS estables sostenidos", 30.0, 410.0, 9, 0x58A6FF)
     text("WASM Accelerator: 64 KB Linear Memory SoA | Registros R0..R255", 30.0, 428.0, 9, 0x8B949E)
 }
+
+// -------------------------------------------------------------------------------
+// 6. SUB-PANTALLA DEDICADA DEL EXPLORADOR DE PROYECTOS (<s>1 A 120 FPS)
+// -------------------------------------------------------------------------------
+screen explorer_screen {
+    cls(0x090D13)
+    vw = R250
+    vh = R251
+    if (vw < 240.0) { vw = 480.0 }
+    if (vh < 240.0) { vh = 600.0 }
+    file_explorer.render(0.0, 0.0, vw, vh)
+}
+
+// -------------------------------------------------------------------------------
+// 7. SUB-PANTALLA DEDICADA DE EDITOR & DOCS PHASORLANG (<s>2 A 120 FPS)
+// -------------------------------------------------------------------------------
+screen editor_screen {
+    cls(0x0D1117)
+    vw = R250
+    vh = R251
+    if (vw < 240.0) { vw = 680.0 }
+    if (vh < 240.0) { vh = 600.0 }
+    render_window_editor(0.0, 0.0, vw, vh, t_global_ide)
+}
+
+// -------------------------------------------------------------------------------
+// 8. SUB-PANTALLA DEDICADA DEL DEPURADOR PVM & REGISTROS SOA (<s>3 A 120 FPS)
+// -------------------------------------------------------------------------------
+screen debugger_screen {
+    cls(0x0B0E14)
+    vw = R250
+    vh = R251
+    if (vw < 240.0) { vw = 560.0 }
+    if (vh < 240.0) { vh = 600.0 }
+    render_window_debugger(0.0, 0.0, vw, vh)
+}
+
+// -------------------------------------------------------------------------------
+// 9. SUB-PANTALLA DEDICADA DE TERMINAL INTERACTIVA & CLI (<s>4 A 120 FPS)
+// -------------------------------------------------------------------------------
+screen terminal_screen {
+    cls(0x080B10)
+    vw = R250
+    vh = R251
+    if (vw < 240.0) { vw = 560.0 }
+    if (vh < 240.0) { vh = 600.0 }
+    render_window_terminal(0.0, 0.0, vw, vh)
+}
+
+// -------------------------------------------------------------------------------
+// 10. SUB-PANTALLA DEDICADA DE COPILOT IA & AVATAR REACTIVO (<s>5 A 120 FPS)
+// -------------------------------------------------------------------------------
+screen ai_screen {
+    cls(0x111620)
+    vw = R250
+    vh = R251
+    if (vw < 240.0) { vw = 560.0 }
+    if (vh < 240.0) { vh = 600.0 }
+    render_window_ai(0.0, 0.0, vw, vh, t_global_ide)
+}
+
+

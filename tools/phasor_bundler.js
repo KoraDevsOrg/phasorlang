@@ -292,7 +292,25 @@ function bundleUnified(inputFile, options, rootDir) {
     screenPcs = Object.values(routesObj).sort((a, b) => a - b);
   } catch(e) {}
 
-  if (baseName.includes('graficadora') || screenPcs.length >= 3) {
+  if (baseName.includes('ide')) {
+    let routesObj = {};
+    try { routesObj = JSON.parse(screenRoutesStr); } catch(e) {}
+    const pcExplorer = routesObj['1794020195'] !== undefined ? routesObj['1794020195'] : 13391;
+    const pcEditor   = routesObj['1352261553'] !== undefined ? routesObj['1352261553'] : 16194;
+    const pcPreview  = routesObj['1257924439'] !== undefined ? routesObj['1257924439'] : 13136;
+    const pcDebugger = routesObj['131570255']  !== undefined ? routesObj['131570255']  : 17058;
+    const pcTerminal = routesObj['1691167414'] !== undefined ? routesObj['1691167414'] : 17319;
+    const pcAi       = routesObj['554250084']  !== undefined ? routesObj['554250084']  : 17523;
+
+    childrenConfig = [
+      { id: 1, title: '<s>1: Explorador de Archivos', type: 'explorer', x: 40, y: 60, w: 460, h: 620, contentW: 460, contentH: 588, color: '#090D13', screenPc: pcExplorer, visible: true, minimized: false },
+      { id: 2, title: '<s>2: Editor & Docs PhasorLang', type: 'editor', x: 530, y: 60, w: 660, h: 620, contentW: 660, contentH: 588, color: '#0D1117', screenPc: pcEditor, visible: true, minimized: false },
+      { id: 3, title: '<s>3: Live Preview & Canvas (120 FPS)', type: 'preview', x: 1220, y: 60, w: 560, h: 620, contentW: 560, contentH: 588, color: '#070B12', screenPc: pcPreview, visible: true, minimized: false },
+      { id: 4, title: '<s>4: Depurador PVM & Memoria SoA', type: 'debug', x: 1810, y: 60, w: 540, h: 620, contentW: 540, contentH: 588, color: '#0B0E14', screenPc: pcDebugger, visible: true, minimized: false },
+      { id: 5, title: '<s>5: Terminal Interactiva PVM CLI', type: 'terminal', x: 2380, y: 60, w: 540, h: 620, contentW: 540, contentH: 588, color: '#080B10', screenPc: pcTerminal, visible: true, minimized: false },
+      { id: 6, title: '<s>6: Asistente IA KoraDevs Copilot', type: 'ai', x: 2950, y: 60, w: 540, h: 620, contentW: 540, contentH: 588, color: '#111620', screenPc: pcAi, visible: true, minimized: false }
+    ];
+  } else if (baseName.includes('graficadora') || (screenPcs.length >= 3 && !baseName.includes('ide'))) {
     childrenConfig = [
       { id: 1, title: '<s>1: Ecuaciones & Parámetros', x: 24, y: 50, w: 370, h: 560, contentW: 370, contentH: 520, color: '#161B22', screenPc: screenPcs[0] !== undefined ? screenPcs[0] : 0 },
       { id: 2, title: '<s>2: Lienzo Gráfico Cartesiano & Polar', x: 410, y: 50, w: 580, h: 560, contentW: 580, contentH: 520, color: '#070B12', screenPc: screenPcs[1] !== undefined ? screenPcs[1] : 0 },
@@ -305,11 +323,6 @@ function bundleUnified(inputFile, options, rootDir) {
   } else if (baseName === 'demo_koradevs_master') {
     childrenConfig = [
       { id: 1, title: '<s>1: Demostrador Maestro KoraDevs', x: 50, y: 50, w: 480, h: 580, contentW: 480, contentH: 540, color: '#161B22', screenPc: screenPcs[0] || 0 }
-    ];
-  } else if (baseName.includes('ide')) {
-    childrenConfig = [
-      { id: 1, title: '<s>1: Chronos Studio (7 Vistas & Editor)', x: 24, y: 50, w: 460, h: 580, contentW: 460, contentH: 540, color: '#161B22', screenPc: screenPcs[0] !== undefined ? screenPcs[0] : 0 },
-      { id: 2, title: '<s>2: Live Preview & Canvas (120 FPS)', x: 504, y: 50, w: 580, h: 580, contentW: 580, contentH: 540, color: '#070B12', screenPc: screenPcs[1] !== undefined ? screenPcs[1] : (screenPcs[0] || 0) }
     ];
   } else {
     childrenConfig = [

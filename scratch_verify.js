@@ -1,0 +1,10 @@
+const fs = require('fs');
+const html = fs.readFileSync('dist/chronos_ide.html', 'utf8');
+console.log('HTML byte length:', html.length);
+console.log('Has ChronosIdeEngine?', html.includes('ChronosIdeEngine'));
+console.log('Has PhasorGrapherEngine?', html.includes('PhasorGrapherEngine'));
+console.log('Has CalculadoraEngine?', html.includes('CalculadoraEngine'));
+console.log('Has MicroPhasorVM?', html.includes('MicroPhasorVM'));
+console.log('Has PhasorRuntime?', html.includes('PhasorRuntime'));
+console.log('Has BYTECODE?', html.includes('var BYTECODE = ['));
+console.log('Has CHILDREN?', html.includes('var CHILDREN = ['));

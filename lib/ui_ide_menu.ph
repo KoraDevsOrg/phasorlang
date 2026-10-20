@@ -3,6 +3,7 @@
 // PhasorLang v1.0 [KoraDevs Autonomous Ecosystem]
 // Arquitectura Unificada Multi-Ventana: 6 Ventanas Ortogonales SoA a 120 FPS
 // ===============================================================================
+import "lib/file_explorer.ph"
 import "lib/color.ph"
 import "lib/ui.ph"
 import "lib/view.ph"
@@ -116,30 +117,9 @@ render_ide_header(vw, vh) = {
     1.0
 }
 
-// 4. VENTANA 1: EXPLORADOR DE PROYECTO (phasor.toml)
+// 4. VENTANA 1: EXPLORADOR DE PROYECTO (Módulo Reutilizable lib/file_explorer.ph)
 render_window_explorer(vx, vy, vw, vh) = {
-    rect(vx, vy, vw, vh, 0x0D1117)
-    rect(vx, vy, vw, 30.0, 0x161B22)
-    line(vx, vy + 30.0, vx + vw, vy + 30.0, 0x30363D)
-    text("📁 EXPLORADOR DE PROYECTO (phasor.toml)", vx + 12.0, vy + 10.0, 11, 0x58A6FF)
-
-    text("[PROYECTO] ChronosAutonomous v1.0.0", vx + 15.0, vy + 45.0, 11, 0x3FB950)
-    text("  |-- [TOML] phasor.toml (Configuracion declarativa)", vx + 15.0, vy + 70.0, 10, 0xD29922)
-    text("  |-- [DIR]  src/", vx + 15.0, vy + 95.0, 10, 0x79C0FF)
-    text("  |     \\-- [FILE] main.fas (Punto de entrada)", vx + 30.0, vy + 115.0, 10, 0xFFFFFF)
-    text("  |-- [DIR]  lib/ (Librerias Estandar)", vx + 15.0, vy + 140.0, 10, 0x79C0FF)
-    text("  |     |-- ui.ph (Docking 8D & Snap 100%)", vx + 30.0, vy + 160.0, 10, 0xBC8CFF)
-    text("  |     |-- view.ph (Smith Chart & Lissajous)", vx + 30.0, vy + 180.0, 10, 0x00E5FF)
-    text("  |     |-- barge_in_assistant.ph (AEC Full-Duplex)", vx + 30.0, vy + 200.0, 10, 0xF778BA)
-    text("  |     \\-- procedural_video.ph (Rostros IA)", vx + 30.0, vy + 220.0, 10, 0xDB61A2)
-    text("  |-- [DIR]  samples/", vx + 15.0, vy + 245.0, 10, 0x79C0FF)
-    text("  |     |-- [FILE] phasor_ide.ph (Codigo del Propio IDE)", vx + 30.0, vy + 265.0, 10, 0x3FB950)
-    text("  |     \\-- [FILE] phasorc.ph (Autocompilador Soberano)", vx + 30.0, vy + 285.0, 10, 0xD29922)
-    text("  \\-- [DIR]  dist/ (WASM AOT Standalone)", vx + 15.0, vy + 310.0, 10, 0x8B949E)
-
-    // Botón para editar el código del propio IDE
-    btn("Abrir samples/phasor_ide.ph (Self-Host)", vx + 15.0, vy + vh - 45.0, vw - 30.0, 34.0, act_tab_editor, 0x238636)
-    1.0
+    file_explorer.render(vx, vy, vw, vh)
 }
 
 // 5. VENTANA 2: EDITOR DE CÓDIGO INTELIGENTE (Gap Buffer SoA)
