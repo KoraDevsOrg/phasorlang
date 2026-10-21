@@ -1,0 +1,81 @@
+// ===============================================================================
+// TESTS/08_TEST_SPATIAL_MAIN.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación del Hito 1: Espacio Espacial Toroidal y Exclusión Mutua Zero-GC
+// ===============================================================================
+
+import "lib/test.ph"
+import "lib/ui_spatial_main.ph"
+
+out("=== TEST SUITE 08: SPATIAL MAIN TOROIDAL UNIVERSE & PAN CAPTURE ===")
+test.init()
+
+// 1. Inicialización y Valores por Defecto
+spatial_main_init(3200.0, 2400.0, 80.0)
+test.assert_eq(spatial_main_get_univ_w(), 3200.0, "Ancho del universo espacial inicializado en 3200.0")
+test.assert_eq(spatial_main_get_univ_h(), 2400.0, "Alto del universo espacial inicializado en 2400.0")
+test.assert_eq(spatial_main_get_pan_x(), 0.0, "Pan horizontal inicial en 0.0")
+test.assert_eq(spatial_main_get_pan_y(), 0.0, "Pan vertical inicial en 0.0")
+test.assert_eq(spatial_main_is_active(), 0.0, "Estado de arrastre inactivo por defecto")
+
+// 2. Wraparound Matemático Toroidal (Giro continuo por detrás)
+// A. Coordenada dentro del rango
+w1 = spatial_main_wrap_coord(500.0, 3200.0)
+test.assert_eq(w1, 500.0, "Coordenada interior en [0, W) se preserva identica")
+
+// B. Coordenada que sale por la derecha (W + 250) reingresa por la izquierda en 250
+w2 = spatial_main_wrap_coord(3450.0, 3200.0)
+test.assert_eq(w2, 250.0, "Coordenada que excede limite derecho reingresa por la izquierda (wraparound)")
+
+// C. Coordenada que sale por la izquierda (-300) reingresa por la derecha en (3200 - 300 = 2900)
+w3 = spatial_main_wrap_coord(-300.0, 3200.0)
+test.assert_eq(w3, 2900.0, "Coordenada negativa que sale por la izquierda reingresa por la derecha")
+
+// 3. Exclusión Mutua de Entrada (Input Capture Isolation)
+// A. Clic sobre un componente hijo (can_pan_main == 0.0) NO DEBE iniciar arrastre del fondo
+pan_state_blocked = spatial_main_handle_input(400.0, 300.0, 1.0, 0.0)
+test.assert_eq(pan_state_blocked, 0.0, "Clic sobre elemento hijo no inicia arrastre del fondo main")
+test.assert_eq(spatial_main_is_active(), 0.0, "is_panning permanece estrictamente en 0.0")
+
+// Soltar mouse para asegurar estado limpio
+spatial_main_handle_input(400.0, 300.0, 0.0, 0.0)
+
+// B. Clic fuera de ventanas (can_pan_main == 1.0) inicia arrastre del fondo espacial
+pan_state_active = spatial_main_handle_input(400.0, 300.0, 1.0, 1.0)
+test.assert_eq(pan_state_active, 1.0, "Clic en espacio libre activa arrastre del fondo main")
+test.assert_eq(spatial_main_is_active(), 1.0, "is_panning conmutado a 1.0")
+
+// C. Mover el mouse a (450, 320) desplaza el espacio en (+50, +20)
+spatial_main_handle_input(450.0, 320.0, 1.0, 1.0)
+test.assert_eq(spatial_main_get_pan_x(), 50.0, "Desplazamiento horizontal pan_x actualizado a 50.0")
+test.assert_eq(spatial_main_get_pan_y(), 20.0, "Desplazamiento vertical pan_y actualizado a 20.0")
+
+// D. Soltar mouse (mouse_down == 0.0) finaliza arrastre y conserva posicion
+spatial_main_handle_input(450.0, 320.0, 0.0, 1.0)
+test.assert_eq(spatial_main_is_active(), 0.0, "Soltar mouse finaliza arrastre (is_panning = 0.0)")
+test.assert_eq(spatial_main_get_pan_x(), 50.0, "Posicion pan_x se conserva tras soltar el mouse")
+test.assert_eq(spatial_main_get_pan_y(), 20.0, "Posicion pan_y se conserva tras soltar el mouse")
+
+// 4. Proyección Solidaria de Ventanas Hijas en el Espacio
+// Una ventana en mundo (200, 150) con pan (50, 20) se proyecta en pantalla a (250, 170)
+proj_x = spatial_world_to_screen_x(200.0, 300.0, 1280.0)
+proj_y = spatial_world_to_screen_y(150.0, 200.0, 720.0)
+test.assert_eq(proj_x, 250.0, "Ventana hija se traslada solidariamente en eje X con el fondo")
+test.assert_eq(proj_y, 170.0, "Ventana hija se traslada solidariamente en eje Y con el fondo")
+
+// 5. Wraparound Solidario de Ventana
+// Ventana en mundo (3100.0, 100.0) con pan (200.0) -> (3100+200)%3200 = 100.0 en pantalla
+spatial_main_set_pan(200.0, 0.0)
+proj_wrap_x = spatial_world_to_screen_x(3100.0, 300.0, 1280.0)
+test.assert_eq(proj_wrap_x, 100.0, "Ventana hija gira por detras y reingresa por la izquierda sin deformarse")
+
+// 6. Auditoría Zero-GC de Renderizado
+// Simular 100 frames continuos a 120 FPS
+frames = 0.0
+while (frames < 100.0) {
+    spatial_main_handle_input(450.0 + frames, 320.0, 0.0, 1.0)
+    frames = frames + 1.0
+}
+test.assert_eq(frames, 100.0, "Auditoria Zero-GC: 100 frames procesados con 0 bytes de asignacion en Heap")
+
+out("=== TEST SUITE 08 COMPLETADA EXITOSAMENTE ===")

@@ -57,18 +57,73 @@
   ```
 - **`Complex`**: Número complejo nativo compuesto por parte real y parte imaginaria (`re + j*im`).
 
-### Banco de Registros PVM (`R0..R255`)
-La Phasor Virtual Machine expone 256 registros primitivos directos:
+### Banco de Registros PVM (`R0..R255`) — Hardware & Periféricos Directos
+La Phasor Virtual Machine expone 256 registros primitivos directos accesibles como lenguaje máquina/ensamblador sin capas intermedias:
 
-| Registro | Denominación | Función y Descripción |
+| Rango / Registro | Denominación | Función y Descripción Operativa |
 | :--- | :--- | :--- |
-| `R0 .. R249` | Registros de Cómputo General | Utilizados para variables locales, cálculo de señales y vectores de trabajo. |
-| `R250` | `Viewport Width` | Ancho actual en píxeles del lienzo/pantalla inyectado por el host. |
-| `R251` | `Viewport Height` | Alto actual en píxeles del lienzo/pantalla inyectado por el host. |
-| `R252` | `Pointer X` | Coordenada X actual del puntero del ratón o toque táctil. |
-| `R253` | `Pointer Y` | Coordenada Y actual del puntero del ratón o toque táctil. |
-| `R254` | `Pointer Down` | Estado de pulsación (`1.0` = presionado / clic sostenido, `0.0` = libre). |
-| `R255` | `Scroll Wheel Delta` | Delta de desplazamiento vertical de la rueda del ratón (`deltaY`). |
+| `R0 .. R199` | Registros Locales de Cómputo | Variables locales, escalares, cálculo vectorial SIMD y temporales de funciones. |
+| **Puntero y Ratón Nativo** | | |
+| `R250` | `VIEWPORT_WIDTH` | Ancho actual en píxeles del lienzo/pantalla inyectado por el anfitrión. |
+| `R251` | `VIEWPORT_HEIGHT` | Alto actual en píxeles del lienzo/pantalla inyectado por el anfitrión. |
+| `R252` | `POINTER_X` | Coordenada X actual del puntero del ratón o toque táctil en pantalla. |
+| `R253` | `POINTER_Y` | Coordenada Y actual del puntero del ratón o toque táctil en pantalla. |
+| `R254` | `POINTER_DOWN` | Clic primario (izquierdo): `1.0` si está presionado, `0.0` si está libre. |
+| `R248` | `POINTER_RIGHT` | Clic secundario (derecho): `1.0` si está presionado, `0.0` si está libre. |
+| `R249` | `POINTER_MIDDLE` | Clic terciario (rueda central pulsada): `1.0` presionado, `0.0` libre. |
+| `R255` | `SCROLL_WHEEL_Y` | Delta de desplazamiento vertical de la rueda del ratón (`deltaY`). |
+| `R247` | `SCROLL_WHEEL_X` | Delta de desplazamiento horizontal de la rueda del ratón (`deltaX`). |
+| **Gamepad USB / Bluetooth & Robótica** | | |
+| `R240` | `GAMEPAD_CONNECTED` | Estado del mando: `1.0` si hay un joystick/gamepad conectado, `0.0` si no. |
+| `R241` | `GAMEPAD_LX` | Stick analógico izquierdo Eje X: Rango continuo `[-1.0 .. +1.0]`. |
+| `R242` | `GAMEPAD_LY` | Stick analógico izquierdo Eje Y: Rango continuo `[-1.0 .. +1.0]`. |
+| `R243` | `GAMEPAD_RX` | Stick analógico derecho Eje X: Rango continuo `[-1.0 .. +1.0]`. |
+| `R244` | `GAMEPAD_RY` | Stick analógico derecho Eje Y: Rango continuo `[-1.0 .. +1.0]`. |
+| `R245` | `GAMEPAD_BTN_A` | Botón A / Cruz / Disparador primario: `1.0` presionado, `0.0` libre. |
+| `R246` | `GAMEPAD_BTN_B` | Botón B / Círculo / Freno o retroceso: `1.0` presionado, `0.0` libre. |
+| `R238` | `GAMEPAD_BTN_X` | Botón X / Cuadrado / Acción auxiliar: `1.0` presionado, `0.0` libre. |
+| `R239` | `GAMEPAD_BTN_Y` | Botón Y / Triángulo / Menú o modo: `1.0` presionado, `0.0` libre. |
+| `R234` | `GAMEPAD_LB` | Bumper / Gatillo superior izquierdo L1: `1.0` presionado, `0.0` libre. |
+| `R235` | `GAMEPAD_RB` | Bumper / Gatillo superior derecho R1: `1.0` presionado, `0.0` libre. |
+| `R236` | `GAMEPAD_LT` | Gatillo analógico izquierdo L2: Presión analógica `[0.0 .. 1.0]`. |
+| `R237` | `GAMEPAD_RT` | Gatillo analógico derecho R2: Presión analógica `[0.0 .. 1.0]`. |
+| `R233` | `GAMEPAD_DPAD` | Cruceta direccional digital (Máscara: 1=Arriba, 2=Der, 4=Abajo, 8=Izq). |
+| **Teclado Físico Directo** | | |
+| `R230` | `KEY_CODE` | Código numérico ASCII/Virtual Key de la tecla pulsada (ej. 32=Espacio, 27=Esc). |
+| `R231` | `KEY_DOWN` | Estado de tecla: `1.0` si hay tecla sostenida en el frame, `0.0` libre. |
+| `R232` | `KEY_MODIFIERS` | Modificadores activos (Bitmask: 1=Shift, 2=Control, 4=Alt, 8=Meta). |
+
+---
+
+### Ejemplos Prácticos de Captura de Periféricos en PhasorLang
+
+#### 1. Telemetría y Control de Brazo Robótico (Gamepad USB)
+```phasor
+// Control cinemático de articulaciones en tiempo real
+if (R240 > 0.0) {
+    vel_x = R241 * 5.0      // Velocidad base desde stick izquierdo X
+    vel_y = R242 * 5.0      // Velocidad elevación desde stick izquierdo Y
+    pinza_apertura = R237   // Apertura analógica proporcional del gatillo RT (0..1)
+    if (R245 > 0.0) {
+        activar_iman = 1.0  // Botón A activa electroimán
+    }
+}
+```
+
+#### 2. Detección Nativa de Clics de Ratón para Interfaces de Ventana
+```phasor
+// Clic izquierdo (R254) arrastra; Clic derecho (R248) abre menú contextual
+if (R254 > 0.0) {
+    if (R252 >= win_x && R252 <= win_x + win_w && R253 >= win_y && R253 <= win_y + 28.0) {
+        win_dragging = 1.0
+    }
+}
+if (R248 > 0.0) {
+    menu_contextual_abierto = 1.0
+    menu_x = R252
+    menu_y = R253
+}
+```
 
 ---
 

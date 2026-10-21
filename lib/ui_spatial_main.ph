@@ -15,7 +15,7 @@ signal spatial_anchor_mx = 0.0
 signal spatial_anchor_my = 0.0
 signal spatial_anchor_pan_x = 0.0
 signal spatial_anchor_pan_y = 0.0
-signal spatial_univ_w = 3200.0
+signal spatial_univ_w = 3600.0
 signal spatial_univ_h = 2400.0
 signal spatial_grid_step = 80.0
 signal spatial_bg_color = 0x090D13
@@ -32,7 +32,7 @@ spatial_main_soa = alloc_soa(10, 1)
 // -------------------------------------------------------------------------------
 spatial_main_init(univ_w, univ_h, grid_step) = {
     uw = univ_w
-    if (uw < 800.0) { uw = 3200.0 } else { 1.0 }
+    if (uw < 800.0) { uw = 3600.0 } else { 1.0 }
     uh = univ_h
     if (uh < 600.0) { uh = 2400.0 } else { 1.0 }
     gs = grid_step
@@ -77,50 +77,33 @@ spatial_main_wrap_coord(val, max_size) = {
 }
 
 // -------------------------------------------------------------------------------
-// 4. TRANSFORMACIÓN DE COORDENADAS MUNDO -> PANTALLA CON WRAP SUAVE
+// Periodic Boundary Condition (PBC): Distancia continua en [-max_size/2, +max_size/2]
+// Garantiza CERO saltos o parpadeos dentro del viewport visible
+// -------------------------------------------------------------------------------
+spatial_main_wrap_pbc(val, max_size) = {
+    m = val % max_size
+    if (m < 0.0) { m = m + max_size } else { 1.0 }
+    half = max_size * 0.5
+    if (m > half) { m = m - max_size } else { 1.0 }
+    m
+}
+
+// -------------------------------------------------------------------------------
+// 4. TRANSFORMACIÓN DE COORDENADAS MUNDO -> PANTALLA (ZERO FLICKER)
 // Proyecta una posición de objeto (wx, wy) sobre el viewport (vw, vh)
-// Si el objeto supera el límite del universo, reaparece suavemente por el lado opuesto
 // -------------------------------------------------------------------------------
 spatial_world_to_screen_x(world_x, obj_w, viewport_w) = {
     uw = spatial_univ_w
-    // Coordenada absoluta trasladada por el pan actual
+    if (uw < 800.0) { uw = 3600.0 } else { 1.0 }
     raw_x = world_x + spatial_pan_x
-    // Wraparound en el universo toroidal
-    wrapped_x = spatial_main_wrap_coord(raw_x, uw)
-
-    // Si la pantalla tiene ancho vw y wrapped_x queda fuera del rango visible
-    // calculamos si su representación secundaria (espejo toroidal) debe ser visible
-    screen_x = wrapped_x
-    if (wrapped_x > (uw - obj_w)) {
-        if (wrapped_x > (uw * 0.5)) {
-            dist_from_edge = wrapped_x - uw
-            screen_x = dist_from_edge
-        } else {
-            1.0
-        }
-    } else {
-        1.0
-    }
-    screen_x
+    spatial_main_wrap_pbc(raw_x, uw)
 }
 
 spatial_world_to_screen_y(world_y, obj_h, viewport_h) = {
     uh = spatial_univ_h
+    if (uh < 600.0) { uh = 2400.0 } else { 1.0 }
     raw_y = world_y + spatial_pan_y
-    wrapped_y = spatial_main_wrap_coord(raw_y, uh)
-
-    screen_y = wrapped_y
-    if (wrapped_y > (uh - obj_h)) {
-        if (wrapped_y > (uh * 0.5)) {
-            dist_from_edge = wrapped_y - uh
-            screen_y = dist_from_edge
-        } else {
-            1.0
-        }
-    } else {
-        1.0
-    }
-    screen_y
+    spatial_main_wrap_pbc(raw_y, uh)
 }
 
 // -------------------------------------------------------------------------------
@@ -194,29 +177,36 @@ spatial_main_render(viewport_w, viewport_h) = {
     // 2. Líneas verticales continuas
     gx = off_x - gs
     while (gx < (vw + gs)) {
-        line(gx, 0.0, gx, vh, col_grid)
+        line(gx, 48.0, gx, vh, col_grid)
         gx = gx + gs
     }
 
     // 3. Líneas horizontales continuas
     gy = off_y - gs
     while (gy < (vh + gs)) {
-        line(0.0, gy, vw, gy, col_grid)
+        if (gy >= 48.0) {
+            line(0.0, gy, vw, gy, col_grid)
+        } else {
+            1.0
+        }
         gy = gy + gs
     }
 
     // 4. Marcadores estelares discretos en las intersecciones (Sensación 3D espacial)
     sy = off_y - gs
     while (sy < (vh + gs)) {
-        sx = off_x - gs
-        while (sx < (vw + gs)) {
-            circle(sx, sy, 1.5, col_star)
-            sx = sx + gs
+        if (sy >= 48.0) {
+            sx = off_x - gs
+            while (sx < (vw + gs)) {
+                circle(sx, sy, 1.5, col_star)
+                sx = sx + gs
+            }
+        } else {
+            1.0
         }
         sy = sy + gs
     }
 
-    // 5. Marco sutil perimetral que delimita el horizonte del universo si está visible
     1.0
 }
 
@@ -232,6 +222,18 @@ spatial_main_get_univ_h() = { spatial_univ_h }
 spatial_main_set_pan(px, py) = {
     spatial_pan_x = spatial_main_wrap_coord(px, spatial_univ_w)
     spatial_pan_y = spatial_main_wrap_coord(py, spatial_univ_h)
+    set_soa(spatial_main_soa, 0, 0, 1, spatial_pan_x)
+    set_soa(spatial_main_soa, 1, 0, 1, spatial_pan_y)
+    1.0
+}
+
+spatial_main_pan(dx, dy) = {
+    uw = spatial_univ_w
+    if (uw < 800.0) { uw = 3600.0 } else { 1.0 }
+    uh = spatial_univ_h
+    if (uh < 600.0) { uh = 2400.0 } else { 1.0 }
+    spatial_pan_x = spatial_main_wrap_coord(spatial_pan_x + dx, uw)
+    spatial_pan_y = spatial_main_wrap_coord(spatial_pan_y + dy, uh)
     set_soa(spatial_main_soa, 0, 0, 1, spatial_pan_x)
     set_soa(spatial_main_soa, 1, 0, 1, spatial_pan_y)
     1.0

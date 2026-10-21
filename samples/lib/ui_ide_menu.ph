@@ -13,6 +13,7 @@ import "lib/view.ph"
 import "lib/barge_in_assistant.ph"
 import "lib/tts_speech.ph"
 import "lib/procedural_video.ph"
+import "lib/ui_spatial_main.ph"
 
 // 1. ESTADOS GLOBALES DE LA INTERFAZ DEL IDE (MEMORIA CONTIGUA SOA)
 signal ide_panel_activo = 1.0     // 1=Editor, 2=Explorador, 3=Escenario PVM, 4=Depurador, 5=Terminal/Disasm, 6=IA Avatar
@@ -53,48 +54,48 @@ signal click_in_any_win = 0.0
 // Posiciones mundiales (wx, wy), dimensiones (ww, wh), minimizado (w_min), scroll (sc_x, sc_y)
 signal w1_x = 30.0
 signal w1_y = 60.0
-signal w1_w = 400.0
-signal w1_h = 580.0
+signal w1_w = 340.0
+signal w1_h = 560.0
 signal w1_min = 0.0
 signal w1_sc_x = 0.0
 signal w1_sc_y = 0.0
 
-signal w2_x = 450.0
+signal w2_x = 400.0
 signal w2_y = 60.0
-signal w2_w = 640.0
-signal w2_h = 580.0
+signal w2_w = 600.0
+signal w2_h = 560.0
 signal w2_min = 0.0
 signal w2_sc_x = 0.0
 signal w2_sc_y = 0.0
 
-signal w3_x = 1110.0
+signal w3_x = 1030.0
 signal w3_y = 60.0
-signal w3_w = 580.0
-signal w3_h = 580.0
+signal w3_w = 540.0
+signal w3_h = 560.0
 signal w3_min = 0.0
 signal w3_sc_x = 0.0
 signal w3_sc_y = 0.0
 
-signal w4_x = 1710.0
+signal w4_x = 1600.0
 signal w4_y = 60.0
-signal w4_w = 520.0
-signal w4_h = 580.0
+signal w4_w = 500.0
+signal w4_h = 560.0
 signal w4_min = 0.0
 signal w4_sc_x = 0.0
 signal w4_sc_y = 0.0
 
-signal w5_x = 2250.0
+signal w5_x = 2130.0
 signal w5_y = 60.0
-signal w5_w = 520.0
-signal w5_h = 580.0
+signal w5_w = 500.0
+signal w5_h = 560.0
 signal w5_min = 0.0
 signal w5_sc_x = 0.0
 signal w5_sc_y = 0.0
 
-signal w6_x = 2790.0
+signal w6_x = 2660.0
 signal w6_y = 60.0
-signal w6_w = 520.0
-signal w6_h = 580.0
+signal w6_w = 500.0
+signal w6_h = 560.0
 signal w6_min = 0.0
 signal w6_sc_x = 0.0
 signal w6_sc_y = 0.0
@@ -117,8 +118,8 @@ action act_tab_ai     { ide_panel_activo = 6.0 }
 action act_subtab_code { ide_editor_subtab = 1.0 }
 action act_subtab_docs { ide_editor_subtab = 2.0 }
 
-action act_belt_next { world_cam_x = world_cam_x - 300.0 }
-action act_belt_prev { world_cam_x = world_cam_x + 300.0 }
+action act_belt_next { spatial_main_set_pan(spatial_pan_x - 300.0, spatial_pan_y) }
+action act_belt_prev { spatial_main_set_pan(spatial_pan_x + 300.0, spatial_pan_y) }
 
 action act_toggle_net_modal {
     if (ide_sec_modal == 0.0) { ide_sec_modal = 1.0 } else { ide_sec_modal = 0.0 }
@@ -622,21 +623,14 @@ render_security_modal(h_w, h_h) = {
 
 // 13. CONTENEDOR PRINCIPAL DEL WORKSPACE AUTÓNOMO (100% PHASORLANG)
 render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wheel) = {
-    render_ide_header(screen_w, screen_h)
+    // 1. RENDERIZADO DEL FONDO ESPACIAL TOROIDAL (Hito 1 Zero-GC)
+    spatial_main_render(screen_w, screen_h)
 
     area_y = 56.0
     area_h = screen_h - 84.0
 
     if (ide_modo_escritorio == 1.0) {
-        // --- 1. PROCESAMIENTO REACTIVO DE PUNTERO Y ARRASTRE LIBRE ---
-        dmx = 0.0
-        dmy = 0.0
-        if (world_dragging == 1.0) {
-            dmx = ptr_x - world_prev_mx
-            dmy = ptr_y - world_prev_my
-        }
-
-        // MÁQUINA DE ESTADOS DE INTERACCIÓN DE VENTANAS (RESIZE, DRAG, SCROLL, CLAMP)
+        // --- PROCESAMIENTO REACTIVO DE PUNTERO Y EXCLUSIÓN MUTUA ---
         if (ptr_down == 1.0) {
             if (world_dragging == 0.0) {
                 world_dragging = 1.0
@@ -647,14 +641,11 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
 
                 if (ptr_y > 48.0) {
                     // HIT-TESTING ORDENADO: W6 -> W5 -> W4 -> W3 -> W2 -> W1
-                    // Prioridad 1: Esquina inferior derecha (Resize Handle 24x24 px - Solo escritorio)
-                    // Prioridad 2: Barra de título (Arrastrar ventana)
-                    // Prioridad 3: Scrollbars (Vertical u Horizontal)
-                    // Prioridad 4: Contenido interior (Absorbe clic, NO mueve texto ni mundo)
-
                     // --- W6 ---
-                    hx = w6_x + world_cam_x; hy = w6_y + world_cam_y; hw = w6_w; hh = w6_h
+                    hw = w6_w; hh = w6_h
                     if (w6_min == 1.0) { hh = 28.0 }
+                    hx = spatial_world_to_screen_x(w6_x, hw, screen_w)
+                    hy = spatial_world_to_screen_y(w6_y, hh, screen_h)
                     if (w6_min == 0.0) {
                         rx = hx + hw - 24.0; ry = hy + hh - 24.0
                         if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -664,7 +655,7 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                     }
                     if (resize_win_id == 0.0) {
                         if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                            drag_win_id = 6.0; drag_win_ox = ptr_x - w6_x; drag_win_oy = ptr_y - w6_y; click_in_any_win = 1.0
+                            drag_win_id = 6.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                         } } } }
                     }
                     if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
@@ -675,8 +666,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
 
                     // --- W5 ---
                     if (click_in_any_win == 0.0) {
-                        hx = w5_x + world_cam_x; hy = w5_y + world_cam_y; hw = w5_w; hh = w5_h
+                        hw = w5_w; hh = w5_h
                         if (w5_min == 1.0) { hh = 28.0 }
+                        hx = spatial_world_to_screen_x(w5_x, hw, screen_w)
+                        hy = spatial_world_to_screen_y(w5_y, hh, screen_h)
                         if (w5_min == 0.0) {
                             rx = hx + hw - 24.0; ry = hy + hh - 24.0
                             if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -686,7 +679,7 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         }
                         if (resize_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                                drag_win_id = 5.0; drag_win_ox = ptr_x - w5_x; drag_win_oy = ptr_y - w5_y; click_in_any_win = 1.0
+                                drag_win_id = 5.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                             } } } }
                         }
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
@@ -698,8 +691,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
 
                     // --- W4 ---
                     if (click_in_any_win == 0.0) {
-                        hx = w4_x + world_cam_x; hy = w4_y + world_cam_y; hw = w4_w; hh = w4_h
+                        hw = w4_w; hh = w4_h
                         if (w4_min == 1.0) { hh = 28.0 }
+                        hx = spatial_world_to_screen_x(w4_x, hw, screen_w)
+                        hy = spatial_world_to_screen_y(w4_y, hh, screen_h)
                         if (w4_min == 0.0) {
                             rx = hx + hw - 24.0; ry = hy + hh - 24.0
                             if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -709,7 +704,7 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         }
                         if (resize_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                                drag_win_id = 4.0; drag_win_ox = ptr_x - w4_x; drag_win_oy = ptr_y - w4_y; click_in_any_win = 1.0
+                                drag_win_id = 4.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                             } } } }
                         }
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
@@ -721,8 +716,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
 
                     // --- W3 ---
                     if (click_in_any_win == 0.0) {
-                        hx = w3_x + world_cam_x; hy = w3_y + world_cam_y; hw = w3_w; hh = w3_h
+                        hw = w3_w; hh = w3_h
                         if (w3_min == 1.0) { hh = 28.0 }
+                        hx = spatial_world_to_screen_x(w3_x, hw, screen_w)
+                        hy = spatial_world_to_screen_y(w3_y, hh, screen_h)
                         if (w3_min == 0.0) {
                             rx = hx + hw - 24.0; ry = hy + hh - 24.0
                             if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -732,7 +729,7 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         }
                         if (resize_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                                drag_win_id = 3.0; drag_win_ox = ptr_x - w3_x; drag_win_oy = ptr_y - w3_y; click_in_any_win = 1.0
+                                drag_win_id = 3.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                             } } } }
                         }
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
@@ -742,10 +739,12 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         } }
                     }
 
-                    // --- W2 (Editor de Código) ---
+                    // --- W2 ---
                     if (click_in_any_win == 0.0) {
-                        hx = w2_x + world_cam_x; hy = w2_y + world_cam_y; hw = w2_w; hh = w2_h
+                        hw = w2_w; hh = w2_h
                         if (w2_min == 1.0) { hh = 28.0 }
+                        hx = spatial_world_to_screen_x(w2_x, hw, screen_w)
+                        hy = spatial_world_to_screen_y(w2_y, hh, screen_h)
                         if (w2_min == 0.0) {
                             rx = hx + hw - 24.0; ry = hy + hh - 24.0
                             if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -755,10 +754,9 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         }
                         if (resize_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                                drag_win_id = 2.0; drag_win_ox = ptr_x - w2_x; drag_win_oy = ptr_y - w2_y; click_in_any_win = 1.0
+                                drag_win_id = 2.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                             } } } }
                         }
-                        // Scrollbar vertical de W2
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
                             if (ptr_x >= hx + hw - 14.0) { if (ptr_x <= hx + hw) {
                                 if (ptr_y >= hy + 58.0) { if (ptr_y <= hy + hh - 24.0) {
@@ -766,7 +764,6 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                                 } }
                             } }
                         } }
-                        // Scrollbar horizontal de W2
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) { if (scrollbar_win_id == 0.0) {
                             if (ptr_x >= hx + 40.0) { if (ptr_x <= hx + hw - 14.0) {
                                 if (ptr_y >= hy + hh - 34.0) { if (ptr_y <= hy + hh - 24.0) {
@@ -774,7 +771,6 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                                 } }
                             } }
                         } } }
-                        // Contenedor interior de W2 (Absorbe clic, texto queda INMÓVIL)
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) { if (scrollbar_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw) { if (ptr_y >= hy) { if (ptr_y <= hy + hh) {
                                 click_in_any_win = 1.0
@@ -782,10 +778,12 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         } } }
                     }
 
-                    // --- W1 (Explorador) ---
+                    // --- W1 ---
                     if (click_in_any_win == 0.0) {
-                        hx = w1_x + world_cam_x; hy = w1_y + world_cam_y; hw = w1_w; hh = w1_h
+                        hw = w1_w; hh = w1_h
                         if (w1_min == 1.0) { hh = 28.0 }
+                        hx = spatial_world_to_screen_x(w1_x, hw, screen_w)
+                        hy = spatial_world_to_screen_y(w1_y, hh, screen_h)
                         if (w1_min == 0.0) {
                             rx = hx + hw - 24.0; ry = hy + hh - 24.0
                             if (ptr_x >= rx) { if (ptr_x <= hx + hw) { if (ptr_y >= ry) { if (ptr_y <= hy + hh) {
@@ -795,10 +793,9 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                         }
                         if (resize_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw - 32.0) { if (ptr_y >= hy) { if (ptr_y <= hy + 28.0) {
-                                drag_win_id = 1.0; drag_win_ox = ptr_x - w1_x; drag_win_oy = ptr_y - w1_y; click_in_any_win = 1.0
+                                drag_win_id = 1.0; drag_win_ox = ptr_x - hx; drag_win_oy = ptr_y - hy; click_in_any_win = 1.0
                             } } } }
                         }
-                        // Scrollbar vertical de W1
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) {
                             if (ptr_x >= hx + hw - 14.0) { if (ptr_x <= hx + hw) {
                                 if (ptr_y >= hy + 34.0) { if (ptr_y <= hy + hh - 22.0) {
@@ -806,69 +803,78 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                                 } }
                             } }
                         } }
-                        // Contenedor interior de W1 (Absorbe clic)
                         if (resize_win_id == 0.0) { if (drag_win_id == 0.0) { if (scrollbar_win_id == 0.0) {
                             if (ptr_x >= hx) { if (ptr_x <= hx + hw) { if (ptr_y >= hy) { if (ptr_y <= hy + hh) {
                                 click_in_any_win = 1.0
                             } } } }
                         } } }
                     }
-                }
+
+                    // Si no se hizo clic en ninguna ventana, capturar arrastre del fondo espacial
+                    if (click_in_any_win == 0.0) {
+                        spatial_main_handle_input(ptr_x, ptr_y, 1.0, 1.0)
+                    } else { 1.0 }
+                } else { 1.0 }
             } else {
                 // DURANTE ARRASTRE SOSTENIDO
                 if (resize_win_id > 0.0) {
-                    // Redimensión en cualquier dimensión desde las esquinas
                     nw = resize_start_w + (ptr_x - resize_start_mx)
                     nh = resize_start_h + (ptr_y - resize_start_my)
-                    if (nw < 320.0) { nw = 320.0 }
-                    if (nh < 220.0) { nh = 220.0 }
-                    if (nw > screen_w - 40.0) { nw = screen_w - 40.0 }
-                    if (nh > screen_h - 70.0) { nh = screen_h - 70.0 }
-                    if (resize_win_id == 1.0) { w1_w = nw; w1_h = nh }
-                    if (resize_win_id == 2.0) { w2_w = nw; w2_h = nh }
-                    if (resize_win_id == 3.0) { w3_w = nw; w3_h = nh }
-                    if (resize_win_id == 4.0) { w4_w = nw; w4_h = nh }
-                    if (resize_win_id == 5.0) { w5_w = nw; w5_h = nh }
-                    if (resize_win_id == 6.0) { w6_w = nw; w6_h = nh }
+                    if (nw < 300.0) { nw = 300.0 } else { 1.0 }
+                    if (nh < 200.0) { nh = 200.0 } else { 1.0 }
+                    if (nw > screen_w - 40.0) { nw = screen_w - 40.0 } else { 1.0 }
+                    if (nh > screen_h - 70.0) { nh = screen_h - 70.0 } else { 1.0 }
+                    if (resize_win_id == 1.0) { w1_w = nw; w1_h = nh } else { 1.0 }
+                    if (resize_win_id == 2.0) { w2_w = nw; w2_h = nh } else { 1.0 }
+                    if (resize_win_id == 3.0) { w3_w = nw; w3_h = nh } else { 1.0 }
+                    if (resize_win_id == 4.0) { w4_w = nw; w4_h = nh } else { 1.0 }
+                    if (resize_win_id == 5.0) { w5_w = nw; w5_h = nh } else { 1.0 }
+                    if (resize_win_id == 6.0) { w6_w = nw; w6_h = nh } else { 1.0 }
                 } else {
                     if (drag_win_id > 0.0) {
-                        // Movimiento de ventana por su barra de título
-                        if (drag_win_id == 1.0) { w1_x = ptr_x - drag_win_ox; w1_y = ptr_y - drag_win_oy }
-                        if (drag_win_id == 2.0) { w2_x = ptr_x - drag_win_ox; w2_y = ptr_y - drag_win_oy }
-                        if (drag_win_id == 3.0) { w3_x = ptr_x - drag_win_ox; w3_y = ptr_y - drag_win_oy }
-                        if (drag_win_id == 4.0) { w4_x = ptr_x - drag_win_ox; w4_y = ptr_y - drag_win_oy }
-                        if (drag_win_id == 5.0) { w5_x = ptr_x - drag_win_ox; w5_y = ptr_y - drag_win_oy }
-                        if (drag_win_id == 6.0) { w6_x = ptr_x - drag_win_ox; w6_y = ptr_y - drag_win_oy }
+                        // Movimiento suave de ventana por su barra de título proyectado en espacio toroidal
+                        target_wx = (ptr_x - drag_win_ox) - spatial_pan_x
+                        target_wy = (ptr_y - drag_win_oy) - spatial_pan_y
+                        target_wx = spatial_main_wrap_coord(target_wx, spatial_univ_w)
+                        target_wy = spatial_main_wrap_coord(target_wy, spatial_univ_h)
+                        if (drag_win_id == 1.0) { w1_x = target_wx; w1_y = target_wy } else { 1.0 }
+                        if (drag_win_id == 2.0) { w2_x = target_wx; w2_y = target_wy } else { 1.0 }
+                        if (drag_win_id == 3.0) { w3_x = target_wx; w3_y = target_wy } else { 1.0 }
+                        if (drag_win_id == 4.0) { w4_x = target_wx; w4_y = target_wy } else { 1.0 }
+                        if (drag_win_id == 5.0) { w5_x = target_wx; w5_y = target_wy } else { 1.0 }
+                        if (drag_win_id == 6.0) { w6_x = target_wx; w6_y = target_wy } else { 1.0 }
                     } else {
                         if (scrollbar_win_id > 0.0) {
                             if (scrollbar_win_id == 2.0) {
                                 if (scrollbar_dir == 1.0) {
                                     tr_h = w2_h - 82.0
                                     if (tr_h > 20.0) {
-                                        rel_y = ptr_y - (w2_y + world_cam_y + 58.0)
+                                        s_hy2 = spatial_world_to_screen_y(w2_y, w2_h, screen_h)
+                                        rel_y = ptr_y - (s_hy2 + 58.0)
                                         w2_sc_y = (rel_y / tr_h) * 160.0
-                                    }
+                                    } else { 1.0 }
                                 } else {
                                     tr_w = w2_w - 60.0
                                     if (tr_w > 20.0) {
-                                        rel_x = ptr_x - (w2_x + world_cam_x + 40.0)
+                                        s_hx2 = spatial_world_to_screen_x(w2_x, w2_w, screen_w)
+                                        rel_x = ptr_x - (s_hx2 + 40.0)
                                         w2_sc_x = (rel_x / tr_w) * 200.0
-                                    }
+                                    } else { 1.0 }
                                 }
-                            }
+                            } else { 1.0 }
                             if (scrollbar_win_id == 1.0) {
                                 tr_h = w1_h - 60.0
                                 if (tr_h > 20.0) {
-                                    rel_y = ptr_y - (w1_y + world_cam_y + 34.0)
+                                    s_hy1 = spatial_world_to_screen_y(w1_y, w1_h, screen_h)
+                                    rel_y = ptr_y - (s_hy1 + 34.0)
                                     w1_sc_y = (rel_y / tr_h) * 180.0
-                                }
-                            }
+                                } else { 1.0 }
+                            } else { 1.0 }
                         } else {
                             if (click_in_any_win == 0.0) {
-                                // Paneo del mundo SOLO si el usuario arrastró fuera de cualquier ventana
-                                world_cam_x = world_cam_x + dmx
-                                world_cam_y = world_cam_y + dmy
-                            }
+                                // Paneo espacial toroidal continuo en 360°
+                                spatial_main_handle_input(ptr_x, ptr_y, 1.0, 1.0)
+                            } else { 1.0 }
                         }
                     }
                 }
@@ -879,67 +885,51 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
             resize_win_id = 0.0
             scrollbar_win_id = 0.0
             click_in_any_win = 0.0
+            spatial_main_handle_input(ptr_x, ptr_y, 0.0, 0.0)
         }
 
         // Rueda de ratón (Scroll vertical reactivo en la ventana bajo el cursor)
         if (ptr_wheel != 0.0) {
-            hx = w2_x + world_cam_x; hy = w2_y + world_cam_y; hr = hx + w2_w; hb = hy + w2_h
+            hx = spatial_world_to_screen_x(w2_x, w2_w, screen_w)
+            hy = spatial_world_to_screen_y(w2_y, w2_h, screen_h)
+            hr = hx + w2_w; hb = hy + w2_h
             if (ptr_x >= hx) { if (ptr_x <= hr) { if (ptr_y >= hy) { if (ptr_y <= hb) {
                 w2_sc_y = w2_sc_y + (ptr_wheel * 0.4)
             } } } }
-            hx = w1_x + world_cam_x; hy = w1_y + world_cam_y; hr = hx + w1_w; hb = hy + w1_h
+            hx = spatial_world_to_screen_x(w1_x, w1_w, screen_w)
+            hy = spatial_world_to_screen_y(w1_y, w1_h, screen_h)
+            hr = hx + w1_w; hb = hy + w1_h
             if (ptr_x >= hx) { if (ptr_x <= hr) { if (ptr_y >= hy) { if (ptr_y <= hb) {
                 w1_sc_y = w1_sc_y + (ptr_wheel * 0.4)
             } } } }
-        }
+        } else { 1.0 }
 
-        // Clamping estricto de scrolls para que el contenido NUNCA se desborde del contenedor
+        // Clamping estricto de scrolls
         max_w2_y = 300.0 - (w2_h - 82.0)
-        if (ide_editor_subtab == 2.0) { max_w2_y = 440.0 - (w2_h - 60.0) }
-        if (max_w2_y < 0.0) { max_w2_y = 0.0 }
-        if (w2_sc_y < 0.0) { w2_sc_y = 0.0 }
-        if (w2_sc_y > max_w2_y) { w2_sc_y = max_w2_y }
+        if (ide_editor_subtab == 2.0) { max_w2_y = 440.0 - (w2_h - 60.0) } else { 1.0 }
+        if (max_w2_y < 0.0) { max_w2_y = 0.0 } else { 1.0 }
+        if (w2_sc_y < 0.0) { w2_sc_y = 0.0 } else { 1.0 }
+        if (w2_sc_y > max_w2_y) { w2_sc_y = max_w2_y } else { 1.0 }
 
         max_w2_x = 580.0 - (w2_w - 60.0)
-        if (max_w2_x < 0.0) { max_w2_x = 0.0 }
-        if (w2_sc_x < 0.0) { w2_sc_x = 0.0 }
-        if (w2_sc_x > max_w2_x) { w2_sc_x = max_w2_x }
+        if (max_w2_x < 0.0) { max_w2_x = 0.0 } else { 1.0 }
+        if (w2_sc_x < 0.0) { w2_sc_x = 0.0 } else { 1.0 }
+        if (w2_sc_x > max_w2_x) { w2_sc_x = max_w2_x } else { 1.0 }
 
         max_w1_y = 420.0 - (w1_h - 56.0)
-        if (max_w1_y < 0.0) { max_w1_y = 0.0 }
-        if (w1_sc_y < 0.0) { w1_sc_y = 0.0 }
-        if (w1_sc_y > max_w1_y) { w1_sc_y = max_w1_y }
+        if (max_w1_y < 0.0) { max_w1_y = 0.0 } else { 1.0 }
+        if (w1_sc_y < 0.0) { w1_sc_y = 0.0 } else { 1.0 }
+        if (w1_sc_y > max_w1_y) { w1_sc_y = max_w1_y } else { 1.0 }
 
         world_prev_mx = ptr_x
         world_prev_my = ptr_y
 
-        // --- 2. REJILLA VIRTUAL DEL MUNDO 360° (PANORAMA PLANAR EN PANTALLA VISIBLE) ---
-        line(0.0, 52.0, screen_w, 52.0, 0x1F2A38)
-        line(0.0, 53.0, screen_w, 53.0, 0x0E1722)
-        grid_b1 = screen_h - 26.0
-        line(0.0, grid_b1, screen_w, grid_b1, 0x1F2A38)
-        line(0.0, grid_b1 + 1.0, screen_w, grid_b1 + 1.0, 0x0E1722)
-
-        slat_x = (world_cam_x % 60.0) - 60.0
-        while (slat_x < screen_w + 60.0) {
-            line(slat_x, 54.0, slat_x, grid_b1, 0x161B22)
-            slat_x = slat_x + 60.0
-        }
-
-        slat_y = 54.0 + (world_cam_y % 60.0) - 60.0
-        while (slat_y < grid_b1 + 60.0) {
-            if (slat_y >= 54.0) {
-                if (slat_y <= grid_b1) {
-                    line(0.0, slat_y, screen_w, slat_y, 0x161B22)
-                }
-            }
-            slat_y = slat_y + 60.0
-        }
-
         // --- 3. RENDERIZADO DE LAS 6 VENTANAS EN EL MUNDO VIRTUAL ---
         // Ventana 1: Explorador de Archivos
-        fx = w1_x + world_cam_x
-        fy = w1_y + world_cam_y
+        fh = w1_h
+        if (w1_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w1_x, w1_w, screen_w)
+        fy = spatial_world_to_screen_y(w1_y, fh, screen_h)
         fh = w1_h
         if (w1_min == 1.0) { fh = 28.0 }
         fr = fx + w1_w
@@ -971,10 +961,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         }
 
         // Ventana 2: Editor & Docs PhasorLang
-        fx = w2_x + world_cam_x
-        fy = w2_y + world_cam_y
         fh = w2_h
         if (w2_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w2_x, w2_w, screen_w)
+        fy = spatial_world_to_screen_y(w2_y, fh, screen_h)
         fr = fx + w2_w
         fb = fy + fh
 
@@ -1004,10 +994,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         }
 
         // Ventana 3: Live Preview & Canvas (120 FPS)
-        fx = w3_x + world_cam_x
-        fy = w3_y + world_cam_y
         fh = w3_h
         if (w3_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w3_x, w3_w, screen_w)
+        fy = spatial_world_to_screen_y(w3_y, fh, screen_h)
         fr = fx + w3_w
         fb = fy + fh
 
@@ -1037,10 +1027,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         }
 
         // Ventana 4: Depurador PVM & Memoria SoA
-        fx = w4_x + world_cam_x
-        fy = w4_y + world_cam_y
         fh = w4_h
         if (w4_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w4_x, w4_w, screen_w)
+        fy = spatial_world_to_screen_y(w4_y, fh, screen_h)
         fr = fx + w4_w
         fb = fy + fh
 
@@ -1070,10 +1060,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         }
 
         // Ventana 5: Terminal Interactiva PVM CLI
-        fx = w5_x + world_cam_x
-        fy = w5_y + world_cam_y
         fh = w5_h
         if (w5_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w5_x, w5_w, screen_w)
+        fy = spatial_world_to_screen_y(w5_y, fh, screen_h)
         fr = fx + w5_w
         fb = fy + fh
 
@@ -1103,10 +1093,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         }
 
         // Ventana 6: Asistente IA KoraDevs Copilot
-        fx = w6_x + world_cam_x
-        fy = w6_y + world_cam_y
         fh = w6_h
         if (w6_min == 1.0) { fh = 28.0 }
+        fx = spatial_world_to_screen_x(w6_x, w6_w, screen_w)
+        fy = spatial_world_to_screen_y(w6_y, fh, screen_h)
         fr = fx + w6_w
         fb = fy + fh
 
@@ -1172,6 +1162,7 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
         text("IA: Phasor-SLM (Local Offline)", ia_txt_x, bot_y + 7.0, 10, 0xBC8CFF)
     }
 
+    render_ide_header(screen_w, screen_h)
     render_security_modal(screen_w, screen_h)
     1.0
 }

@@ -59,21 +59,45 @@
       else if (op === 0x26) S[dst] = S[s1] >= S[s2] ? 1 : 0;
       else if (op === 0x09 || op === 0x28) { var rad = S[s2] * (Math.PI / 180.0); CR[dst] = S[s1] * Math.cos(rad); CI[dst] = S[s1] * Math.sin(rad); IC[dst] = 1; IV[dst] = 0; }
       else if (op === 0x0A || op === 0x30) { var v = dst === 1 ? (this.strings[s1] || '') : S[s1]; this.logs.push('> ' + v + '\n'); }
-      else if (op === 0x50) this.pushUi(0x50, S[dst]);
-      else if (op === 0x51) this.pushUi(0x51, S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]]);
-      else if (op === 0x52) this.pushUi(0x52, S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]]);
-      else if (op === 0x53) this.pushUi(0x53, S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]], S[this.code[pc++]]);
+                  else if (op === 0x50) this.pushUi(0x50, S[dst]);
+      else if (op === 0x51) {
+        var rx = S[this.code[pc++]], ry = S[this.code[pc++]], rw = S[this.code[pc++]], rh = S[this.code[pc++]], rc = S[this.code[pc++]];
+        this.pushUi(0x51, rx, ry, rw, rh, rc);
+      }
+      else if (op === 0x52) {
+        var rcx = S[this.code[pc++]], rcy = S[this.code[pc++]], rr = S[this.code[pc++]], rc = S[this.code[pc++]];
+        this.pushUi(0x52, rcx, rcy, rr, rc, 0);
+      }
+      else if (op === 0x53) {
+        var rx1 = S[this.code[pc++]], ry1 = S[this.code[pc++]], rx2 = S[this.code[pc++]], ry2 = S[this.code[pc++]], lc = S[this.code[pc++]];
+        this.pushUi(0x53, rx1, ry1, rx2, ry2, lc);
+      }
       else if (op === 0x54) {
-        var isStr = dst === 1, sRef = this.code[pc++], tx = S[this.code[pc++]], ty = S[this.code[pc++]], tSz = S[this.code[pc++]] || 12, tc = S[this.code[pc++]];
+        var isStr = dst === 1;
+        var sRef = this.code[pc++];
+        var rx = this.code[pc++], ry = this.code[pc++], rSz = this.code[pc++], rCol = this.code[pc++];
+        var tx = S[rx], ty = S[ry], tSz = S[rSz];
+        var tc = (rCol >= 0 && rCol < S.length && S[rCol] !== 0) ? S[rCol] : 0x58A6FF;
         var txt = isStr ? (this.strings[sRef] || "") : (Number.isInteger(S[sRef]) ? S[sRef].toString() : S[sRef].toFixed(2));
-        this.pushUi(0x54, tx, ty, tc, tSz); this.texts.push({ text: txt, x: tx, y: ty, color: tc, size: tSz });
+        this.pushUi(0x54, tx, ty, tc, tSz, 0);
+        this.texts.push({ text: txt, x: tx, y: ty, color: tc, size: tSz });
       }
       else if (op === 0x56) {
-        var strId = dst, bx = S[this.code[pc++]], by = S[this.code[pc++]], bw = S[this.code[pc++]], bh = S[this.code[pc++]], act = this.code[pc++], bc = S[this.code[pc++]] || 0x1f6feb;
+        var strId = dst;
+        var rBx = this.code[pc++], rBy = this.code[pc++], rBw = this.code[pc++], rBh = this.code[pc++];
+        var act = this.code[pc++];
+        var rCol = this.code[pc++];
+        var bx = S[rBx], by = S[rBy], bw = S[rBw], bh = S[rBh];
+        var bc = (rCol >= 0 && rCol < S.length && S[rCol] > 0) ? S[rCol] : 0x1f6feb;
         var lbl = this.strings[strId] || 'BOTÓN';
-        this.pushUi(0x56, bx, by, bw, bh, bc); this.buttons.push({ x: bx, y: by, w: bw, h: bh, target: act, label: lbl, color: bc });
+        this.pushUi(0x56, bx, by, bw, bh, bc);
+        this.buttons.push({ x: bx, y: by, w: bw, h: bh, target: act, label: lbl, color: bc });
       }
-      else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]; VY[dst] = S[s2]; VZ[dst] = S[rz]; IV[dst] = 1; IC[dst] = 0; }
+      else if (op === 0x57) {
+        var extra = this.code[pc++];
+        if (typeof this.handleAction === 'function') this.handleAction(extra);
+      }
+else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]; VY[dst] = S[s2]; VZ[dst] = S[rz]; IV[dst] = 1; IC[dst] = 0; }
       else if (op === 0x61) { VX[dst] = VX[s1] + VX[s2]; VY[dst] = VY[s1] + VY[s2]; VZ[dst] = VZ[s1] + VZ[s2]; IV[dst] = 1; }
       else if (op === 0x62) { VX[dst] = VX[s1] - VX[s2]; VY[dst] = VY[s1] - VY[s2]; VZ[dst] = VZ[s1] - VZ[s2]; IV[dst] = 1; }
       else if (op === 0x63) { VX[dst] = VX[s1] * S[s2]; VY[dst] = VY[s1] * S[s2]; VZ[dst] = VZ[s1] * S[s2]; IV[dst] = 1; }
@@ -91,7 +115,7 @@
       else if (op === 0x72) {
         var exS = this.code[pc++], rIS = (exS >>> 16) & 0xFFFF, rCS = (exS >>> 8) & 0xFF;
         var offS = Math.floor(S[dst]) + Math.floor(S[s2]) * Math.floor(S[rCS]) + Math.floor(S[rIS]);
-        if (offS >= 0 && offS < H.length) H[offS] = S[s1];
+        var valS = Math.floor(S[s1]); if (offS >= 0 && offS < H.length) H[offS] = (valS >= 0 && valS < S.length && S[valS] !== undefined) ? S[valS] : S[s1];
       }
     }
   };
@@ -127,13 +151,27 @@
       window.addEventListener('resize', function() { self.resize(); });
       var updatePtr = function(e, down) {
         var r = self.canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-        self.setReg(1, mx); self.setReg(2, my); self.setReg(252, mx); self.setReg(253, my);
-        if (down !== undefined) { self.setReg(3, down); self.setReg(254, down); }
-        return { mx: mx, my: my };
+        self.setReg(252, mx); self.setReg(253, my);
+        var btnMask = e.buttons !== undefined ? e.buttons : (down ? 1 : 0);
+        var leftDown = (btnMask & 1) !== 0 ? 1.0 : 0.0;
+        var rightDown = (btnMask & 2) !== 0 ? 1.0 : 0.0;
+        var middleDown = (btnMask & 4) !== 0 ? 1.0 : 0.0;
+        if (down !== undefined) {
+          if (e.button === 0) leftDown = down;
+          else if (e.button === 2) rightDown = down;
+          else if (e.button === 1) middleDown = down;
+        }
+        self.setReg(254, leftDown);
+        self.setReg(248, rightDown);
+        self.setReg(249, middleDown);
+        return { mx: mx, my: my, left: leftDown, right: rightDown, middle: middleDown };
       };
+      self.canvas.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
       self.canvas.addEventListener('pointerdown', function(e) {
         var p = updatePtr(e, 1.0);
-        if (self.vm && self.vm.buttons) {
+        if (p.left > 0.0 && self.vm && self.vm.buttons) {
           for (var b = self.vm.buttons.length - 1; b >= 0; b--) {
             var btn = self.vm.buttons[b];
             if (p.mx >= btn.x && p.mx <= btn.x + btn.w && p.my >= btn.y && p.my <= btn.y + btn.h) {
@@ -146,13 +184,57 @@
       window.addEventListener('pointermove', function(e) { updatePtr(e); });
       window.addEventListener('pointerup', function(e) { updatePtr(e, 0.0); });
       self.canvas.addEventListener('wheel', function(e) {
-        self.setReg(4, e.deltaY); self.setReg(255, e.deltaY);
+        self.setReg(255, e.deltaY);
+        self.setReg(247, e.deltaX || 0);
       }, { passive: true });
+      window.addEventListener('keydown', function(e) {
+        self.setReg(230, e.keyCode || e.which || 0);
+        self.setReg(231, 1.0);
+        var mods = (e.shiftKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.altKey ? 4 : 0) | (e.metaKey ? 8 : 0);
+        self.setReg(232, mods);
+      });
+      window.addEventListener('keyup', function(e) {
+        self.setReg(231, 0.0);
+      });
+      var pollGamepad = function() {
+        if (typeof navigator !== 'undefined' && navigator.getGamepads) {
+          var gps = navigator.getGamepads();
+          var gp = null;
+          for (var gi = 0; gi < gps.length; gi++) {
+            if (gps[gi]) { gp = gps[gi]; break; }
+          }
+          if (gp) {
+            self.setReg(240, 1.0);
+            self.setReg(241, gp.axes[0] || 0.0);
+            self.setReg(242, gp.axes[1] || 0.0);
+            self.setReg(243, gp.axes[2] || 0.0);
+            self.setReg(244, gp.axes[3] || 0.0);
+            self.setReg(245, (gp.buttons[0] && gp.buttons[0].pressed) ? 1.0 : 0.0);
+            self.setReg(246, (gp.buttons[1] && gp.buttons[1].pressed) ? 1.0 : 0.0);
+            self.setReg(238, (gp.buttons[2] && gp.buttons[2].pressed) ? 1.0 : 0.0);
+            self.setReg(239, (gp.buttons[3] && gp.buttons[3].pressed) ? 1.0 : 0.0);
+            self.setReg(234, (gp.buttons[4] && gp.buttons[4].pressed) ? 1.0 : 0.0);
+            self.setReg(235, (gp.buttons[5] && gp.buttons[5].pressed) ? 1.0 : 0.0);
+            self.setReg(236, (gp.buttons[6] ? gp.buttons[6].value : 0.0));
+            self.setReg(237, (gp.buttons[7] ? gp.buttons[7].value : 0.0));
+            var dpad = 0;
+            if (gp.buttons[12] && gp.buttons[12].pressed) dpad |= 1;
+            if (gp.buttons[15] && gp.buttons[15].pressed) dpad |= 2;
+            if (gp.buttons[13] && gp.buttons[13].pressed) dpad |= 4;
+            if (gp.buttons[14] && gp.buttons[14].pressed) dpad |= 8;
+            self.setReg(233, dpad);
+          } else {
+            self.setReg(240, 0.0);
+          }
+        }
+      };
       var loop = function() {
+        pollGamepad();
         if (self.ctx && self.vm) {
           self.vm.run(self.currentScreenPc, self.width, self.height);
           self.renderVmUi(self.ctx, self.vm, self.width, self.height);
-          self.setReg(4, 0); self.setReg(255, 0);
+          self.setReg(255, 0);
+          self.setReg(247, 0);
         }
         requestAnimationFrame(loop);
       };
