@@ -168,3 +168,80 @@ fractal_button(text_id, x, y, w, h, action_id, base_hz) = {
     btn(text_id, x, y, w, h, action_id, 0x238636)
     1.0
 }
+
+// 8. Evaluación de Píxel en el Conjunto de Mandelbrot: z = z^2 + c (z_0 = 0)
+// Retorna ratio de escape normalizado [0.0 .. 1.0]
+mandelbrot_pixel(cx, cy, max_iter) = {
+    x = 0.0
+    y = 0.0
+    i = 0.0
+    escaped = 0.0
+
+    while (i < max_iter) {
+        x2 = x * x
+        y2 = y * y
+
+        if ((x2 + y2) > 4.0) {
+            escaped = 1.0
+            i = max_iter
+        } else {
+            new_y = (2.0 * x * y) + cy
+            new_x = (x2 - y2) + cx
+            x = new_x
+            y = new_y
+            i = i + 1.0
+        }
+    }
+
+    if (escaped == 1.0) {
+        i / max_iter
+    } else {
+        0.0
+    }
+}
+
+// 9. Renderizado de Panel Fractal de Mandelbrot (Muestreo Matricial Zero-GC)
+render_mandelbrot_panel(px, py, pw, ph, zoom, center_x, center_y, step_size) = {
+    step = step_size
+    if (step < 4.0) { step = 4.0 } else { 1.0 }
+
+    aspect = pw / ph
+    curr_y = 0.0
+    scale = 3.0 / zoom
+
+    while (curr_y < ph) {
+        curr_x = 0.0
+        cy = center_y + (((curr_y / ph) - 0.5) * scale)
+
+        while (curr_x < pw) {
+            cx = center_x + ((((curr_x / pw) - 0.5) * scale) * aspect)
+            esc = mandelbrot_pixel(cx, cy, 20.0)
+
+            if (esc > 0.0) {
+                col = 0x58A6FF
+                if (esc < 0.25) {
+                    col = 0x238636 // Verde
+                } else {
+                    if (esc < 0.6) {
+                        col = 0x1F6FEB // Azul
+                    } else {
+                        col = 0xDB61A2 // Rosa / Magenta
+                    }
+                }
+                rect(px + curr_x, py + curr_y, step, step, col)
+            } else {
+                rect(px + curr_x, py + curr_y, step, step, 0x05070A)
+            }
+            curr_x = curr_x + step
+        }
+        curr_y = curr_y + step
+    }
+
+    // Borde exterior
+    line(px, py, px + pw, py, 0x30363D)
+    line(px + pw, py, px + pw, py + ph, 0x30363D)
+    line(px + pw, py + ph, px, py + ph, 0x30363D)
+    line(px, py + ph, px, py, 0x30363D)
+    1.0
+}
+

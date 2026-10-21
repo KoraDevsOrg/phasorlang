@@ -70,6 +70,7 @@ function parseArgs(args) {
     output: null,
     title: null,
     pwa: true,
+    modular: false,
     showHud: false,
     help: false
   };
@@ -83,6 +84,10 @@ function parseArgs(args) {
       options.help = true;
     } else if (arg === '--hud') {
       options.showHud = true;
+    } else if (arg === '--modular') {
+      options.modular = true;
+    } else if (arg === '--standalone') {
+      options.modular = false;
     } else if (arg === '--pwa') {
       options.pwa = true;
     } else if (arg === '--no-pwa') {
@@ -287,7 +292,38 @@ function bundleUnified(inputFile, options, rootDir) {
 
   const faviconUri = getFaviconSvgDataUri();
 
-  // 4. Construir HTML Standalone 100% Autocontenido
+  // 4. Construir Componente Soberano PhasorLang (JSON de máquina directo)
+  let parsedScreenRoutes = {};
+  let parsedActionRoutes = {};
+  let parsedStrings = [];
+  let parsedConstPool = [];
+  let parsedBytecode = [];
+
+  try { parsedScreenRoutes = JSON.parse(screenRoutesStr); } catch(e) { parsedScreenRoutes = {}; }
+  try { parsedActionRoutes = JSON.parse(actionRoutesStr); } catch(e) { parsedActionRoutes = {}; }
+  try { parsedStrings = JSON.parse(stringsStr); } catch(e) { parsedStrings = []; }
+  try { parsedConstPool = JSON.parse(constPoolStr); } catch(e) { parsedConstPool = []; }
+  try { parsedBytecode = JSON.parse(bytecodeStr); } catch(e) { parsedBytecode = []; }
+
+  const phasorPayload = {
+    title: appTitle,
+    appName: baseName,
+    version: '1.0.0',
+    zero_gc: true,
+    fps: 120,
+    showHud: options.showHud || false,
+    firstScreenPc: Number(firstScreenPc) || 0,
+    screenRoutes: parsedScreenRoutes,
+    actionRoutes: parsedActionRoutes,
+    strings: parsedStrings,
+    constPool: parsedConstPool,
+    bytecode: parsedBytecode,
+    wasm: wasmB64
+  };
+
+  const phasorJson = JSON.stringify(phasorPayload);
+
+  // 5. Construir HTML Canónico 100% Autocontenido con etiqueta <phasorcode>
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -308,48 +344,24 @@ function bundleUnified(inputFile, options, rootDir) {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0e14; touch-action: none; font-family: monospace; }
+    phasorcode, header#phasor-header { display: none !important; }
     #phasorCanvas { width: 100vw; height: 100vh; display: block; outline: none; }
   </style>
+
+  <!-- =======================================================================
+       COMPONENTE PHASORLANG COMPILADO (KORADEVS AUTONOMOUS ECOSYSTEM)
+       Arquitectura Canónica Soberana: 100% Código Phasor compilado AOT
+       Empaquetado unificado de todos los imports en un único componente de máquina
+       ======================================================================= -->
+  <phasorcode id="phasor-app" type="application/phasor-binary" version="1.0" entry="main" style="display:none;">
+${phasorJson}
+  </phasorcode>
 </head>
 <body>
   <canvas id="phasorCanvas" tabindex="1"></canvas>
-  <script>
+  ${options.modular ? `<script src="phasor_runtime.js"></script>` : `<script>
 ${runtimeCode}
-  </script>
-  <script>
-    (function() {
-      ${options.pwa ? `if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-        try {
-          var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
-          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
-        } catch(e) {}
-      }` : ''}
-
-      var WASM_PAYLOAD = "${wasmB64}";
-      var BYTECODE = ${bytecodeStr};
-      var CONST_POOL = ${constPoolStr};
-      var SCREEN_ROUTES = ${screenRoutesStr};
-      var ACTION_ROUTES = ${actionRoutesStr};
-      var STRINGS = ${stringsStr};
-      var FIRST_SCREEN_PC = ${firstScreenPc};
-
-      window.addEventListener('DOMContentLoaded', function() {
-        if (typeof PhasorRuntime !== 'undefined' && typeof PhasorRuntime.init === 'function') {
-          PhasorRuntime.init(WASM_PAYLOAD, 'phasorCanvas', {
-            title: "${appTitle}",
-            appName: "${baseName}",
-            showHud: ${options.showHud ? 'true' : 'false'},
-            bytecode: BYTECODE,
-            constPool: CONST_POOL,
-            screenRoutes: SCREEN_ROUTES,
-            actionRoutes: ACTION_ROUTES,
-            strings: STRINGS,
-            firstScreenPc: FIRST_SCREEN_PC
-          });
-        }
-      });
-    })();
-  </script>
+  </script>`}
 </body>
 </html>`;
 }

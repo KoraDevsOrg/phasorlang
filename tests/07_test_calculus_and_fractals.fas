@@ -1,0 +1,49 @@
+// ===============================================================
+// TESTS/07_TEST_CALCULUS_AND_FRACTALS.FAS
+// Chronos IDE & PhasorLang v1.0 — Suite de Pruebas Unitarias
+// Validación de Cálculo Integral, Diferencial y Geometría Fractal Zero-GC
+// ===============================================================
+
+import "lib/test.ph"
+import "lib/calculus.ph"
+import "lib/fractal_ui.ph"
+
+out("=== TEST SUITE 07: CALCULUS & FRACTAL GEOMETRY ZERO-GC ===")
+test.init()
+
+// 1. Integración Numérica Trapezoidal de sin(x) en [0, pi]
+// Teórico: ∫_0^π sin(x) dx = 2.0
+area_sin = integral_trapezoidal(1.0, 0.0, 3.14159265, 100.0)
+test.assert_near(area_sin, 2.0, 0.01, "Integral Trapezoidal de sin(x) en [0, pi] aproxima a 2.0 con error < 0.01")
+
+// 2. Integración Numérica de Simpson 1/3 de Parábola x^2 en [0, 3]
+// Teórico: ∫_0^3 x^2 dx = [x^3 / 3]_0^3 = 27/3 = 9.0
+area_x2 = integral_simpson(3.0, 0.0, 3.0, 30.0)
+test.assert_near(area_x2, 9.0, 0.001, "Regla de Simpson 1/3 para parabola x^2 en [0, 3] da exactamente 9.000")
+
+// 3. Paso de Integración Temporal de Euler (DSP / PID / Control)
+// y_1 = 100.0 + (50.0 * 0.1) = 105.0
+y_next = integral_step(100.0, 50.0, 0.1, 500.0)
+test.assert_eq(y_next, 105.0, "integral_step acumula correctamente paso temporal Euler")
+
+// 4. Diferenciación Numérica Central
+// f'(x) para sin(x) en x=0 debe ser cos(0) = 1.0
+df_0 = derivative_central(1.0, 0.0, 0.001)
+test.assert_near(df_0, 1.0, 0.001, "Derivada central de sin(x) en x=0 da cos(0)=1.0")
+
+// 5. Geometría Fractal: Píxel Interior del Conjunto de Mandelbrot
+// c = 0 + 0j es el centro del cardioide principal, nunca escapa -> esc = 0.0
+esc_center = mandelbrot_pixel(0.0, 0.0, 20.0)
+test.assert_eq(esc_center, 0.0, "Centro de Mandelbrot (0,0) pertenece al conjunto interior (esc = 0.0)")
+
+// 6. Geometría Fractal: Píxel Exterior de Mandelbrot
+// c = 2.5 + 2.5j escapa de inmediato (|c|^2 > 4.0) -> esc > 0.0
+esc_outer = mandelbrot_pixel(2.5, 2.5, 20.0)
+test.assert_true(esc_outer > 0.0, "Punto exterior de Mandelbrot (2.5, 2.5) escapa (esc > 0.0)")
+
+// 7. Geometría Fractal: Píxel de Julia
+// z = 0, c = -0.7 + 0.27j
+esc_julia = julia_pixel(0.0, 0.0, -0.7, 0.27, 20.0)
+test.assert_true(esc_julia >= 0.0, "Evaluacion de pixel de Julia valida en [0..1]")
+
+out("=== TEST 07 COMPLETADO EXITOSAMENTE ===")

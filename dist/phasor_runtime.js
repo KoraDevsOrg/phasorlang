@@ -119,6 +119,7 @@
           var k = String(Math.round(Number(target)));
           var pc = self.actionRoutes[k] !== undefined ? self.actionRoutes[k] : self.screenRoutes[k];
           if (pc !== undefined && pc !== null) self.vm.run(pc, self.width, self.height);
+          if (typeof self.onAction === 'function') self.onAction(target, k, pc);
         };
         self.vm.run(0, window.innerWidth, window.innerHeight);
       }
@@ -157,6 +158,65 @@
       };
       requestAnimationFrame(loop);
     },
+    bootFromElement: function(elementOrId, canvasId, extraOpts) {
+      var self = this;
+      var el = typeof elementOrId === 'string'
+        ? (document.getElementById(elementOrId) || document.querySelector(elementOrId))
+        : elementOrId;
+      if (!el) return null;
+      var raw = (el.textContent || el.innerText || '').trim();
+      if (!raw) return null;
+      try {
+        var data = JSON.parse(raw);
+        var opts = Object.assign({}, data, extraOpts || {});
+        return self.init(data.wasm || '', canvasId || 'phasorCanvas', opts);
+      } catch (err) {
+        console.error('[PhasorRuntime] Error al procesar <phasorcode>:', err);
+        return null;
+      }
+    },
+    autoBoot: function() {
+      var self = this;
+      if (typeof document === 'undefined') return;
+      var runBoot = function() {
+        if (self.vm) return;
+        var codeEl = document.querySelector('phasorcode, [type="application/phasor-binary"], [type="application/phasor-json"]');
+        if (codeEl) {
+          self.bootFromElement(codeEl, 'phasorCanvas');
+        }
+      };
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        runBoot();
+      } else {
+        window.addEventListener('DOMContentLoaded', runBoot);
+      }
+    },
+    initPwa: function() {
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+        try {
+          var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
+        } catch(e) {}
+      }
+    },
+    exportStandaloneHtml: function(filename) {
+      if (typeof document === 'undefined') return;
+      var codeEl = document.querySelector('phasorcode');
+      if (!codeEl) {
+        console.warn('[PhasorRuntime] No hay <phasorcode> activo para exportar.');
+        return;
+      }
+      var fullHtml = '<!DOCTYPE html>\n<html lang="es">\n' + document.documentElement.innerHTML + '\n</html>';
+      var blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'chronos_ide_export.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
     renderVmUi: function(ctx, vm, w, h) {
       if (!vm || !vm.uiCmds) return;
       var cmds = vm.uiCmds, ti = 0, bi = 0;
@@ -184,4 +244,8 @@
 
   G.MicroPhasorVM = MicroPhasorVM;
   G.PhasorRuntime = PhasorRuntime;
+  if (typeof window !== 'undefined') {
+    PhasorRuntime.initPwa();
+    PhasorRuntime.autoBoot();
+  }
 })(typeof window !== 'undefined' ? window : this);

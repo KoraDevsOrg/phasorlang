@@ -28,10 +28,10 @@ screen main {
     // Captura los registros de hardware virtual inyectados por el host (R250..R255)
     sw = R250
     sh = R251
-    mx = mouse_x
-    my = mouse_y
-    pd = mouse_down
-    wh = mouse_wheel
+    mx = R252
+    my = R253
+    pd = R254
+    wh = R255
 
     // Clamping de seguridad para viewports iniciales mínimos
     if (sw < 240.0) { sw = 800.0 }
