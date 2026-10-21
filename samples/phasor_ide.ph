@@ -6,79 +6,15 @@
 // ===============================================================================
 
 import "lib/ui_ide_menu.ph"
-import "lib/file_explorer.ph"
-import "lib/color.ph"
-import "lib/ui.ph"
-import "lib/view.ph"
-import "lib/barge_in_assistant.ph"
-import "lib/tts_speech.ph"
-import "lib/procedural_video.ph"
 
 // -------------------------------------------------------------------------------
-// 1. ESTRUCTURAS DE MEMORIA PLANA SOA PARA EL KERNEL DEL IDE (ZERO-GC)
+// 1. SEÑALES REACTIVAS DE HARDWARE Y TIEMPO REAL (120 FPS ZERO-GC)
 // -------------------------------------------------------------------------------
-struct GapBufferNode {
-    char_code: Float,
-    line_num: Float,
-    token_type: Float
-}
 
-struct BreakpointMaskNode {
-    line_idx: Float,
-    pc_offset: Float,
-    is_active: Float
-}
-
-struct OutStreamNode {
-    char_code: Float,
-    stream_idx: Float,
-    is_flushed: Float
-}
-
-struct ChatMessageNode {
-    role: Float,        // 1.0=Usuario, 2.0=Gemini Cloud Pro, 3.0=Local SLM
-    status: Float,      // 0.0=Inactivo, 1.0=Pensando, 2.0=Listo
-    token_count: Float
-}
-
-// -------------------------------------------------------------------------------
-// 2. PREASIGNACIÓN CONTIGUA EN EL HEAP PLANO SOA (CAPACIDAD DE 64 KB)
-// -------------------------------------------------------------------------------
-EDITOR_CAPACITY = 512
-gap_buffer = alloc_soa(3, EDITOR_CAPACITY)
-
-BP_CAPACITY = 128
-bp_mask_soa = alloc_soa(3, BP_CAPACITY)
-
-OUT_CAPACITY = 512
-out_stream = alloc_soa(3, OUT_CAPACITY)
-
-CHAT_CAPACITY = 256
-chat_ring = alloc_soa(3, CHAT_CAPACITY)
-
-// Inicialización de Breakpoints persistentes en la máscara SoA
-// BP 0: Línea 4 (PC=0x0012) - Activo (1.0)
-set_soa(bp_mask_soa, 0, 0, BP_CAPACITY, 4.0)
-set_soa(bp_mask_soa, 1, 0, BP_CAPACITY, 18.0)
-set_soa(bp_mask_soa, 2, 0, BP_CAPACITY, 1.0)
-
-// BP 1: Línea 7 (PC=0x002B) - Activo (1.0)
-set_soa(bp_mask_soa, 0, 1, BP_CAPACITY, 7.0)
-set_soa(bp_mask_soa, 1, 1, BP_CAPACITY, 43.0)
-set_soa(bp_mask_soa, 2, 1, BP_CAPACITY, 1.0)
-
-// Inicialización del OutStream y ChatRing
-set_soa(out_stream, 0, 0, OUT_CAPACITY, 0.0)
-set_soa(out_stream, 1, 0, OUT_CAPACITY, 0.0)
-set_soa(out_stream, 2, 0, OUT_CAPACITY, 1.0)
-
-set_soa(chat_ring, 0, 0, CHAT_CAPACITY, 2.0) // Gemini Cloud
-set_soa(chat_ring, 1, 0, CHAT_CAPACITY, 2.0) // Listo
-set_soa(chat_ring, 2, 0, CHAT_CAPACITY, 120.0)
-
-// -------------------------------------------------------------------------------
-// 3. SEÑALES REACTIVAS DE HARDWARE Y TIEMPO REAL
-// -------------------------------------------------------------------------------
+signal mouse_x = 0.0
+signal mouse_y = 0.0
+signal mouse_down = 0.0
+signal mouse_wheel = 0.0
 signal t_global_ide = 0.0
 signal ide_render_fps = 120.0
 signal ide_pvm_latency_us = 16.0
@@ -90,16 +26,20 @@ screen main {
     cls(0x0D1117)
     t_global_ide = t_global_ide + 1.0
 
-    // Captura los registros de hardware virtual inyectados por el host (R250 y R251)
+    // Captura los registros de hardware virtual inyectados por el host (R250, R251, R1..R4)
     vw = R250
     vh = R251
+    mx = mouse_x
+    my = mouse_y
+    pd = mouse_down
+    wh = mouse_wheel
 
     // Clamping de seguridad para viewports iniciales mínimos
     if (vw < 240.0) { vw = 800.0 }
     if (vh < 240.0) { vh = 600.0 }
 
     // Renderiza el espacio de trabajo modular de 6 ventanas ortogonales
-    render_ide_workspace(vw, vh, t_global_ide)
+    render_ide_workspace(vw, vh, t_global_ide, mx, my, pd, wh)
 }
 
 // -------------------------------------------------------------------------------
@@ -165,7 +105,7 @@ screen explorer_screen {
     vh = R251
     if (vw < 240.0) { vw = 480.0 }
     if (vh < 240.0) { vh = 600.0 }
-    file_explorer.render(0.0, 0.0, vw, vh)
+    render_window_explorer(0.0, 0.0, vw, vh, 0.0, 0.0)
 }
 
 // -------------------------------------------------------------------------------
@@ -177,7 +117,7 @@ screen editor_screen {
     vh = R251
     if (vw < 240.0) { vw = 680.0 }
     if (vh < 240.0) { vh = 600.0 }
-    render_window_editor(0.0, 0.0, vw, vh, t_global_ide)
+    render_window_editor(0.0, 0.0, vw, vh, t_global_ide, 0.0, 0.0)
 }
 
 // -------------------------------------------------------------------------------

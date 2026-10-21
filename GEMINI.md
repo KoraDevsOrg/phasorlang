@@ -79,3 +79,10 @@ Cualquier desarrollador que utilice Chronos IDE debe poder construir, probar y e
 ### IV. Estándar de Entrega de Código
 1. **Cero Comentarios Evasivos y Cero Placeholders**: Al crear o modificar código, entregar siempre las clases, funciones y archivos COMPLETOS y listos para producción.
 2. **Preservación de Pruebas Unitarias**: Todo cambio en la biblioteca estándar o en el motor de ejecución debe validar y mantener en verde el 100% de la batería de pruebas en `tests/`.
+
+
+### V. Flujo de desarrollo por el usuario
+1. **Desarrollo**: El usuario crea codigo phasor,archivos .ph con imports, un archivo .ph puede ser llmado por otro con import como main.ph y sub1.ph, dentro de main.ph estaria el import sub.ph y luego llamar codigo o funciones del sub
+2. **Pruebas**: el ide podra ejecutar ya sea en ternimal o visual el codigo completo como si estuviera en la web
+3. **Compilacion**: al compilar se creará el archivo html con el phasor embebido listo para ejecutar en cualquier navegador y dispositivo, si se requieren los import, estos deberan estan en la misma carpeta, al ejecutar se identifica si existen o si no los puede cargar desde el github.
+4. **Restricciones**: El usuario nunca programa en otro lenguaje diferente a phasor, el html solo se edita al complar no por el usurio desarrollador.
