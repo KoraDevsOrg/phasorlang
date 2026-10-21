@@ -54,6 +54,39 @@ main = {
     if (R248 == 1.0) { out("  [PASS] R248 (POINTER_RIGHT) accesible directamente") } else { out("  [FAIL] R248 falló") }
     if (R255 == 120.0) { out("  [PASS] R255 (SCROLL_WHEEL) accesible directamente") } else { out("  [FAIL] R255 falló") }
 
+    out(">>> TEST 6: Detección 8-Direccional de Bordes y Esquinas (window_hit_edge_8d)...")
+    // Ventana en (100, 100), tamaño (400, 300) -> X en [100..500], Y en [100..400]
+    // Borde Este (X=496, Y=250) -> Dir 1.0 (E)
+    edge_e = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 496.0, 250.0)
+    if (edge_e == 1.0) { out("  [PASS] Borde Este (E) detectado correctamente (dir=1)") } else { out("  [FAIL] Borde Este fallo") }
+
+    // Borde Sur (X=250, Y=396) -> Dir 2.0 (S)
+    edge_s = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 250.0, 396.0)
+    if (edge_s == 2.0) { out("  [PASS] Borde Sur (S) detectado correctamente (dir=2)") } else { out("  [FAIL] Borde Sur fallo") }
+
+    // Borde Oeste (X=103, Y=250) -> Dir 3.0 (W)
+    edge_w = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 103.0, 250.0)
+    if (edge_w == 3.0) { out("  [PASS] Borde Oeste (W) detectado correctamente (dir=3)") } else { out("  [FAIL] Borde Oeste fallo") }
+
+    // Borde Norte (X=250, Y=103) -> Dir 4.0 (N)
+    edge_n = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 250.0, 103.0)
+    if (edge_n == 4.0) { out("  [PASS] Borde Norte (N) detectado correctamente (dir=4)") } else { out("  [FAIL] Borde Norte fallo") }
+
+    // Esquina Sureste (X=496, Y=396) -> Dir 5.0 (SE)
+    edge_se = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 496.0, 396.0)
+    if (edge_se == 5.0) { out("  [PASS] Esquina Sureste (SE) detectada correctamente (dir=5)") } else { out("  [FAIL] Esquina SE fallo") }
+
+    // Esquina Noroeste (X=103, Y=103) -> Dir 8.0 (NW)
+    edge_nw = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 103.0, 103.0)
+    if (edge_nw == 8.0) { out("  [PASS] Esquina Noroeste (NW) detectada correctamente (dir=8)") } else { out("  [FAIL] Esquina NW fallo") }
+
+    out(">>> TEST 7: Asignación y Lectura de R256 (SYS_CURSOR_SHAPE)...")
+    R256 = window_cursor_from_dir(edge_e) // Dir 1 -> ew-resize (4.0)
+    if (R256 == 4.0) { out("  [PASS] R256 mapeado a EW-Resize (4.0) correctamente") } else { out("  [FAIL] R256 fallo") }
+
+    R256 = window_cursor_from_dir(edge_se) // Dir 5 -> nwse-resize (6.0)
+    if (R256 == 6.0) { out("  [PASS] R256 mapeado a NWSE-Resize (6.0) correctamente") } else { out("  [FAIL] R256 fallo") }
+
     out("======================================================================")
     out("  HITO 2: TODAS LAS PRUEBAS DE ARQUITECTURA PASARON CON ÉXITO [PASS]  ")
     out("======================================================================")

@@ -48,8 +48,11 @@ signal s3_sc_y = 0.0
 // Mutex de Interacción (Arrastre de ventana vs Redimensionamiento vs Fondo)
 signal drag_target_win = 0.0     // 0=Ninguna, 1=Screen1, 2=Screen2, 3=Screen3
 signal resize_target_win = 0.0   // 0=Ninguna, 1=Screen1, 2=Screen2, 3=Screen3
+signal resize_target_dir = 0.0   // 0=None, 1=E, 2=S, 3=W, 4=N, 5=SE, 6=SW, 7=NE, 8=NW
 signal drag_offset_x = 0.0
 signal drag_offset_y = 0.0
+signal resize_orig_x = 0.0
+signal resize_orig_y = 0.0
 signal resize_orig_w = 0.0
 signal resize_orig_h = 0.0
 signal resize_orig_mx = 0.0
@@ -424,33 +427,113 @@ screen main {
     if (pd == 1.0) {
         handled = 0.0
 
-        // 1. Redimensionamiento activo continuo desde esquina
+        // 1. Redimensionamiento activo continuo 8-Direccional (Bordes y Esquinas)
         if (resize_target_win > 0.0) {
             delta_w = mx - resize_orig_mx
             delta_h = my - resize_orig_my
+
+            // Dimensiones mínimas según la ventana
+            min_w = 220.0
+            min_h = 160.0
             if (resize_target_win == 1.0) {
-                nw = resize_orig_w + delta_w
-                nh = resize_orig_h + delta_h
-                if (nw < 280.0) { nw = 280.0 } else { 1.0 }
-                if (nh < 180.0) { nh = 180.0 } else { 1.0 }
-                s1_w = nw
-                s1_h = nh
+                min_w = 280.0
+                min_h = 180.0
+            } else { 1.0 }
+
+            // Cálculo horizontal según dirección
+            cand_w = resize_orig_w
+            cand_x = resize_orig_x
+            // E (1), SE (5), NE (7) -> expande/contrae hacia la derecha
+            if (resize_target_dir == 1.0) {
+                cand_w = resize_orig_w + delta_w
+                if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+            } else {
+                if (resize_target_dir == 5.0) {
+                    cand_w = resize_orig_w + delta_w
+                    if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+                } else {
+                    if (resize_target_dir == 7.0) {
+                        cand_w = resize_orig_w + delta_w
+                        if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+                    } else {
+                        // W (3), SW (6), NW (8) -> expande/contrae hacia la izquierda con anclaje derecho
+                        if (resize_target_dir == 3.0) {
+                            cand_w = resize_orig_w - delta_w
+                            if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+                            cand_x = (resize_orig_x + resize_orig_w) - cand_w
+                        } else {
+                            if (resize_target_dir == 6.0) {
+                                cand_w = resize_orig_w - delta_w
+                                if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+                                cand_x = (resize_orig_x + resize_orig_w) - cand_w
+                            } else {
+                                if (resize_target_dir == 8.0) {
+                                    cand_w = resize_orig_w - delta_w
+                                    if (cand_w < min_w) { cand_w = min_w } else { 1.0 }
+                                    cand_x = (resize_orig_x + resize_orig_w) - cand_w
+                                } else { 1.0 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Cálculo vertical según dirección
+            cand_h = resize_orig_h
+            cand_y = resize_orig_y
+            // S (2), SE (5), SW (6) -> expande/contrae hacia abajo
+            if (resize_target_dir == 2.0) {
+                cand_h = resize_orig_h + delta_h
+                if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+            } else {
+                if (resize_target_dir == 5.0) {
+                    cand_h = resize_orig_h + delta_h
+                    if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+                } else {
+                    if (resize_target_dir == 6.0) {
+                        cand_h = resize_orig_h + delta_h
+                        if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+                    } else {
+                        // N (4), NE (7), NW (8) -> expande/contrae hacia arriba con anclaje inferior
+                        if (resize_target_dir == 4.0) {
+                            cand_h = resize_orig_h - delta_h
+                            if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+                            cand_y = (resize_orig_y + resize_orig_h) - cand_h
+                        } else {
+                            if (resize_target_dir == 7.0) {
+                                cand_h = resize_orig_h - delta_h
+                                if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+                                cand_y = (resize_orig_y + resize_orig_h) - cand_h
+                            } else {
+                                if (resize_target_dir == 8.0) {
+                                    cand_h = resize_orig_h - delta_h
+                                    if (cand_h < min_h) { cand_h = min_h } else { 1.0 }
+                                    cand_y = (resize_orig_y + resize_orig_h) - cand_h
+                                } else { 1.0 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Aplicar mutación a la ventana seleccionada
+            if (resize_target_win == 1.0) {
+                s1_x = cand_x
+                s1_y = cand_y
+                s1_w = cand_w
+                s1_h = cand_h
             } else { 1.0 }
             if (resize_target_win == 2.0) {
-                nw = resize_orig_w + delta_w
-                nh = resize_orig_h + delta_h
-                if (nw < 220.0) { nw = 220.0 } else { 1.0 }
-                if (nh < 160.0) { nh = 160.0 } else { 1.0 }
-                s2_w = nw
-                s2_h = nh
+                s2_x = cand_x
+                s2_y = cand_y
+                s2_w = cand_w
+                s2_h = cand_h
             } else { 1.0 }
             if (resize_target_win == 3.0) {
-                nw = resize_orig_w + delta_w
-                nh = resize_orig_h + delta_h
-                if (nw < 220.0) { nw = 220.0 } else { 1.0 }
-                if (nh < 160.0) { nh = 160.0 } else { 1.0 }
-                s3_w = nw
-                s3_h = nh
+                s3_x = cand_x
+                s3_y = cand_y
+                s3_w = cand_w
+                s3_h = cand_h
             } else { 1.0 }
             handled = 1.0
         } else { 1.0 }
@@ -500,11 +583,15 @@ screen main {
                         } else { 1.0 }
                     } else { 1.0 }
 
-                    // B. Esquinas de redimensionamiento (Solo escritorio)
+                    // B. Bordes y Esquinas 8-Direccionales para Redimensionamiento
                     if (handled == 0.0) {
                         if (s1_min == 0.0) {
-                            if (window_hit_resize_corner(s1_x, s1_y, s1_w, s1_h, sw, sh, mx, my) == 1.0) {
+                            dir1 = window_hit_edge_8d(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my)
+                            if (dir1 > 0.0) {
                                 resize_target_win = 1.0
+                                resize_target_dir = dir1
+                                resize_orig_x = s1_x
+                                resize_orig_y = s1_y
                                 resize_orig_w = s1_w
                                 resize_orig_h = s1_h
                                 resize_orig_mx = mx
@@ -515,8 +602,12 @@ screen main {
                     } else { 1.0 }
                     if (handled == 0.0) {
                         if (s2_min == 0.0) {
-                            if (window_hit_resize_corner(s2_x, s2_y, s2_w, s2_h, sw, sh, mx, my) == 1.0) {
+                            dir2 = window_hit_edge_8d(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my)
+                            if (dir2 > 0.0) {
                                 resize_target_win = 2.0
+                                resize_target_dir = dir2
+                                resize_orig_x = s2_x
+                                resize_orig_y = s2_y
                                 resize_orig_w = s2_w
                                 resize_orig_h = s2_h
                                 resize_orig_mx = mx
@@ -527,8 +618,12 @@ screen main {
                     } else { 1.0 }
                     if (handled == 0.0) {
                         if (s3_min == 0.0) {
-                            if (window_hit_resize_corner(s3_x, s3_y, s3_w, s3_h, sw, sh, mx, my) == 1.0) {
+                            dir3 = window_hit_edge_8d(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, mx, my)
+                            if (dir3 > 0.0) {
                                 resize_target_win = 3.0
+                                resize_target_dir = dir3
+                                resize_orig_x = s3_x
+                                resize_orig_y = s3_y
                                 resize_orig_w = s3_w
                                 resize_orig_h = s3_h
                                 resize_orig_mx = mx
@@ -587,9 +682,122 @@ screen main {
     } else {
         drag_target_win = 0.0
         resize_target_win = 0.0
+        resize_target_dir = 0.0
         prev_click_down = 0.0
         spatial_main_handle_input(mx, my, 0.0, 0.0)
     }
+
+    // ===========================================================================
+    // CONTROL SOBERANO DEL PUNTERO NATIVO (R256 / SYS_CURSOR_SHAPE)
+    // 0=default, 1=pointer, 2=text, 3=move, 4=ew, 5=ns, 6=nwse, 7=nesw, 8=grabbing
+    // ===========================================================================
+    cur_shape = 0.0
+    if (pd == 1.0) {
+        if (resize_target_win > 0.0) {
+            cur_shape = window_cursor_from_dir(resize_target_dir)
+        } else {
+            if (drag_target_win > 0.0) {
+                cur_shape = 3.0 // move
+            } else {
+                if (spatial_is_panning == 1.0) {
+                    cur_shape = 8.0 // grabbing
+                } else { 1.0 }
+            }
+        }
+    } else {
+        // Modo Hover (sin botón presionado)
+        if (my < 28.0) {
+            cur_shape = 1.0 // Barra de menú superior (botones interactivos)
+        } else {
+            if (my > (sh - 24.0)) {
+                cur_shape = 0.0 // Barra de estado
+            } else {
+                // Comprobar ventanas según orden Z: Screen 3 -> Screen 2 -> Screen 1
+                found_cur = 0.0
+
+                // Screen 3
+                if (window_hit_min_btn(s3_x, s3_y, s3_w, s3_h, sw, sh, mx, my) == 1.0) {
+                    cur_shape = 1.0
+                    found_cur = 1.0
+                } else {
+                    dir3 = window_hit_edge_8d(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, mx, my)
+                    if (dir3 > 0.0) {
+                        cur_shape = window_cursor_from_dir(dir3)
+                        found_cur = 1.0
+                    } else {
+                        if (window_hit_title(s3_x, s3_y, s3_w, s3_h, sw, sh, mx, my) == 1.0) {
+                            cur_shape = 3.0 // move
+                            found_cur = 1.0
+                        } else {
+                            if (window_hit_body(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, mx, my) == 1.0) {
+                                cur_shape = 0.0
+                                found_cur = 1.0
+                            } else { 1.0 }
+                        }
+                    }
+                }
+
+                // Screen 2
+                if (found_cur == 0.0) {
+                    if (window_hit_min_btn(s2_x, s2_y, s2_w, s2_h, sw, sh, mx, my) == 1.0) {
+                        cur_shape = 1.0
+                        found_cur = 1.0
+                    } else {
+                        dir2 = window_hit_edge_8d(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my)
+                        if (dir2 > 0.0) {
+                            cur_shape = window_cursor_from_dir(dir2)
+                            found_cur = 1.0
+                        } else {
+                            if (window_hit_title(s2_x, s2_y, s2_w, s2_h, sw, sh, mx, my) == 1.0) {
+                                cur_shape = 3.0 // move
+                                found_cur = 1.0
+                            } else {
+                                if (window_hit_body(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my) == 1.0) {
+                                    cur_shape = 1.0 // Items del explorador de archivos
+                                    found_cur = 1.0
+                                } else { 1.0 }
+                            }
+                        }
+                    }
+                } else { 1.0 }
+
+                // Screen 1
+                if (found_cur == 0.0) {
+                    if (window_hit_min_btn(s1_x, s1_y, s1_w, s1_h, sw, sh, mx, my) == 1.0) {
+                        cur_shape = 1.0
+                        found_cur = 1.0
+                    } else {
+                        dir1 = window_hit_edge_8d(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my)
+                        if (dir1 > 0.0) {
+                            cur_shape = window_cursor_from_dir(dir1)
+                            found_cur = 1.0
+                        } else {
+                            if (window_hit_title(s1_x, s1_y, s1_w, s1_h, sw, sh, mx, my) == 1.0) {
+                                cur_shape = 3.0 // move
+                                found_cur = 1.0
+                            } else {
+                                if (window_hit_body(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my) == 1.0) {
+                                    s1_hx = spatial_world_to_screen_x(s1_x, s1_w, sw)
+                                    s1_hy = spatial_world_to_screen_y(s1_y, s1_h, sh)
+                                    if (my >= (s1_hy + 28.0)) {
+                                        if (my < (s1_hy + 54.0)) {
+                                            cur_shape = 1.0 // Botones de barra de herramientas (Run, Build, etc)
+                                        } else {
+                                            cur_shape = 2.0 // Editor de texto (I-Beam)
+                                        }
+                                    } else {
+                                        cur_shape = 0.0
+                                    }
+                                    found_cur = 1.0
+                                } else { 1.0 }
+                            }
+                        }
+                    }
+                } else { 1.0 }
+            }
+        }
+    }
+    R256 = cur_shape
 
     // ===========================================================================
     // RENDERIZADO DEL ENTORNO
