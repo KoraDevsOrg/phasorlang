@@ -155,17 +155,17 @@ render_ide_header(h_w, h_h) = {
         btn(">", 748.0, 8.0, 32.0, 32.0, act_belt_next, 0x21262D)
 
         bx_recomp = h_w - 310.0
-        btn("⚙ Re-Compilar (.wasm)", bx_recomp, 8.0, 160.0, 32.0, act_self_compile, 0x8957E5)
+        btn("⚙ Re-Compilar (.wasm)", 0.0 + bx_recomp, 8.0, 160.0, 32.0, act_self_compile, 0x8957E5)
         bx_exec = h_w - 140.0
-        btn("▶ Ejecutar (F5)", bx_exec, 8.0, 125.0, 32.0, act_run_script, 0x238636)
+        btn("▶ Ejecutar (F5)", 0.0 + bx_exec, 8.0, 125.0, 32.0, act_run_script, 0x238636)
     } else {
         hdr_bw = h_w / 6.0
         btn("Edit", 0.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_editor, 0x1F6FEB)
-        btn("Files", hdr_bw, 8.0, hdr_bw - 2.0, 32.0, act_tab_files, 0x238636)
-        btn("Lienzo", hdr_bw * 2.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_stage, 0x00E5FF)
-        btn("Dbg", hdr_bw * 3.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_debug, 0xD29922)
-        btn("Term", hdr_bw * 4.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_disasm, 0x8957E5)
-        btn("IA", hdr_bw * 5.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_ai, 0xDB61A2)
+        btn("Files", 0.0 + hdr_bw, 8.0, hdr_bw - 2.0, 32.0, act_tab_files, 0x238636)
+        btn("Lienzo", 0.0 + hdr_bw * 2.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_stage, 0x00E5FF)
+        btn("Dbg", 0.0 + hdr_bw * 3.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_debug, 0xD29922)
+        btn("Term", 0.0 + hdr_bw * 4.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_disasm, 0x8957E5)
+        btn("IA", 0.0 + hdr_bw * 5.0, 8.0, hdr_bw - 2.0, 32.0, act_tab_ai, 0xDB61A2)
     }
     1.0
 }
@@ -177,9 +177,9 @@ render_window_explorer(vx, vy, vw, vh, scx, scy) = {
     // Toolbar superior
     rect(vx, vy, vw, 34.0, 0x161B22)
     line(vx, vy + 34.0, vx + vw, vy + 34.0, 0x30363D)
-    btn("📁 Proyecto", vx + 8.0, vy + 4.0, 95.0, 26.0, act_tab_files, 0x1F6FEB)
-    btn("⚡ samples", vx + 108.0, vy + 4.0, 95.0, 26.0, act_tab_editor, 0x238636)
-    btn("📚 lib", vx + 208.0, vy + 4.0, 80.0, 26.0, act_subtab_docs, 0x30363D)
+    btn("📁 Proyecto", 0.0 + vx + 8.0, vy + 4.0, 95.0, 26.0, act_tab_files, 0x1F6FEB)
+    btn("⚡ samples", 0.0 + vx + 108.0, vy + 4.0, 95.0, 26.0, act_tab_editor, 0x238636)
+    btn("📚 lib", 0.0 + vx + 208.0, vy + 4.0, 80.0, 26.0, act_subtab_docs, 0x30363D)
 
     // Cabecera del árbol
     fx = vx + 16.0 - scx
@@ -235,11 +235,11 @@ render_window_editor(vx, vy, vw, vh, tframe, scx, scy) = {
         text("📝 Editor de Código", vx + 16.0, vy + 8.0, 10, 0xFFFFFF)
         rect(tab_rx, vy, halfw, 28.0, 0x161B22)
         text("📚 Docs PhasorLang", tab_rx + 16.0, vy + 8.0, 10, 0x8B949E)
-        btn("📚 Docs", tab_rx, vy, halfw, 28.0, act_subtab_docs, 0x21262D)
+        btn("📚 Docs", 0.0 + tab_rx, vy, halfw, 28.0, act_subtab_docs, 0x21262D)
     } else {
         rect(vx, vy, halfw, 28.0, 0x161B22)
         text("📝 Editor de Código", vx + 16.0, vy + 8.0, 10, 0x8B949E)
-        btn("📝 Editor", vx, vy, halfw, 28.0, act_subtab_code, 0x21262D)
+        btn("📝 Editor", 0.0 + vx, vy, halfw, 28.0, act_subtab_code, 0x21262D)
         rect(tab_rx, vy, halfw, 28.0, 0x238636)
         text("📚 Docs PhasorLang", tab_rx + 16.0, vy + 8.0, 10, 0xFFFFFF)
     }
@@ -439,9 +439,9 @@ render_window_debugger(vx, vy, vw, vh) = {
 
     // Controles de depuración
     db_by = vy + vh - 60.0
-    btn("▶ Continuar", vx + 16.0, db_by, 110.0, 32.0, act_resume_debug, 0x238636)
-    btn("⏭️ Paso (Step)", vx + 136.0, db_by, 120.0, 32.0, act_step_debug, 0x1F6FEB)
-    btn("⏸️ Pausar", vx + 266.0, db_by, 100.0, 32.0, act_pause_debug, 0xD29922)
+    btn("▶ Continuar", 0.0 + vx + 16.0, db_by, 110.0, 32.0, act_resume_debug, 0x238636)
+    btn("⏭️ Paso (Step)", 0.0 + vx + 136.0, db_by, 120.0, 32.0, act_step_debug, 0x1F6FEB)
+    btn("⏸️ Pausar", 0.0 + vx + 266.0, db_by, 100.0, 32.0, act_pause_debug, 0xD29922)
     1.0
 }
 
@@ -465,7 +465,7 @@ render_window_terminal(vx, vy, vw, vh) = {
     fy = fy + 18.0; text("> [PVM Profiler] Latencia de despacho: 18 us/frame | 0 allocations", vx + 16.0, fy, 10, 0x8B949E)
 
     tm_by = vy + vh - 52.0
-    btn("Ejecutar phasorc.ph (Compilar IDE a WASM)", vx + 16.0, tm_by, vw - 32.0, 32.0, act_self_compile, 0x8957E5)
+    btn("Ejecutar phasorc.ph (Compilar IDE a WASM)", 0.0 + vx + 16.0, tm_by, vw - 32.0, 32.0, act_self_compile, 0x8957E5)
     1.0
 }
 
@@ -496,8 +496,8 @@ render_window_ai(vx, vy, vw, vh, tframe) = {
     // Botones de acción IA
     bw = (vw - 42.0) * 0.5
     fy = vy + vh - 60.0
-    btn("Entrenar Modelo Local (Fine-Tuning)", vx + 16.0, fy, bw, 32.0, act_train_local_ai, 0x8957E5)
-    btn("Gobernanza de Red", vx + 26.0 + bw, fy, bw, 32.0, act_toggle_net_modal, 0x21262D)
+    btn("Entrenar Modelo Local (Fine-Tuning)", 0.0 + vx + 16.0, fy, bw, 32.0, act_train_local_ai, 0x8957E5)
+    btn("Gobernanza de Red", 0.0 + vx + 26.0 + bw, fy, bw, 32.0, act_toggle_net_modal, 0x21262D)
     1.0
 }
 
@@ -524,8 +524,8 @@ render_security_modal(h_w, h_h) = {
 
         mbw = (mw - 50.0) * 0.5
         mby = my + mh - 50.0
-        btn("Permitir Conexión", mx + 20.0, mby, mbw, 36.0, act_toggle_net_modal, 0x238636)
-        btn("Mantener Offline", mx + 30.0 + mbw, mby, mbw, 36.0, act_toggle_net_modal, 0x30363D)
+        btn("Permitir Conexión", 0.0 + mx + 20.0, mby, mbw, 36.0, act_toggle_net_modal, 0x238636)
+        btn("Mantener Offline", 0.0 + mx + 30.0 + mbw, mby, mbw, 36.0, act_toggle_net_modal, 0x30363D)
     }
     1.0
 }
@@ -732,10 +732,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w1_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w1, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w1, 0x21262D)
                     render_window_explorer(fx, fy + 28.0, w1_w, fh - 28.0, w1_sc_x, w1_sc_y)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w1, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w1, 0x238636)
                 }
             }
         }
@@ -760,10 +760,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w2_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w2, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w2, 0x21262D)
                     render_window_editor(fx, fy + 28.0, w2_w, fh - 28.0, t_frame, w2_sc_x, w2_sc_y)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w2, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w2, 0x238636)
                 }
             }
         }
@@ -788,10 +788,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w3_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w3, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w3, 0x21262D)
                     render_window_stage(fx, fy + 28.0, w3_w, fh - 28.0, t_frame)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w3, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w3, 0x238636)
                 }
             }
         }
@@ -816,10 +816,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w4_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w4, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w4, 0x21262D)
                     render_window_debugger(fx, fy + 28.0, w4_w, fh - 28.0)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w4, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w4, 0x238636)
                 }
             }
         }
@@ -844,10 +844,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w5_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w5, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w5, 0x21262D)
                     render_window_terminal(fx, fy + 28.0, w5_w, fh - 28.0)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w5, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w5, 0x238636)
                 }
             }
         }
@@ -872,10 +872,10 @@ render_ide_workspace(screen_w, screen_h, t_frame, ptr_x, ptr_y, ptr_down, ptr_wh
                 line(fx, fb, fr, fb, 0x30363D)
 
                 if (w6_min == 0.0) {
-                    btn("-", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w6, 0x21262D)
+                    btn("-", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w6, 0x21262D)
                     render_window_ai(fx, fy + 28.0, w6_w, fh - 28.0, t_frame)
                 } else {
-                    btn("+", fr - 26.0, fy + 4.0, 20.0, 20.0, act_toggle_min_w6, 0x238636)
+                    btn("+", 0.0 + fr - 26.0, 0.0 + fy + 4.0, 20.0, 20.0, act_toggle_min_w6, 0x238636)
                 }
             }
         }
