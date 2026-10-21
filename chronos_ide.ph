@@ -57,118 +57,125 @@ signal resize_orig_my = 0.0
 signal prev_click_down = 0.0     // Edge-trigger para botones de un solo clic
 
 // -------------------------------------------------------------------------------
-// 3. CONTENIDO: SCREEN 1 (EDITOR) CON SCROLL 2D CLIPPED
+// -------------------------------------------------------------------------------
+// 3. CONTENIDO: SCREEN 1 (EDITOR) CON OCLUSIÓN DETRÁS DEL BORDE
 // -------------------------------------------------------------------------------
 render_screen_editor_content(hx, hy, hw, hh, is_min, sc_x, sc_y) = {
     if (is_min == 1.0) { 0.0 } else {
         inner_w = hw - 2.0
-        inner_h = hh - 30.0
 
-        // Menú superior interno del editor
-        rect(hx + 1.0, hy + 29.0, inner_w, 24.0, 0x111620)
-        line(hx + 1.0, hy + 53.0, hx + hw - 1.0, hy + 53.0, 0x21262D)
-        text("Archivo", hx + 12.0, hy + 35.0, 9, 0x8B949E)
-        text("Editar", hx + 64.0, hy + 35.0, 9, 0x8B949E)
-        text("Ver", hx + 110.0, hy + 35.0, 9, 0x8B949E)
-        text("Compilar HTML", hx + 140.0, hy + 35.0, 9, 0x3FB950)
-
-        // Área de edición de código
+        // 1. Área interior de edición de código (fondo oscuro de cliente)
         rect(hx + 1.0, hy + 54.0, inner_w, hh - 55.0, 0x090D13)
-        
-        // Gutter de números de línea (fijo horizontalmente)
-        rect(hx + 1.0, hy + 54.0, 34.0, hh - 55.0, 0x0C1017)
-        line(hx + 35.0, hy + 54.0, hx + 35.0, hy + hh - 1.0, 0x21262D)
-        
-        // Renderizado de líneas de código desplazadas por scroll
+
+        // Límites estrictos del área de cliente (clipping vertical)
+        clip_top = hy + 54.0
+        clip_bottom = hy + hh - 16.0
+
         base_y = hy + 64.0 - sc_y
         tx = hx + 42.0 - sc_x
-        clip_bottom = hy + hh - 12.0
 
+        // Renderizado de líneas de código:
+        // Painter's Algorithm: El texto se dibuja primero; cualquier desplazamiento
+        // hacia la izquierda o hacia arriba quedará naturalmente oculto tras el Gutter y la Toolbar.
         // Línea 1
         row_y = base_y
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("1", hx + 12.0, row_y, 9, 0x484F58)
-            text("// CHRONOS IDE — HITO 2 AUTÓNOMO 100% PHASORLANG", tx, row_y, 9, 0x6E7681)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
+            text("// CHRONOS IDE — HITO 2 AUTONOMO 100% PHASORLANG", tx, row_y, 9, 0x6E7681)
         } }
 
         // Línea 2
         row_y = base_y + 18.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("2", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("import \"lib/ui_spatial_main.ph\"", tx, row_y, 9, 0x79C0FF)
         } }
 
         // Línea 3
         row_y = base_y + 36.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("3", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("import \"lib/ui_window.ph\"", tx, row_y, 9, 0x79C0FF)
         } }
 
         // Línea 4
         row_y = base_y + 54.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("4", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("signal t = 0.0", tx, row_y, 9, 0x58A6FF)
         } }
 
         // Línea 5
         row_y = base_y + 72.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("5", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("screen main {", tx, row_y, 9, 0xF2CC60)
         } }
 
         // Línea 6
         row_y = base_y + 90.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("6", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    sw = R250; sh = R251; pd = R254", tx + 16.0, row_y, 9, 0x3FB950)
         } }
 
         // Línea 7
         row_y = base_y + 108.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("7", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    left = R254; right = R248; mid = R249", tx + 16.0, row_y, 9, 0x3FB950)
         } }
 
         // Línea 8
         row_y = base_y + 126.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("8", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    if (R240 > 0.0) { motor_x = R241 }", tx + 16.0, row_y, 9, 0x79C0FF)
         } }
 
         // Línea 9
         row_y = base_y + 144.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("9", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    spatial_main_render(sw, sh)", tx + 16.0, row_y, 9, 0x58A6FF)
         } }
 
         // Línea 10
         row_y = base_y + 162.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("10", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    render_window_scrollbars(...)", tx + 16.0, row_y, 9, 0x79C0FF)
         } }
 
         // Línea 11
         row_y = base_y + 180.0
-        if (row_y >= (hy + 54.0)) { if (row_y <= clip_bottom) {
-            text("11", hx + 12.0, row_y, 9, 0x484F58)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("}", tx, row_y, 9, 0xF2CC60)
         } }
 
-        // Scrollbars 2D: Contenido virtual 640 x 480
-        render_window_scrollbars(hx, hy, hw, hh, 640.0, 480.0, sc_x, sc_y)
+        // 2. Gutter de números de línea (dibujado SOBRE el texto para ocultar cualquier desborde a la izquierda)
+        rect(hx + 1.0, hy + 54.0, 36.0, hh - 55.0, 0x0C1017)
+        line(hx + 37.0, hy + 54.0, hx + 37.0, hy + hh - 1.0, 0x21262D)
+
+        // Números de línea en el gutter con recorte estricto
+        if (base_y >= clip_top) { if (base_y <= clip_bottom) { text("1", hx + 12.0, base_y, 9, 0x484F58) } }
+        if ((base_y + 18.0) >= clip_top) { if ((base_y + 18.0) <= clip_bottom) { text("2", hx + 12.0, base_y + 18.0, 9, 0x484F58) } }
+        if ((base_y + 36.0) >= clip_top) { if ((base_y + 36.0) <= clip_bottom) { text("3", hx + 12.0, base_y + 36.0, 9, 0x484F58) } }
+        if ((base_y + 54.0) >= clip_top) { if ((base_y + 54.0) <= clip_bottom) { text("4", hx + 12.0, base_y + 54.0, 9, 0x484F58) } }
+        if ((base_y + 72.0) >= clip_top) { if ((base_y + 72.0) <= clip_bottom) { text("5", hx + 12.0, base_y + 72.0, 9, 0x484F58) } }
+        if ((base_y + 90.0) >= clip_top) { if ((base_y + 90.0) <= clip_bottom) { text("6", hx + 12.0, base_y + 90.0, 9, 0x484F58) } }
+        if ((base_y + 108.0) >= clip_top) { if ((base_y + 108.0) <= clip_bottom) { text("7", hx + 12.0, base_y + 108.0, 9, 0x484F58) } }
+        if ((base_y + 126.0) >= clip_top) { if ((base_y + 126.0) <= clip_bottom) { text("8", hx + 12.0, base_y + 126.0, 9, 0x484F58) } }
+        if ((base_y + 144.0) >= clip_top) { if ((base_y + 144.0) <= clip_bottom) { text("9", hx + 12.0, base_y + 144.0, 9, 0x484F58) } }
+        if ((base_y + 162.0) >= clip_top) { if ((base_y + 162.0) <= clip_bottom) { text("10", hx + 8.0, base_y + 162.0, 9, 0x484F58) } }
+        if ((base_y + 180.0) >= clip_top) { if ((base_y + 180.0) <= clip_bottom) { text("11", hx + 8.0, base_y + 180.0, 9, 0x484F58) } }
+
+        // 3. Menú superior interno del editor (dibujado SOBRE el contenido para ocultar desborde arriba)
+        rect(hx + 1.0, hy + 29.0, inner_w, 25.0, 0x111620)
+        line(hx + 1.0, hy + 54.0, hx + hw - 1.0, hy + 54.0, 0x21262D)
+        text("Archivo", hx + 12.0, hy + 35.0, 9, 0x8B949E)
+        text("Editar", hx + 64.0, hy + 35.0, 9, 0x8B949E)
+        text("Ver", hx + 110.0, hy + 35.0, 9, 0x8B949E)
+        text("Compilar HTML", hx + 140.0, hy + 35.0, 9, 0x3FB950)
+
+        // 4. Scrollbars 2D: Contenido virtual sincronizado 380 x 260
+        render_window_scrollbars(hx, hy + 26.0, hw, hh - 26.0, 380.0, 260.0, sc_x, sc_y)
         1.0
     }
 }
 
 // -------------------------------------------------------------------------------
-// 4. CONTENIDO: SCREEN 2 (EXPLORADOR) CON SCROLL 2D CLIPPED
+// 4. CONTENIDO: SCREEN 2 (EXPLORADOR) CON OCLUSIÓN DETRÁS DEL BORDE
 // -------------------------------------------------------------------------------
 render_screen_explorer_content(hx, hy, hw, hh, is_min, sc_x, sc_y) = {
     if (is_min == 1.0) { 0.0 } else {
@@ -177,65 +184,62 @@ render_screen_explorer_content(hx, hy, hw, hh, is_min, sc_x, sc_y) = {
         rect(hx + 1.0, hy + 29.0, inner_w, inner_h, 0x0A0E15)
 
         base_y = hy + 38.0 - sc_y
-        tx = hx + 14.0 - sc_x
-        clip_bottom = hy + hh - 12.0
+        tx = hx + 14.0
+        clip_top = hy + 29.0
+        clip_bottom = hy + hh - 16.0
 
-        if (base_y >= (hy + 29.0)) { if (base_y <= clip_bottom) {
-            text("📁 PROYECTO: SketchWarePro", tx, base_y, 9, 0x58A6FF)
+        row_y = base_y
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
+            text("📁 PROYECTO: SketchWarePro", tx, row_y, 9, 0x58A6FF)
         } }
 
         row_y = base_y + 20.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("v 📁 samples/", tx + 6.0, row_y, 9, 0x8B949E)
         } }
 
         row_y = base_y + 38.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
-            text("    ⚡ chronos_ide.ph (Hito 2 Activo)", tx + 6.0, row_y, 9, 0x3FB950)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
+            text("    ⚡ chronos_ide.ph (Hito 2)", tx + 6.0, row_y, 9, 0x3FB950)
         } }
 
         row_y = base_y + 56.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    ⚡ fractal_ui.ph", tx + 6.0, row_y, 9, 0x79C0FF)
         } }
 
         row_y = base_y + 74.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("v 📁 lib/", tx + 6.0, row_y, 9, 0x8B949E)
         } }
 
         row_y = base_y + 92.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    ⚡ ui_spatial_main.ph", tx + 6.0, row_y, 9, 0x79C0FF)
         } }
 
         row_y = base_y + 110.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
-            text("    ⚡ ui_window.ph (Scroll & Resize)", tx + 6.0, row_y, 9, 0x79C0FF)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
+            text("    ⚡ ui_window.ph", tx + 6.0, row_y, 9, 0x79C0FF)
         } }
 
         row_y = base_y + 128.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("v 📁 docs/", tx + 6.0, row_y, 9, 0x8B949E)
         } }
 
         row_y = base_y + 146.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
             text("    📚 syntax_dictionary.md", tx + 6.0, row_y, 9, 0xF2CC60)
         } }
 
         row_y = base_y + 164.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
-            text("v 📁 dist/", tx + 6.0, row_y, 9, 0x8B949E)
+        if (row_y >= clip_top) { if (row_y <= clip_bottom) {
+            text("    🌐 chronos_ide.html", tx + 6.0, row_y, 9, 0x58A6FF)
         } }
 
-        row_y = base_y + 182.0
-        if (row_y >= (hy + 29.0)) { if (row_y <= clip_bottom) {
-            text("    🌐 chronos_ide.html (Standalone)", tx + 6.0, row_y, 9, 0x58A6FF)
-        } }
-
-        // Scrollbars 2D: Contenido virtual 360 x 380
-        render_window_scrollbars(hx, hy, hw, hh, 360.0, 380.0, sc_x, sc_y)
+        // Scrollbars 2D: Contenido virtual sincronizado 260 x 240
+        render_window_scrollbars(hx, hy, hw, hh, 260.0, 240.0, 0.0, sc_y)
         1.0
     }
 }
@@ -249,37 +253,54 @@ render_screen_preview_content(hx, hy, hw, hh, is_min, t, gp_conn, right_click, m
         inner_h = hh - 30.0
         rect(hx + 1.0, hy + 29.0, inner_w, inner_h, 0x070B12)
 
+        clip_bottom = hy + hh - 14.0
         cx = hx + (hw * 0.5)
-        cy = hy + 76.0 + 29.0
+        cy = hy + 80.0
         
-        // Fasor animado
-        circle(cx, cy, 44.0, 0x1F6FEB)
-        circle(cx, cy, 22.0, 0x238636)
-        ang = t * 0.05
-        fx = cx + (38.0 * cos(ang))
-        fy = cy - (38.0 * sin(ang))
-        line(cx, cy, fx, fy, 0x00E5FF)
-        circle(fx, fy, 3.5, 0x3FB950)
-
-        // Telemetría de Periféricos Nativos
-        text("MONITOR HARDWARE DIRECTO (PVM)", hx + 14.0, hy + 164.0, 9, 0x58A6FF)
-        
-        // Estado Gamepad USB
-        if (gp_conn > 0.0) {
-            text("Gamepad USB: CONECTADO [R240=1.0]", hx + 14.0, hy + 180.0, 9, 0x3FB950)
-        } else {
-            text("Gamepad USB: Desconectado [R240=0.0]", hx + 14.0, hy + 180.0, 9, 0x8B949E)
+        // Fasor animado (solo si hay espacio vertical suficiente en la ventana)
+        if (hh >= 160.0) {
+            circle(cx, cy, 38.0, 0x1F6FEB)
+            circle(cx, cy, 19.0, 0x238636)
+            ang = t * 0.05
+            fx = cx + (32.0 * cos(ang))
+            fy = cy - (32.0 * sin(ang))
+            line(cx, cy, fx, fy, 0x00E5FF)
+            circle(fx, fy, 3.5, 0x3FB950)
         }
 
-        // Estado Ratón
-        if (right_click > 0.0) {
-            text("Clic Secundario (Der): ACTIVO [R248]", hx + 14.0, hy + 196.0, 9, 0xF2CC60)
-        } else {
-            text("Mouse: Izq=R254 | Der=R248 | Med=R249", hx + 14.0, hy + 196.0, 9, 0x8B949E)
+        // Telemetría de Periféricos Nativos con clipping estricto contra clip_bottom
+        ty = hy + 138.0
+        if (ty <= clip_bottom) {
+            text("MONITOR HARDWARE DIRECTO (PVM)", hx + 14.0, ty, 9, 0x58A6FF)
+        }
+        
+        ty = ty + 16.0
+        if (ty <= clip_bottom) {
+            if (gp_conn > 0.0) {
+                text("Gamepad USB: CONECTADO [R240=1.0]", hx + 14.0, ty, 9, 0x3FB950)
+            } else {
+                text("Gamepad USB: Desconectado [R240=0.0]", hx + 14.0, ty, 9, 0x8B949E)
+            }
         }
 
-        text("Rueda Scroll 2D: R255 (Y) / R247 (X)", hx + 14.0, hy + 212.0, 9, 0x79C0FF)
-        text("Zero-GC: 0 pausas | 120 FPS Nativos", hx + 14.0, hy + 228.0, 9, 0x3FB950)
+        ty = ty + 16.0
+        if (ty <= clip_bottom) {
+            if (right_click > 0.0) {
+                text("Clic Secundario (Der): ACTIVO [R248]", hx + 14.0, ty, 9, 0xF2CC60)
+            } else {
+                text("Mouse: Izq=R254 | Der=R248 | Med=R249", hx + 14.0, ty, 9, 0x8B949E)
+            }
+        }
+
+        ty = ty + 16.0
+        if (ty <= clip_bottom) {
+            text("Rueda Scroll 2D: R255 (Y) / R247 (X)", hx + 14.0, ty, 9, 0x79C0FF)
+        }
+
+        ty = ty + 16.0
+        if (ty <= clip_bottom) {
+            text("Zero-GC: 0 pausas | 120 FPS Nativos", hx + 14.0, ty, 9, 0x3FB950)
+        }
         1.0
     }
 }
@@ -354,38 +375,48 @@ screen main {
     // SCROLL 2D: RUEDA VERTICAL (R255) Y HORIZONTAL (R247)
     // ===========================================================================
     if (wh != 0.0) {
-        // Scroll vertical en Screen 1
+        delta = wh * 0.25
+        if (delta > 24.0) { delta = 24.0 } else { 1.0 }
+        if (delta < -24.0) { delta = -24.0 } else { 1.0 }
+
         if (window_hit_body(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my) == 1.0) {
-            max_sc = 480.0 - (s1_h - 29.0)
-            if (max_sc > 0.0) {
-                s1_sc_y = s1_sc_y + (wh * 0.35)
-                if (s1_sc_y < 0.0) { s1_sc_y = 0.0 } else { 1.0 }
-                if (s1_sc_y > max_sc) { s1_sc_y = max_sc } else { 1.0 }
-            } else { 1.0 }
+            s1_sc_y = s1_sc_y + delta
         } else {
-            // Scroll vertical en Screen 2
             if (window_hit_body(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my) == 1.0) {
-                max_sc = 380.0 - (s2_h - 29.0)
-                if (max_sc > 0.0) {
-                    s2_sc_y = s2_sc_y + (wh * 0.35)
-                    if (s2_sc_y < 0.0) { s2_sc_y = 0.0 } else { 1.0 }
-                    if (s2_sc_y > max_sc) { s2_sc_y = max_sc } else { 1.0 }
-                } else { 1.0 }
+                s2_sc_y = s2_sc_y + delta
             } else { 1.0 }
         }
     } else { 1.0 }
 
     if (wheel_x != 0.0) {
-        // Scroll horizontal en Screen 1
+        delta = wheel_x * 0.25
+        if (delta > 24.0) { delta = 24.0 } else { 1.0 }
+        if (delta < -24.0) { delta = -24.0 } else { 1.0 }
+
         if (window_hit_body(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my) == 1.0) {
-            max_sc = 640.0 - (s1_w - 2.0)
-            if (max_sc > 0.0) {
-                s1_sc_x = s1_sc_x + (wheel_x * 0.35)
-                if (s1_sc_x < 0.0) { s1_sc_x = 0.0 } else { 1.0 }
-                if (s1_sc_x > max_sc) { s1_sc_x = max_sc } else { 1.0 }
-            } else { 1.0 }
+            s1_sc_x = s1_sc_x + delta
         } else { 1.0 }
     } else { 1.0 }
+
+    // Clamping continuo y automático de scrolls contra dimensiones dinámicas (100% sincronizado)
+    max_sc = 260.0 - (s1_h - 56.0)
+    if (max_sc < 0.0) { s1_sc_y = 0.0 } else {
+        if (s1_sc_y > max_sc) { s1_sc_y = max_sc } else { 1.0 }
+        if (s1_sc_y < 0.0) { s1_sc_y = 0.0 } else { 1.0 }
+    }
+
+    max_sc = 380.0 - (s1_w - 2.0)
+    if (max_sc < 0.0) { s1_sc_x = 0.0 } else {
+        if (max_sc > 36.0) { max_sc = 36.0 } else { 1.0 }
+        if (s1_sc_x > max_sc) { s1_sc_x = max_sc } else { 1.0 }
+        if (s1_sc_x < 0.0) { s1_sc_x = 0.0 } else { 1.0 }
+    }
+
+    max_sc = 240.0 - (s2_h - 30.0)
+    if (max_sc < 0.0) { s2_sc_y = 0.0 } else {
+        if (s2_sc_y > max_sc) { s2_sc_y = max_sc } else { 1.0 }
+        if (s2_sc_y < 0.0) { s2_sc_y = 0.0 } else { 1.0 }
+    }
 
     // ===========================================================================
     // GESTIÓN DE ENTRADA EXCLUSIVA (MUTEX: REDIMENSIONAMIENTO VS ARRASTRE VS FONDO)
@@ -400,15 +431,15 @@ screen main {
             if (resize_target_win == 1.0) {
                 nw = resize_orig_w + delta_w
                 nh = resize_orig_h + delta_h
-                if (nw < 220.0) { nw = 220.0 } else { 1.0 }
-                if (nh < 160.0) { nh = 160.0 } else { 1.0 }
+                if (nw < 280.0) { nw = 280.0 } else { 1.0 }
+                if (nh < 180.0) { nh = 180.0 } else { 1.0 }
                 s1_w = nw
                 s1_h = nh
             } else { 1.0 }
             if (resize_target_win == 2.0) {
                 nw = resize_orig_w + delta_w
                 nh = resize_orig_h + delta_h
-                if (nw < 200.0) { nw = 200.0 } else { 1.0 }
+                if (nw < 220.0) { nw = 220.0 } else { 1.0 }
                 if (nh < 160.0) { nh = 160.0 } else { 1.0 }
                 s2_w = nw
                 s2_h = nh
@@ -416,7 +447,7 @@ screen main {
             if (resize_target_win == 3.0) {
                 nw = resize_orig_w + delta_w
                 nh = resize_orig_h + delta_h
-                if (nw < 200.0) { nw = 200.0 } else { 1.0 }
+                if (nw < 220.0) { nw = 220.0 } else { 1.0 }
                 if (nh < 160.0) { nh = 160.0 } else { 1.0 }
                 s3_w = nw
                 s3_h = nh
@@ -567,22 +598,28 @@ screen main {
     spatial_main_render(sw, sh)
 
     // 2. Screen 1: Editor de Código
-    render_window_frame(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, "📝 Screen 1: Editor de Código")
+    render_window_frame(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min)
     hx = spatial_world_to_screen_x(s1_x, s1_w, sw)
     hy = spatial_world_to_screen_y(s1_y, s1_h, sh)
+    text("📝 Screen 1: Editor de Código", hx + 12.0, hy + 8.0, 10, 0x58A6FF)
     render_screen_editor_content(hx, hy, s1_w, s1_h, s1_min, s1_sc_x, s1_sc_y)
+    render_window_borders(hx, hy, s1_w, s1_h, s1_min)
 
     // 3. Screen 2: Explorador de Archivos
-    render_window_frame(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, "📁 Screen 2: Explorador de Archivos")
+    render_window_frame(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min)
     hx = spatial_world_to_screen_x(s2_x, s2_w, sw)
     hy = spatial_world_to_screen_y(s2_y, s2_h, sh)
+    text("📁 Screen 2: Explorador de Archivos", hx + 12.0, hy + 8.0, 10, 0x58A6FF)
     render_screen_explorer_content(hx, hy, s2_w, s2_h, s2_min, s2_sc_x, s2_sc_y)
+    render_window_borders(hx, hy, s2_w, s2_h, s2_min)
 
     // 4. Screen 3: Live Preview PVM
-    render_window_frame(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, "🔬 Screen 3: Live Preview PVM")
+    render_window_frame(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min)
     hx = spatial_world_to_screen_x(s3_x, s3_w, sw)
     hy = spatial_world_to_screen_y(s3_y, s3_h, sh)
+    text("🔬 Screen 3: Live Preview PVM", hx + 12.0, hy + 8.0, 10, 0x58A6FF)
     render_screen_preview_content(hx, hy, s3_w, s3_h, s3_min, t_global, gp_conn, right_click, mid_click)
+    render_window_borders(hx, hy, s3_w, s3_h, s3_min)
 
     // 5. Barras fijas del sistema
     render_top_menubar(sw, sh)

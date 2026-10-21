@@ -73,6 +73,7 @@ La Phasor Virtual Machine expone 256 registros primitivos directos accesibles co
 | `R249` | `POINTER_MIDDLE` | Clic terciario (rueda central pulsada): `1.0` presionado, `0.0` libre. |
 | `R255` | `SCROLL_WHEEL_Y` | Delta de desplazamiento vertical de la rueda del ratón (`deltaY`). |
 | `R247` | `SCROLL_WHEEL_X` | Delta de desplazamiento horizontal de la rueda del ratón (`deltaX`). |
+| `R256` | `SYS_CURSOR_SHAPE` | Salida de forma de cursor: 0=default, 1=pointer, 2=text, 3=move, 4=ew-resize, 5=ns-resize, 6=nwse-resize, 7=nesw-resize, 8=grabbing. |
 | **Gamepad USB / Bluetooth & Robótica** | | |
 | `R240` | `GAMEPAD_CONNECTED` | Estado del mando: `1.0` si hay un joystick/gamepad conectado, `0.0` si no. |
 | `R241` | `GAMEPAD_LX` | Stick analógico izquierdo Eje X: Rango continuo `[-1.0 .. +1.0]`. |

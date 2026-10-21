@@ -235,6 +235,14 @@ else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]
           self.renderVmUi(self.ctx, self.vm, self.width, self.height);
           self.setReg(255, 0);
           self.setReg(247, 0);
+          if (self.canvas) {
+            var cCode = Math.floor(self.vm.rScalar[256] || 0);
+            var cursors = ['default', 'pointer', 'text', 'move', 'ew-resize', 'ns-resize', 'nwse-resize', 'nesw-resize', 'grabbing'];
+            var curName = cursors[cCode] || 'default';
+            if (self.canvas.style.cursor !== curName) {
+              self.canvas.style.cursor = curName;
+            }
+          }
         }
         requestAnimationFrame(loop);
       };
