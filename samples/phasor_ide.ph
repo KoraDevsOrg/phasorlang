@@ -5,12 +5,9 @@
 // Topología Unificada de 6 Ventanas: Desktop Docking 8D vs Mobile Snap 100%
 // ===============================================================================
 
-import "lib/ui_ide_menu.ph"
-
 // -------------------------------------------------------------------------------
 // 1. SEÑALES REACTIVAS DE HARDWARE Y TIEMPO REAL (120 FPS ZERO-GC)
 // -------------------------------------------------------------------------------
-
 signal mouse_x = 0.0
 signal mouse_y = 0.0
 signal mouse_down = 0.0
@@ -19,6 +16,8 @@ signal t_global_ide = 0.0
 signal ide_render_fps = 120.0
 signal ide_pvm_latency_us = 16.0
 
+import "lib/ui_ide_menu.ph"
+
 // -------------------------------------------------------------------------------
 // 4. PANTALLA PRINCIPAL DEL IDE (100% RECURSIVA & AUTOHOSPEDADA A 120 FPS)
 // -------------------------------------------------------------------------------
@@ -26,20 +25,20 @@ screen main {
     cls(0x0D1117)
     t_global_ide = t_global_ide + 1.0
 
-    // Captura los registros de hardware virtual inyectados por el host (R250, R251, R1..R4)
-    vw = R250
-    vh = R251
+    // Captura los registros de hardware virtual inyectados por el host (R250..R255)
+    sw = R250
+    sh = R251
     mx = mouse_x
     my = mouse_y
     pd = mouse_down
     wh = mouse_wheel
 
     // Clamping de seguridad para viewports iniciales mínimos
-    if (vw < 240.0) { vw = 800.0 }
-    if (vh < 240.0) { vh = 600.0 }
+    if (sw < 240.0) { sw = 800.0 }
+    if (sh < 240.0) { sh = 600.0 }
 
     // Renderiza el espacio de trabajo modular de 6 ventanas ortogonales
-    render_ide_workspace(vw, vh, t_global_ide, mx, my, pd, wh)
+    render_ide_workspace(sw, sh, t_global_ide, mx, my, pd, wh)
 }
 
 // -------------------------------------------------------------------------------
