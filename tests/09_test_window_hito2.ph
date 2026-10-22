@@ -80,12 +80,12 @@ main = {
     edge_nw = window_hit_edge_8d(100.0, 100.0, 400.0, 300.0, 800.0, 600.0, 0.0, 103.0, 103.0)
     if (edge_nw == 8.0) { out("  [PASS] Esquina Noroeste (NW) detectada correctamente (dir=8)") } else { out("  [FAIL] Esquina NW fallo") }
 
-    out(">>> TEST 7: Asignación y Lectura de R256 (SYS_CURSOR_SHAPE)...")
-    R256 = window_cursor_from_dir(edge_e) // Dir 1 -> ew-resize (4.0)
-    if (R256 == 4.0) { out("  [PASS] R256 mapeado a EW-Resize (4.0) correctamente") } else { out("  [FAIL] R256 fallo") }
+    out(">>> TEST 7: Asignación y Lectura de R229 (SYS_CURSOR_SHAPE)...")
+    R229 = window_cursor_from_dir(edge_e) // Dir 1 -> ew-resize (4.0)
+    if (R229 == 4.0) { out("  [PASS] R229 mapeado a EW-Resize (4.0) correctamente") } else { out("  [FAIL] R229 fallo") }
 
-    R256 = window_cursor_from_dir(edge_se) // Dir 5 -> nwse-resize (6.0)
-    if (R256 == 6.0) { out("  [PASS] R256 mapeado a NWSE-Resize (6.0) correctamente") } else { out("  [FAIL] R256 fallo") }
+    R229 = window_cursor_from_dir(edge_se) // Dir 5 -> nwse-resize (6.0)
+    if (R229 == 6.0) { out("  [PASS] R229 mapeado a NWSE-Resize (6.0) correctamente") } else { out("  [FAIL] R229 fallo") }
 
     out("======================================================================")
     out("  HITO 2: TODAS LAS PRUEBAS DE ARQUITECTURA PASARON CON ÉXITO [PASS]  ")

@@ -181,8 +181,12 @@ else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]
           }
         }
       });
+      self.canvas.addEventListener('pointermove', function(e) { updatePtr(e); });
       window.addEventListener('pointermove', function(e) { updatePtr(e); });
+      self.canvas.addEventListener('mousemove', function(e) { updatePtr(e); });
+      window.addEventListener('mousemove', function(e) { updatePtr(e); });
       window.addEventListener('pointerup', function(e) { updatePtr(e, 0.0); });
+      window.addEventListener('mouseup', function(e) { updatePtr(e, 0.0); });
       self.canvas.addEventListener('wheel', function(e) {
         self.setReg(255, e.deltaY);
         self.setReg(247, e.deltaX || 0);
@@ -236,11 +240,15 @@ else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]
           self.setReg(255, 0);
           self.setReg(247, 0);
           if (self.canvas) {
-            var cCode = Math.floor(self.vm.rScalar[256] || 0);
+            var rVal = (self.vm.rScalar[229] !== undefined && self.vm.rScalar[229] !== 0) ? self.vm.rScalar[229] : (self.vm.rScalar[256] || 0);
+            var cCode = Math.round(Number(rVal) || 0);
             var cursors = ['default', 'pointer', 'text', 'move', 'ew-resize', 'ns-resize', 'nwse-resize', 'nesw-resize', 'grabbing'];
             var curName = cursors[cCode] || 'default';
             if (self.canvas.style.cursor !== curName) {
               self.canvas.style.cursor = curName;
+              if (document.body && document.body.style.cursor !== curName) {
+                document.body.style.cursor = curName;
+              }
             }
           }
         }

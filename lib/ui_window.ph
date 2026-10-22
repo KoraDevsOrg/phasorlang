@@ -179,7 +179,7 @@ window_hit_edge_8d(wx, wy, ww, wh, screen_w, screen_h, is_min, mx, my) = {
                 on_b = 0.0
                 if (mx <= (hx + bm)) { on_l = 1.0 } else { 1.0 }
                 if (mx >= (hr - bm)) { on_r = 1.0 } else { 1.0 }
-                if (my <= (hy + bm)) { on_t = 1.0 } else { 1.0 }
+                if (my <= (hy + 4.0)) { on_t = 1.0 } else { 1.0 }
                 if (my >= (hb - bm)) { on_b = 1.0 } else { 1.0 }
 
                 // 1. Esquinas (Tienen máxima prioridad)
