@@ -2,7 +2,7 @@
 // CHRONOS IDE — APLICATIVO PRINCIPAL (chronos_ide.ph)
 // PhasorLang v1.0 [KoraDevs Autonomous Ecosystem]
 // Arquitectura Soberana: 100% Código PhasorLang Puro & Modular
-// Hito 2: Contenedor de Pantallas Hijas (Scrollbars 2D, Resizing 8D y Minimizado)
+// Hito 3: Redimensionado 8D Perimetral Avanzado y Marcos de Ventana
 // Captura Nativa de Periféricos (Mouse Clicks, Gamepad USB & Teclado R229..R255)
 // Invariante Estricto: Zero-GC a 120 FPS Nativos
 // ===============================================================================
@@ -11,7 +11,7 @@
 // 1. IMPORTACIONES MODULARES
 // -------------------------------------------------------------------------------
 import "lib/ui_spatial_main.ph"
-import "lib/ui_window.ph"
+import "lib/ui_window_frame.ph"
 
 // -------------------------------------------------------------------------------
 // 2. ESTADO GLOBAL REACTIVO (MEMORIA CONTIGUA SOA)
@@ -60,7 +60,7 @@ signal resize_orig_my = 0.0
 signal prev_click_down = 0.0     // Edge-trigger para botones de un solo clic
 
 // -------------------------------------------------------------------------------
-// 3. FUNCIONES AUXILIARES DE MATEMÁTICA Y CINEMÁTICA (ZERO-GC)
+// 3. FUNCIONES AUXILIARES DE CLAMPING Y SCROLL (ZERO-GC)
 // -------------------------------------------------------------------------------
 clamp_val(v, min_v, max_v) = {
     res = v
@@ -76,60 +76,6 @@ clamp_scroll(cur_sc, max_sc) = {
         if (res < 0.0) { res = 0.0 } else { 1.0 }
     }
     res
-}
-
-calc_resize_w(dir, orig_w, delta_w, min_w) = {
-    nw = orig_w
-    if (dir == 1.0) { nw = orig_w + delta_w } else {
-        if (dir == 5.0) { nw = orig_w + delta_w } else {
-            if (dir == 7.0) { nw = orig_w + delta_w } else {
-                if (dir == 3.0) { nw = orig_w - delta_w } else {
-                    if (dir == 6.0) { nw = orig_w - delta_w } else {
-                        if (dir == 8.0) { nw = orig_w - delta_w } else { 1.0 }
-                    }
-                }
-            }
-        }
-    }
-    if (nw < min_w) { nw = min_w } else { 1.0 }
-    nw
-}
-
-calc_resize_x(dir, orig_x, orig_w, new_w) = {
-    nx = orig_x
-    if (dir == 3.0) { nx = (orig_x + orig_w) - new_w } else {
-        if (dir == 6.0) { nx = (orig_x + orig_w) - new_w } else {
-            if (dir == 8.0) { nx = (orig_x + orig_w) - new_w } else { 1.0 }
-        }
-    }
-    nx
-}
-
-calc_resize_h(dir, orig_h, delta_h, min_h) = {
-    nh = orig_h
-    if (dir == 2.0) { nh = orig_h + delta_h } else {
-        if (dir == 5.0) { nh = orig_h + delta_h } else {
-            if (dir == 6.0) { nh = orig_h + delta_h } else {
-                if (dir == 4.0) { nh = orig_h - delta_h } else {
-                    if (dir == 7.0) { nh = orig_h - delta_h } else {
-                        if (dir == 8.0) { nh = orig_h - delta_h } else { 1.0 }
-                    }
-                }
-            }
-        }
-    }
-    if (nh < min_h) { nh = min_h } else { 1.0 }
-    nh
-}
-
-calc_resize_y(dir, orig_y, orig_h, new_h) = {
-    ny = orig_y
-    if (dir == 4.0) { ny = (orig_y + orig_h) - new_h } else {
-        if (dir == 7.0) { ny = (orig_y + orig_h) - new_h } else {
-            if (dir == 8.0) { ny = (orig_y + orig_h) - new_h } else { 1.0 }
-        }
-    }
-    ny
 }
 
 // -------------------------------------------------------------------------------
@@ -639,5 +585,11 @@ screen main {
     render_screen_1(sw, sh)
     render_screen_2(sw, sh)
     render_screen_3(sw, sh, t_global, gp_conn, right_click, mid_click)
+
+    // Feedback visual y cinemático de redimensionamiento activo 8D (borde cian brillante)
+    if (resize_target_win == 1.0) { render_window_active_resize_outline(s1_x, s1_y, s1_w, s1_h, sw, sh) } else { 1.0 }
+    if (resize_target_win == 2.0) { render_window_active_resize_outline(s2_x, s2_y, s2_w, s2_h, sw, sh) } else { 1.0 }
+    if (resize_target_win == 3.0) { render_window_active_resize_outline(s3_x, s3_y, s3_w, s3_h, sw, sh) } else { 1.0 }
+
     render_system_bars(sw, sh)
 }
