@@ -534,4 +534,91 @@ Para que cualquier desarrollador o modelo de lenguaje (como **Phasor-SLM** o asi
    ```
 2. **Prohibición Absoluta de Objetos en Heap**: No intentar usar `new`, crear cadenas dinámicas dentro de bucles `while`, o instanciar arrays dinámicos. Usar `alloc_soa` para colecciones.
 3. **Coordenadas y Clamping**: En interfaces con scroll, siempre acotar las posiciones mediante sentencias `if (sc_y < 0.0) { sc_y = 0.0 }` y limitar el dibujado dentro del contenedor de la ventana.
-4. **Interactividad**: Los botones siempre invocan bloques `action`. El estado visual se actualiza modificando señales (`signals`).
+4. **Interactividad**: Los botones siempre invocan bloques `action` o funciones modulares con detección de bordes (`ui_hit_box`, `ui_tree_hit`). El estado visual se actualiza modificando señales (`signals`).
+5. **Disciplina de Bloques Planos PVM (Flat Block Watermark)**: En funciones con múltiples comprobaciones condicionales, asignar primero el resultado de una función a una variable canónica (`hit = ui_hit_box(...)`) a nivel de bloque antes del `if (hit == 1.0) { ... }`. Así el emisor PVM libera automáticamente los registros temporales tras cada sentencia.
+
+---
+
+## 13. Estándar Oficial de Nuevo Proyecto (`samples/template_new_project/main.ph`)
+
+Todo aplicativo nuevo creado en **Chronos IDE** (o mediante el botón **`+ Proyecto`** del Explorador) utiliza por defecto la **Arquitectura Espacial Estándar de PhasorLang**, salvo que el desarrollador indique explícitamente lo contrario:
+
+1. **Contenedor Principal Toroidal (`lib/ui_spatial_main.ph`)**:
+   - Provee el fondo espacial infinito de `360°` con grilla fasorial y paneo libre mediante arrastre en el espacio vacío o Gamepad USB.
+2. **Ventana Inicial `Screen 1` Activa en Blanco (`lib/ui_window_frame.ph` + `lib/ui_scrollbar.ph`)**:
+   - Se instancia por defecto una ventana flotante **`Screen 1`** completamente funcional con:
+     - Arrastre desde su barra de título y botón de minimizado (`[-]` / `[+]`).
+     - Redimensionamiento en 8 direcciones (`N, S, E, W, NE, NW, SE, SW`) con cursores nativos (`R229`).
+     - **Scissor Clipping Suave de Hardware (`sb_begin_clip` / `sb_end_clip`)** y **Scrollbars 2D Neón (`ui_subscreen_scrollbars`)** activos en blanco listos para recibir contenido.
+3. **Libertad Total del Desarrollador**:
+   - El desarrollador escribe su código dentro de `render_screen_1_content(hx, hy, w, h, is_min, dx, dy, act)`, o puede eliminar `Screen 1` o duplicar su estructura para crear múltiples pantallas (`Screen 2`, `Screen 3`, etc.).
+
+### Estructura Base de `main.ph` (Nuevo Proyecto):
+```phasor
+import "lib/ui_spatial_main.ph"
+import "lib/ui_window_frame.ph"
+import "lib/ui_viewport.ph"
+import "lib/ui_scrollbar.ph"
+import "lib/ui_components.ph"
+
+render_screen_1_content(hx, hy, w, h, is_min, dx, dy, act) = {
+    if (is_min == 1.0) { 0.0 } else {
+        top = 28.0; cw = s1_cw; ch = s1_ch
+        rect(hx + 1.0, hy + 28.0, w - 2.0, h - 29.0, 0x090D13)
+
+        sb_begin_clip(hx, hy, w, h, top, cw, ch)
+        tx = hx + 20.0 - dx
+        ty = hy + 48.0 - dy
+
+        // --- ESCRIBE AQUÍ EL CONTENIDO DE TU APLICACIÓN ---
+        ui_card(tx, ty, 480.0, 96.0, 0x0D1117, 0x21262D)
+        ui_badge_box(tx + 14.0, ty + 14.0, 48.0, 0x238636)
+        text("READY", tx + 21.0, ty + 17.0, 8, 0xFFFFFF)
+
+        sb_end_clip()
+        ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
+        1.0
+    }
+}
+```
+
+---
+
+## 14. Catálogo de Componentes Genéricos Reutilizables (`lib/ui_components.ph`)
+
+Para mantener una sintaxis reconocible en cualquier lenguaje o framework moderno y facilitar la creación de paneles del IDE y aplicaciones de usuario sin colisionar con los registros de coordenadas del marco de ventana (`hx, hy, w, h, tx, ty`), la biblioteca estándar ofrece `lib/ui_components.ph` con parámetros aislados `(orig_x, orig_y, orig_w, orig_h)`:
+
+> **Ley de Literales de Texto Directos en PVM (`TOK_STR`)**: En PhasorVM, el opcode `text("...", x, y, sz, col)` requiere que el primer argumento sea directamente un literal de cadena entre comillas (`"..."`). Por ello, los componentes de `lib/ui_components.ph` dibujan la geometría vectorial, estados de selección, iconos y retornan la coordenada `nx` exacta donde se invoca `text("...", nx, y, sz, col)` directamente.
+
+| Función / Componente | Firma de Parámetros | Propósito y Uso |
+| :--- | :--- | :--- |
+| **`ui_card`** | `ui_card(orig_x, orig_y, orig_w, orig_h, bg_col, border_col)` | Dibuja una tarjeta contenedora rectangular con fondo relleno y borde perimetral de 1 px sin alterar `hx, hy, w, h`. |
+| **`ui_divider`** | `ui_divider(orig_x, orig_y, orig_w, col)` | Dibuja una línea separadora horizontal limpia para dividir secciones dentro de tarjetas o paneles. |
+| **`ui_badge_box`** | `ui_badge_box(orig_x, orig_y, orig_w, bg_col)` | Dibuja la píldora/etiqueta (*badge*) de `16 px` de alto y retorna `orig_x + 5.0` para acompañar con `text("...", ...)`. |
+| **`ui_button_box`** | `ui_button_box(orig_x, orig_y, orig_w, orig_h, act, active_bg)` | Caja de botón interactivo universal con estado normal (`act == 0.0`) y estado activo (`act == 1.0`). |
+| **`ui_icon_box`** | `ui_icon_box(orig_x, orig_y, orig_w, act)` | Botón cuadrado compacto (`orig_w x orig_w`) ideal para barras de herramientas (`v/>`, `+`, `⋮`). |
+| **`ui_hit_box`** | `ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)` | Hit-testing rectangular plano Zero-GC. Retorna `1.0` si `(mx, my)` está dentro de `[orig_x, orig_y, orig_w, orig_h]`, o `0.0` fuera. |
+| **`ui_file_icon`** | `ui_file_icon(orig_x, orig_y, is_folder, is_open, col)` | Icono vectorial procedural de `12x10 px`: dibuja carpeta dorada abierta/cerrada (`is_folder == 1.0`) o documento con marca semántica (`is_folder == 0.0`). |
+| **`ui_tree_row`** | `ui_tree_row(orig_x, orig_y, orig_w, depth, is_folder, act, is_sel, col)` | Fila de árbol jerárquico (*TreeView*) con sangría `depth * 14 px`, guía `├─`, chevron `v`/`>`, icono vectorial procedural, indicador de archivo modificado (`●` si `act == 1.0`), botón de 3 puntos (`[⋮]`) al frente de cada carpeta y archivo, y retorno de la coordenada `nx` para el texto. |
+| **`ui_tree_hit`** | `ui_tree_hit(orig_x, orig_y, orig_w, mx, my)` | Hit-testing para una fila de `ui_tree_row`. Retorna `0.0` (fuera), `1.0` (clic en el nodo para abrir/expandir) o `2.0` (clic en el botón de 3 puntos `[⋮]`). |
+| **`ui_context_box`** | `ui_context_box(orig_x, orig_y, orig_w, orig_h)` | Contenedor flotante (*Popover / Context Menu*) con sombra proyectada, cabecera y borde neón. |
+
+### Ejemplo de Uso Combinado (Contenedor + Árbol + Menú de 3 Puntos en `lib/ui_screen_explorer.ph`):
+```phasor
+import "lib/ui_components.ph"
+
+// 1. Contenedor interior dentro del área recortada del Screen 2
+ui_card(hx + 6.0 - dx, hy + 58.0 - dy, clw + 12.0, ch - 12.0, 0x0D1117, 0x21262D)
+
+// 2. Dibujar nodo de carpeta (depth=0.0, is_folder=1.0) y nodo de archivo hijo (depth=1.0, is_folder=0.0)
+nx = ui_tree_row(tx, ty, clw, 0.0, 1.0, exp_d1, is_sel, 0xF2CC60)
+text("samples/", nx, ty + 4.0, 9, 0xF2CC60)
+
+nx = ui_tree_row(tx, ty + 20.0, clw, 1.0, 0.0, 0.0, is_sel_file, 0x58A6FF)
+text("main.ph  [Plantilla]", nx, ty + 24.0, 9, 0x58A6FF)
+
+// 3. Detectar clic sobre el nodo o su botón contextual (⋮)
+hit = ui_tree_hit(tx, ty + 20.0, clw, mx, my)
+if (hit == 1.0) { /* Seleccionar / Abrir archivo */ } else { 1.0 }
+if (hit == 2.0) { /* Abrir menú contextual de 3 puntos */ } else { 1.0 }
+```

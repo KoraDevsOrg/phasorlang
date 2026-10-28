@@ -81,8 +81,12 @@ Cualquier desarrollador que utilice Chronos IDE debe poder construir, probar y e
 2. **Preservación de Pruebas Unitarias**: Todo cambio en la biblioteca estándar o en el motor de ejecución debe validar y mantener en verde el 100% de la batería de pruebas en `tests/`.
 
 
-### V. Flujo de desarrollo por el usuario
-1. **Desarrollo**: El usuario crea codigo phasor,archivos .ph con imports, un archivo .ph puede ser llmado por otro con import como main.ph y sub1.ph, dentro de main.ph estaria el import sub.ph y luego llamar codigo o funciones del sub
-2. **Pruebas**: el ide podra ejecutar ya sea en ternimal o visual el codigo completo como si estuviera en la web
-3. **Compilacion**: al compilar se creará el archivo html con el phasor embebido listo para ejecutar en cualquier navegador y dispositivo, si se requieren los import, estos deberan estan en la misma carpeta, al ejecutar se identifica si existen o si no los puede cargar desde el github.
-4. **Restricciones**: El usuario nunca programa en otro lenguaje diferente a phasor, el html solo se edita al complar no por el usurio desarrollador.
+### V. Flujo de desarrollo por el usuario y Plantilla Estándar de Proyecto
+1. **Plantilla Estándar por Defecto (`samples/template_new_project/main.ph`)**:
+   - Siempre que se cree un nuevo proyecto o aplicación en PhasorLang (salvo que el desarrollador indique explícitamente lo contrario), se generará por defecto el archivo `main.ph` con el contenedor principal espacial importado (`lib/ui_spatial_main.ph`), el gestor de marco 8D (`lib/ui_window_frame.ph`), las barras de desplazamiento 2D (`lib/ui_scrollbar.ph`), el catálogo de componentes reutilizables (`lib/ui_components.ph`) y una ventana inicial **`Screen 1`** activa en blanco con scroll 2D y *Scissor Clipping* listos para desarrollar en su interior (pudiendo el desarrollador usarla, eliminarla o crear más pantallas `Screen 2..N`).
+2. **Arquitectura de Paneles en Chronos IDE**:
+   - En `chronos_ide.ph`, cada pantalla flotante (`Screen`) representa un panel especializado del IDE (Screen 1 = Editor de Código, Screen 2 = Explorador de Proyecto `lib/ui_screen_explorer.ph`, Screen 3 = Live Preview PVM, y futuros paneles para IA, Terminal, Debug, Configuración y Versiones), manteniendo intacto el marco exterior, fondo espacial y scroll 2D mientras se desarrolla su contenido interior con componentes genéricos reutilizables (`lib/ui_components.ph`).
+3. **Desarrollo**: El usuario crea código Phasor, archivos `.ph` con `import`; un archivo `.ph` puede ser llamado por otro con `import` como `main.ph` y `sub1.ph`.
+4. **Pruebas**: El IDE puede ejecutar tanto en terminal (`java -jar phasor.jar run <archivo.ph> -v`) como visualmente el código completo como si estuviera en la web.
+5. **Compilación**: Al compilar (`node tools/phasor_bundler.js <entrada.ph> <salida.html>`) se crea el archivo HTML con el Phasor embebido listo para ejecutar en cualquier navegador y dispositivo; si se requieren los `import`, estos se resuelven desde la misma carpeta o repositorio GitHub.
+6. **Restricciones**: El usuario nunca programa en otro lenguaje diferente a PhasorLang (`.ph`); el HTML solo se genera al compilar, nunca es editado manualmente por el usuario desarrollador.

@@ -79,3 +79,13 @@ Cualquier desarrollador que utilice Chronos IDE debe poder construir, probar y e
 ### IV. Estándar de Entrega de Código
 1. **Cero Comentarios Evasivos y Cero Placeholders**: Al crear o modificar código, entregar siempre las clases, funciones y archivos COMPLETOS y listos para producción.
 2. **Preservación de Pruebas Unitarias**: Todo cambio en la biblioteca estándar o en el motor de ejecución debe validar y mantener en verde el 100% de la batería de pruebas en `tests/`.
+
+---
+
+### V. Flujo de Desarrollo por el Usuario y Plantilla Estándar de Proyecto
+1. **Plantilla Estándar por Defecto (`samples/template_new_project/main.ph`)**:
+   - Siempre que se cree un nuevo proyecto o aplicación en PhasorLang (salvo que el desarrollador indique explícitamente lo contrario), se generará por defecto el archivo `main.ph` con el contenedor principal espacial importado (`lib/ui_spatial_main.ph`), el gestor de marco 8D (`lib/ui_window_frame.ph`), las barras de desplazamiento 2D (`lib/ui_scrollbar.ph`), el catálogo de componentes reutilizables (`lib/ui_components.ph`) y una ventana inicial **`Screen 1`** activa en blanco con scroll 2D y *Scissor Clipping* listos para desarrollar en su interior (pudiendo el desarrollador usarla, eliminarla o crear más pantallas `Screen 2..N`).
+2. **Arquitectura de Paneles en Chronos IDE**:
+   - En `chronos_ide.ph`, cada pantalla flotante (`Screen`) representa un panel especializado del IDE (Screen 1 = Editor de Código, Screen 2 = Explorador de Proyecto `lib/ui_screen_explorer.ph`, Screen 3 = Live Preview PVM, y futuros paneles para IA, Terminal, Debug, Configuración y Versiones), manteniendo intacto el marco exterior, fondo espacial y scroll 2D mientras se desarrolla su contenido interior con componentes genéricos reutilizables (`lib/ui_components.ph`).
+3. **Desarrollo Modular**: El usuario programa exclusivamente en archivos `.ph` con directivas `import`, reutilizando componentes genéricos de `lib/ui_components.ph`.
+4. **Compilación Standalone**: Al compilar se empaqueta el aplicativo completo y sus módulos `.ph` en un único archivo `.html` autónomo ejecutable en cualquier dispositivo.

@@ -14,6 +14,7 @@ import "lib/ui_spatial_main.ph"
 import "lib/ui_window_frame.ph"
 import "lib/ui_viewport.ph"
 import "lib/ui_scrollbar.ph"
+import "lib/ui_screen_explorer.ph"
 
 // -------------------------------------------------------------------------------
 // 2. ESTADO GLOBAL REACTIVO (MEMORIA CONTIGUA SOA)
@@ -132,6 +133,7 @@ win_sc_y(id) = {
 win_top(id) = {
     res = 28.0
     if (id == 1.0) { res = 54.0 } else { 1.0 }
+    if (id == 2.0) { res = 54.0 } else { 1.0 }
     res
 }
 
@@ -144,7 +146,7 @@ win_cw(id) = {
 
 win_ch(id) = {
     res = 560.0
-    if (id == 2.0) { res = 380.0 } else { 1.0 }
+    if (id == 2.0) { res = explorer_content_h() } else { 1.0 }
     if (id == 3.0) { res = 340.0 } else { 1.0 }
     res
 }
@@ -169,11 +171,9 @@ set_win_sc(id, dx, dy) = {
 }
 
 add_win_sc(id, dx, dy) = {
-    cur_x = win_sc_x(id)
-    cur_y = win_sc_y(id)
-    sc_new_x = cur_x + dx
-    sc_new_y = cur_y + dy
-    set_win_sc(id, sc_new_x, sc_new_y)
+    tx = win_sc_x(id) + dx
+    ty = win_sc_y(id) + dy
+    set_win_sc(id, tx, ty)
 }
 
 clamp_win_scroll(id) = {
@@ -184,12 +184,12 @@ clamp_win_scroll(id) = {
     ch = win_ch(id)
     clw = sb_client_w(w)
     clh = sb_client_h(h, top)
-    limit_x = sb_max_scroll_x(cw, clw)
-    limit_y = sb_max_scroll_y(ch, clh)
-    cur_x = win_sc_x(id)
-    cur_y = win_sc_y(id)
-    dx = sb_clamp(cur_x, limit_x)
-    dy = sb_clamp(cur_y, limit_y)
+    val = sb_max_scroll_x(cw, clw)
+    delta = sb_max_scroll_y(ch, clh)
+    tx = win_sc_x(id)
+    ty = win_sc_y(id)
+    dx = sb_clamp(tx, val)
+    dy = sb_clamp(ty, delta)
     set_win_sc(id, dx, dy)
 }
 
@@ -202,11 +202,12 @@ clamp_all_scrolls() = {
 
 top_win_at(mx, my, sw, sh) = {
     target = 0.0
-    if (window_hit_body(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, mx, my) == 1.0) { target = 3.0 } else {
-        if (window_hit_body(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my) == 1.0) { target = 2.0 } else {
-            if (window_hit_body(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my) == 1.0) { target = 1.0 } else { 1.0 }
-        }
-    }
+    hit = window_hit_body(s1_x, s1_y, s1_w, s1_h, sw, sh, s1_min, mx, my)
+    if (hit == 1.0) { target = 1.0 } else { 1.0 }
+    hit = window_hit_body(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min, mx, my)
+    if (hit == 1.0) { target = 2.0 } else { 1.0 }
+    hit = window_hit_body(s3_x, s3_y, s3_w, s3_h, sw, sh, s3_min, mx, my)
+    if (hit == 1.0) { target = 3.0 } else { 1.0 }
     target
 }
 
@@ -325,6 +326,10 @@ render_editor_toolbar(hx, hy, w) = {
     text("Editar", hx + 65.0, hy + 35.0, 9, 0x8B949E)
     text("Ver", hx + 110.0, hy + 35.0, 9, 0x8B949E)
     text("Compilar HTML", hx + 140.0, hy + 35.0, 9, 0x3FB950)
+    if (exp_edit_mod == 1.0) {
+        ui_badge_box(hx + 236.0, hy + 33.0, 48.0, 0x1F6FEB)
+        text("MOD ●", hx + 242.0, hy + 36.0, 8, 0xF2CC60)
+    } else { 1.0 }
     1.0
 }
 
@@ -337,52 +342,92 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
         // Fondo del viewport del editor
         rect(hx + 1.0, hy + 54.0, w - 2.0, h - 55.0, 0x090D13)
 
-        // Límites del área cliente del editor
-        ct = hy + 54.0
-        cb = (hy + h) - 12.0
-        cl = hx + 38.0
-        cr = (hx + w) - 12.0
+        // Coordenadas de inicio del código y del gutter
         ty = hy + 66.0 - dy
         tx = hx + 42.0 - dx
         gx = hx + 12.0
 
         // 1. DIBUJAR CÓDIGO CON SCISSOR CLIPPING SUAVE (PÍXEL A PÍXEL DETRÁS DEL GUTTER Y MARCO)
         clip(hx + 38.0, hy + 54.0, w - 50.0, h - 66.0)
-        if (vp_line_visible(ty, ct, cb) == 1.0) {
-            text("// CHRONOS IDE — HITO 4 AUTONOMO 100% PHASORLANG", tx, ty, 9, 0x6E7681)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 18.0, ct, cb) == 1.0) {
+        if (exp_ed_file == 1.0) {
+            text("// PLANTILLA ESTANDAR: NUEVO PROYECTO (main.ph)", tx, ty, 9, 0x6E7681)
             text("import \"lib/ui_spatial_main.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 36.0, ct, cb) == 1.0) {
             text("import \"lib/ui_window_frame.ph\"", tx, ty + 36.0, 9, 0x79C0FF)
+            text("import \"lib/ui_scrollbar.ph\"", tx, ty + 54.0, 9, 0x79C0FF)
+            text("signal s1_x = 120.0; signal s1_y = 70.0", tx, ty + 72.0, 9, 0xF2CC60)
+            text("render_screen_1_content(hx, hy, w, h, ...) = {", tx, ty + 90.0, 9, 0x58A6FF)
+            text("    sb_begin_clip(hx, hy, w, h, top, cw, ch)", tx, ty + 108.0, 9, 0x3FB950)
+            text("    // Screen 1 en blanco listo para desarrollar", tx, ty + 126.0, 9, 0x6E7681)
+            text("    sb_end_clip()", tx, ty + 144.0, 9, 0x3FB950)
+            text("    ui_subscreen_scrollbars(hx, hy, w, h, ..., 1.0)", tx, ty + 162.0, 9, 0x58A6FF)
+            text("}", tx, ty + 180.0, 9, 0x58A6FF)
+            text("screen main { spatial_main_render(R250, R251) }", tx, ty + 198.0, 9, 0xF2CC60)
         } else { 1.0 }
-        if (vp_line_visible(ty + 54.0, ct, cb) == 1.0) {
-            text("import \"lib/ui_viewport.ph\"", tx, ty + 54.0, 9, 0x79C0FF)
+
+        if (exp_ed_file == 2.0) {
+            text("// LIB/UI_COMPONENTS.PH — COMPONENTES GENERICOS", tx, ty, 9, 0x6E7681)
+            text("ui_card(orig_x, orig_y, orig_w, orig_h, bg, border)", tx, ty + 18.0, 9, 0x3FB950)
+            text("ui_divider(orig_x, orig_y, orig_w, col)", tx, ty + 36.0, 9, 0x3FB950)
+            text("ui_badge_box(orig_x, orig_y, orig_w, bg_col)", tx, ty + 54.0, 9, 0x58A6FF)
+            text("ui_button_box(orig_x, orig_y, orig_w, orig_h, act, bg)", tx, ty + 72.0, 9, 0x58A6FF)
+            text("ui_icon_box(orig_x, orig_y, orig_w, act)", tx, ty + 90.0, 9, 0x58A6FF)
+            text("ui_file_icon(orig_x, orig_y, is_folder, is_open, col)", tx, ty + 108.0, 9, 0xF2CC60)
+            text("ui_tree_row(orig_x, orig_y, orig_w, depth, ...)", tx, ty + 126.0, 9, 0x79C0FF)
+            text("ui_tree_hit(orig_x, orig_y, orig_w, mx, my)", tx, ty + 144.0, 9, 0x79C0FF)
+            text("ui_context_box(orig_x, orig_y, orig_w, orig_h)", tx, ty + 162.0, 9, 0x3FB950)
+            text("ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)", tx, ty + 180.0, 9, 0x3FB950)
+            text("// Registros aislados Zero-GC sin colision con hx/hy", tx, ty + 198.0, 9, 0x58A6FF)
         } else { 1.0 }
-        if (vp_line_visible(ty + 72.0, ct, cb) == 1.0) {
-            text("signal t = 0.0", tx, ty + 72.0, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 90.0, ct, cb) == 1.0) {
-            text("screen main {", tx, ty + 90.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 108.0, ct, cb) == 1.0) {
-            text("    sw = R250; sh = R251; pd = R254", tx, ty + 108.0, 9, 0x3FB950)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 126.0, ct, cb) == 1.0) {
-            text("    left = R254; right = R248; mid = R249", tx, ty + 126.0, 9, 0x3FB950)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 144.0, ct, cb) == 1.0) {
-            text("    if (R240 > 0.0) { motor_x = R241 }", tx, ty + 144.0, 9, 0x79C0FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 162.0, ct, cb) == 1.0) {
-            text("    spatial_main_render(sw, sh)", tx, ty + 162.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 180.0, ct, cb) == 1.0) {
-            text("    render_viewport_scrollbars(...)", tx, ty + 180.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 198.0, ct, cb) == 1.0) {
+
+        if (exp_ed_file == 3.0) {
+            text("// LIB/UI_SCREEN_EXPLORER.PH — EXPLORADOR IDE", tx, ty, 9, 0x6E7681)
+            text("import \"lib/ui_components.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
+            text("signal exp_sel = 12.0; signal exp_d1 = 1.0", tx, ty + 36.0, 9, 0xF2CC60)
+            text("render_explorer_toolbar(hx, hy, w) = { ... }", tx, ty + 54.0, 9, 0x58A6FF)
+            text("handle_explorer_click(hx, hy, w, h, ...) = {", tx, ty + 72.0, 9, 0x58A6FF)
+            text("    handle_explorer_menu_click(hx, hy, h, mx, my)", tx, ty + 90.0, 9, 0x3FB950)
+            text("    handle_explorer_toolbar_click(hx, hy, mx, my)", tx, ty + 108.0, 9, 0x3FB950)
+            text("    handle_explorer_tree_click(hx, hy, w, ...)", tx, ty + 126.0, 9, 0x3FB950)
+            text("}", tx, ty + 144.0, 9, 0x58A6FF)
+            text("render_screen_explorer_content(...) = {", tx, ty + 162.0, 9, 0x58A6FF)
+            text("    ui_card(hx + 6.0 - dx, hy + 58.0 - dy, ...)", tx, ty + 180.0, 9, 0xF2CC60)
             text("}", tx, ty + 198.0, 9, 0x58A6FF)
+        } else { 1.0 }
+
+        if (exp_ed_file == 4.0) {
+            text("// NUEVO MODULO CREADO DESDE EL EXPLORADOR (.ph)", tx, ty, 9, 0x6E7681)
+            text("import \"lib/ui_components.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
+            text("import \"lib/ui_scrollbar.ph\"", tx, ty + 36.0, 9, 0x79C0FF)
+            text("signal mod_state = 1.0", tx, ty + 54.0, 9, 0xF2CC60)
+            text("render_custom_module(hx, hy, w, h) = {", tx, ty + 72.0, 9, 0x58A6FF)
+            text("    ui_card(hx + 12.0, hy + 12.0, w - 24.0, 80.0, 0x0D1117, 0x58A6FF)", tx, ty + 90.0, 9, 0x3FB950)
+            text("    ui_badge_box(hx + 20.0, hy + 20.0, 96.0, 0x238636)", tx, ty + 108.0, 9, 0x3FB950)
+            text("    ui_button_box(hx + 20.0, hy + 46.0, 84.0, 22.0, 1.0, 0x1F6FEB)", tx, ty + 126.0, 9, 0x58A6FF)
+            text("    1.0", tx, ty + 144.0, 9, 0xF2CC60)
+            text("}", tx, ty + 162.0, 9, 0x58A6FF)
+            text("// Listo para importar con: import \"samples/nuevo_modulo.ph\"", tx, ty + 180.0, 9, 0x6E7681)
+            text("screen main { render_custom_module(20.0, 20.0, 400.0, 240.0) }", tx, ty + 198.0, 9, 0xF2CC60)
+        } else { 1.0 }
+
+        if (exp_ed_file == 0.0) {
+            text("// CHRONOS IDE — AUTONOMO 100% PHASORLANG", tx, ty, 9, 0x6E7681)
+            text("import \"lib/ui_spatial_main.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
+            text("import \"lib/ui_window_frame.ph\"", tx, ty + 36.0, 9, 0x79C0FF)
+            text("import \"lib/ui_screen_explorer.ph\"", tx, ty + 54.0, 9, 0x79C0FF)
+            text("signal t = 0.0", tx, ty + 72.0, 9, 0xF2CC60)
+            text("screen main {", tx, ty + 90.0, 9, 0x58A6FF)
+            text("    sw = R250; sh = R251; pd = R254", tx, ty + 108.0, 9, 0x3FB950)
+            text("    left = R254; right = R248; mid = R249", tx, ty + 126.0, 9, 0x3FB950)
+            text("    if (R240 > 0.0) { motor_x = R241 }", tx, ty + 144.0, 9, 0x79C0FF)
+            text("    spatial_main_render(sw, sh)", tx, ty + 162.0, 9, 0x58A6FF)
+            text("    ui_subscreen_scrollbars(...)", tx, ty + 180.0, 9, 0x58A6FF)
+            text("}", tx, ty + 198.0, 9, 0x58A6FF)
+        } else { 1.0 }
+
+        // Bloque dinámico inyectado cuando el usuario activa Modo Edición (✎Edit)
+        if (exp_edit_mod == 1.0) {
+            text("// [EDICION EN VIVO ●] Bloque insertado desde el Explorador:", tx, ty + 216.0, 9, 0xF2CC60)
+            text("ui_card(tx, ty + 120.0, 320.0, 48.0, 0x162234, 0x58A6FF)", tx, ty + 234.0, 9, 0x3FB950)
         } else { 1.0 }
         unclip()
 
@@ -391,18 +436,22 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
         line(hx + 37.0, hy + 54.0, hx + 37.0, hy + h - 1.0, 0x21262D)
 
         clip(hx + 1.0, hy + 54.0, 36.0, h - 66.0)
-        if (vp_line_visible(ty, ct, cb) == 1.0) { text("1", gx, ty, 9, 0x484F58) } else { 1.0 }
-        if (vp_line_visible(ty + 18.0, ct, cb) == 1.0) { text("2", gx, ty + 18.0, 9, 0x484F58) } else { 1.0 }
-        if (vp_line_visible(ty + 36.0, ct, cb) == 1.0) { text("3", gx, ty + 36.0, 9, 0x484F58) } else { 1.0 }
-        if (vp_line_visible(ty + 54.0, ct, cb) == 1.0) { text("4", gx, ty + 54.0, 9, 0x484F58) } else { 1.0 }
-        if (vp_line_visible(ty + 72.0, ct, cb) == 1.0) { text("5", gx, ty + 72.0, 9, 0xF2CC60) } else { 1.0 }
-        if (vp_line_visible(ty + 90.0, ct, cb) == 1.0) { text("6", gx, ty + 90.0, 9, 0x58A6FF) } else { 1.0 }
-        if (vp_line_visible(ty + 108.0, ct, cb) == 1.0) { text("7", gx, ty + 108.0, 9, 0x3FB950) } else { 1.0 }
-        if (vp_line_visible(ty + 126.0, ct, cb) == 1.0) { text("8", gx, ty + 126.0, 9, 0x3FB950) } else { 1.0 }
-        if (vp_line_visible(ty + 144.0, ct, cb) == 1.0) { text("9", gx, ty + 144.0, 9, 0x79C0FF) } else { 1.0 }
-        if (vp_line_visible(ty + 162.0, ct, cb) == 1.0) { text("10", gx - 5.0, ty + 162.0, 9, 0x58A6FF) } else { 1.0 }
-        if (vp_line_visible(ty + 180.0, ct, cb) == 1.0) { text("11", gx - 5.0, ty + 180.0, 9, 0x58A6FF) } else { 1.0 }
-        if (vp_line_visible(ty + 198.0, ct, cb) == 1.0) { text("12", gx - 5.0, ty + 198.0, 9, 0x58A6FF) } else { 1.0 }
+        text("1", gx, ty, 9, 0x484F58)
+        text("2", gx, ty + 18.0, 9, 0x484F58)
+        text("3", gx, ty + 36.0, 9, 0x484F58)
+        text("4", gx, ty + 54.0, 9, 0x484F58)
+        text("5", gx, ty + 72.0, 9, 0xF2CC60)
+        text("6", gx, ty + 90.0, 9, 0x58A6FF)
+        text("7", gx, ty + 108.0, 9, 0x3FB950)
+        text("8", gx, ty + 126.0, 9, 0x3FB950)
+        text("9", gx, ty + 144.0, 9, 0x79C0FF)
+        text("10", gx - 5.0, ty + 162.0, 9, 0x58A6FF)
+        text("11", gx - 5.0, ty + 180.0, 9, 0x58A6FF)
+        text("12", gx - 5.0, ty + 198.0, 9, 0x58A6FF)
+        if (exp_edit_mod == 1.0) {
+            text("13", gx - 5.0, ty + 216.0, 9, 0xF2CC60)
+            text("14", gx - 5.0, ty + 234.0, 9, 0x3FB950)
+        } else { 1.0 }
         unclip()
 
         render_editor_toolbar(hx, hy, w)
@@ -422,62 +471,8 @@ render_screen_1(sw, sh) = {
 }
 
 // -------------------------------------------------------------------------------
-// 6. MÓDULO SCREEN 2: EXPLORADOR DE ARCHIVOS (VIEWPORT CON SCISSOR CLIPPING)
+// 6. MÓDULO SCREEN 2: EXPLORADOR DE ARCHIVOS (IMPORTADO DE LIB/UI_SCREEN_EXPLORER.PH)
 // -------------------------------------------------------------------------------
-render_screen_explorer_content(hx, hy, w, h, is_min, dx, dy, act) = {
-    if (is_min == 1.0) { 0.0 } else {
-        top = win_top(2.0)
-        cw = win_cw(2.0)
-        ch = win_ch(2.0)
-        rect(hx + 1.0, hy + 28.0, w - 2.0, h - 29.0, 0x090D13)
-
-        sb_begin_clip(hx, hy, w, h, top, cw, ch)
-        ct = hy + 28.0
-        cb = (hy + h) - 12.0
-        cl = hx + 4.0
-        cr = (hx + w) - 12.0
-        ty = hy + 40.0 - dy
-        tx = hx + 12.0 - dx
-        if (vp_line_visible(ty, ct, cb) == 1.0) {
-            text("📁 PROYECTO: SketchWarePro", tx, ty, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 20.0, ct, cb) == 1.0) {
-            text("v 📁 samples/", tx + 10.0, ty + 20.0, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 38.0, ct, cb) == 1.0) {
-            text("    ⚡ chronos_ide.ph (Hito 4)", tx + 10.0, ty + 38.0, 9, 0x3FB950)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 56.0, ct, cb) == 1.0) {
-            text("    ⚡ fractal_ui.ph", tx + 10.0, ty + 56.0, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 74.0, ct, cb) == 1.0) {
-            text("v 📁 lib/", tx + 10.0, ty + 74.0, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 92.0, ct, cb) == 1.0) {
-            text("    ⚡ ui_spatial_main.ph", tx + 10.0, ty + 92.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 110.0, ct, cb) == 1.0) {
-            text("    ⚡ ui_window_frame.ph", tx + 10.0, ty + 110.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 128.0, ct, cb) == 1.0) {
-            text("    ⚡ ui_viewport.ph", tx + 10.0, ty + 128.0, 9, 0x58A6FF)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 146.0, ct, cb) == 1.0) {
-            text("v 📁 docs/", tx + 10.0, ty + 146.0, 9, 0xF2CC60)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 164.0, ct, cb) == 1.0) {
-            text("    📚 syntax_dictionary.md", tx + 10.0, ty + 164.0, 9, 0xFA7970)
-        } else { 1.0 }
-        if (vp_line_visible(ty + 182.0, ct, cb) == 1.0) {
-            text("    🌐 chronos_ide.html", tx + 10.0, ty + 182.0, 9, 0x79C0FF)
-        } else { 1.0 }
-        sb_end_clip()
-
-        ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
-        1.0
-    }
-}
-
 render_screen_2(sw, sh) = {
     render_window_frame(s2_x, s2_y, s2_w, s2_h, sw, sh, s2_min)
     hx = spatial_world_to_screen_x(s2_x, s2_w, sw)
@@ -500,8 +495,6 @@ render_screen_preview_content(hx, hy, w, h, is_min, dx, dy, act, t_frame, gp_con
 
         ct = hy + 28.0
         cb = (hy + h) - 12.0
-        cl = hx + 4.0
-        cr = (hx + w) - 12.0
 
         sb_begin_clip(hx, hy, w, h, top, cw, ch)
 
@@ -604,20 +597,20 @@ handle_gamepad_navigation(gp_conn, dx, dy) = {
 
 handle_scroll_input(mx, my, sw, sh, wh_y, wh_x) = {
     if (wh_y != 0.0) {
-        step_y = clamp_val(wh_y * 0.25, -24.0, 24.0)
-        target_y = top_win_at(mx, my, sw, sh)
-        if (target_y > 0.0) {
-            add_win_sc(target_y, 0.0, step_y)
-            clamp_win_scroll(target_y)
+        val = clamp_val(wh_y * 0.25, -24.0, 24.0)
+        id = top_win_at(mx, my, sw, sh)
+        if (id > 0.0) {
+            add_win_sc(id, 0.0, val)
+            clamp_win_scroll(id)
         } else { 1.0 }
     } else { 1.0 }
 
     if (wh_x != 0.0) {
-        step_x = clamp_val(wh_x * 0.25, -24.0, 24.0)
-        target_x = top_win_at(mx, my, sw, sh)
-        if (target_x > 0.0) {
-            add_win_sc(target_x, step_x, 0.0)
-            clamp_win_scroll(target_x)
+        val = clamp_val(wh_x * 0.25, -24.0, 24.0)
+        id = top_win_at(mx, my, sw, sh)
+        if (id > 0.0) {
+            add_win_sc(id, val, 0.0)
+            clamp_win_scroll(id)
         } else { 1.0 }
     } else { 1.0 }
     1.0
@@ -775,6 +768,31 @@ handle_workspace_interactions(mx, my, sw, sh, pd, pan_x, pan_y) = {
 
                 if (handled == 0.0) {
                     handled = check_drag_start(mx, my, sw, sh)
+                } else { 1.0 }
+
+                // Interacción interna de componentes en Screen 1 (Editor) y Screen 2 (Explorador)
+                if (handled == 0.0) {
+                    if (prev_click_down == 0.0) {
+                        id = top_win_at(mx, my, sw, sh)
+                        if (id == 1.0) {
+                            if (s1_min == 0.0) {
+                                hx = spatial_world_to_screen_x(s1_x, s1_w, sw)
+                                hy = spatial_world_to_screen_y(s1_y, s1_h, sh)
+                                hit = ui_hit_box(hx + 8.0, hy + 28.0, 52.0, 26.0, mx, my)
+                                if (hit == 1.0) { exp_ed_file = 1.0; exp_sel = 11.0; handled = 1.0 } else { 1.0 }
+                                hit = ui_hit_box(hx + 62.0, hy + 28.0, 44.0, 26.0, mx, my)
+                                if (hit == 1.0) { exp_edit_mod = 1.0 - exp_edit_mod; handled = 1.0 } else { 1.0 }
+                            } else { 1.0 }
+                        } else { 1.0 }
+                        if (id == 2.0) {
+                            if (s2_min == 0.0) {
+                                hx = spatial_world_to_screen_x(s2_x, s2_w, sw)
+                                hy = spatial_world_to_screen_y(s2_y, s2_h, sh)
+                                handled = handle_explorer_click(hx, hy, s2_w, s2_h, s2_sc_x, s2_sc_y, mx, my)
+                                clamp_win_scroll(2.0)
+                            } else { 1.0 }
+                        } else { 1.0 }
+                    } else { 1.0 }
                 } else { 1.0 }
 
                 // Arrastre del fondo espacial si no tocó ventana
@@ -942,11 +960,23 @@ screen main {
 
     // 6. Mutex de interacción (Thumb Drag vs Arrastre de Ventana vs Redimensión 8D vs Fondo)
     handle_workspace_interactions(mx, my, sw, sh, pd, pan_x, pan_y)
+    if (right_click > 0.0) {
+        id = top_win_at(mx, my, sw, sh)
+        if (id == 2.0) {
+            if (s2_min == 0.0) {
+                hx = spatial_world_to_screen_x(s2_x, s2_w, sw)
+                hy = spatial_world_to_screen_y(s2_y, s2_h, sh)
+                handle_explorer_tree_click(hx, hy, s2_w, s2_h, s2_sc_x, s2_sc_y, mx, my)
+                exp_menu_open = 1.0
+                exp_menu_x = 18.0
+                exp_menu_y = clamp_val(my - hy, 56.0, s2_h - 140.0)
+            } else { 1.0 }
+        } else { 1.0 }
+    } else { 1.0 }
 
-    // 7. Registro de forma de cursor nativo (R229 canonical 8-bit & R256)
+    // 7. Registro de forma de cursor nativo (R229 canonical 8-bit)
     shape = compute_pointer_cursor(mx, my, sw, sh, pd)
     R229 = shape
-    R256 = shape
 
     // 8. Canalización de renderizado a 120 FPS Zero-GC
     spatial_main_render(sw, sh)

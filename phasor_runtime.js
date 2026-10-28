@@ -78,7 +78,7 @@
         var rx = this.code[pc++], ry = this.code[pc++], rSz = this.code[pc++], rCol = this.code[pc++];
         var tx = S[rx], ty = S[ry], tSz = S[rSz];
         var tc = (rCol >= 0 && rCol < S.length && S[rCol] !== 0) ? S[rCol] : 0x58A6FF;
-        var txt = isStr ? (this.strings[sRef] || "") : (Number.isInteger(S[sRef]) ? S[sRef].toString() : S[sRef].toFixed(2));
+        var txt = isStr ? (this.strings[sRef] || "") : ((dst === 2) ? (this.strings[Math.round(S[sRef])] || "") : (Number.isInteger(S[sRef]) ? S[sRef].toString() : S[sRef].toFixed(2)));
         this.pushUi(0x54, tx, ty, tc, tSz, 0);
         this.texts.push({ text: txt, x: tx, y: ty, color: tc, size: tSz });
       }
@@ -156,6 +156,7 @@
       }
       self.resize();
       window.addEventListener('resize', function() { self.resize(); });
+      var leftLatch = 0.0, rightLatch = 0.0, leftHeld = 0.0, rightHeld = 0.0;
       var updatePtr = function(e, down) {
         var r = self.canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
         self.setReg(252, mx); self.setReg(253, my);
@@ -163,15 +164,25 @@
         var leftDown = (btnMask & 1) !== 0 ? 1.0 : 0.0;
         var rightDown = (btnMask & 2) !== 0 ? 1.0 : 0.0;
         var middleDown = (btnMask & 4) !== 0 ? 1.0 : 0.0;
-        if (down !== undefined) {
-          if (e.button === 0) leftDown = down;
-          else if (e.button === 2) rightDown = down;
-          else if (e.button === 1) middleDown = down;
+        if (down === 1.0) {
+          if (e.button === 0 || leftDown > 0.0) { leftDown = 1.0; leftHeld = 1.0; leftLatch = 1.0; }
+          if (e.button === 2 || rightDown > 0.0) { rightDown = 1.0; rightHeld = 1.0; rightLatch = 1.0; }
+          if (e.button === 1) middleDown = 1.0;
+        } else if (down === 0.0) {
+          if (e.button === 0) { leftDown = 0.0; leftHeld = 0.0; }
+          else if (e.button === 2) { rightDown = 0.0; rightHeld = 0.0; }
+          else if (e.button === 1) middleDown = 0.0;
+          else { leftHeld = leftDown; rightHeld = rightDown; }
+        } else {
+          leftHeld = leftDown;
+          rightHeld = rightDown;
         }
-        self.setReg(254, leftDown);
-        self.setReg(248, rightDown);
+        var effLeft = (leftHeld > 0.0 || leftLatch > 0.0) ? 1.0 : 0.0;
+        var effRight = (rightHeld > 0.0 || rightLatch > 0.0) ? 1.0 : 0.0;
+        self.setReg(254, effLeft);
+        self.setReg(248, effRight);
         self.setReg(249, middleDown);
-        return { mx: mx, my: my, left: leftDown, right: rightDown, middle: middleDown };
+        return { mx: mx, my: my, left: effLeft, right: effRight, middle: middleDown };
       };
       self.canvas.addEventListener('contextmenu', function(e) {
         e.preventDefault();
@@ -244,6 +255,10 @@
         if (self.ctx && self.vm) {
           self.vm.run(self.currentScreenPc, self.width, self.height);
           self.renderVmUi(self.ctx, self.vm, self.width, self.height);
+          leftLatch = 0.0;
+          rightLatch = 0.0;
+          self.setReg(254, leftHeld);
+          self.setReg(248, rightHeld);
           self.setReg(255, 0);
           self.setReg(247, 0);
           if (self.canvas) {
