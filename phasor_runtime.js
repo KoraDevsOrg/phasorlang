@@ -3,7 +3,7 @@
 // PhasorLang v1.0 [Chronos IDE & KoraDevs Autonomous Ecosystem]
 // Zero-GC a 120 FPS | Standalone Offline file:/// | <150 Líneas
 // ============================================================================
-(function(G) {
+(function (G) {
   'use strict';
 
   function MicroPhasorVM(code, consts, strings) {
@@ -14,9 +14,9 @@
     this.uiCmds = []; this.buttons = []; this.texts = []; this.logs = [];
   }
 
-  MicroPhasorVM.prototype.pushUi = function(t, a, b, c, d, e) { this.uiCmds.push(t, a || 0, b || 0, c || 0, d || 0, e || 0); };
+  MicroPhasorVM.prototype.pushUi = function (t, a, b, c, d, e) { this.uiCmds.push(t, a || 0, b || 0, c || 0, d || 0, e || 0); };
 
-  MicroPhasorVM.prototype.run = function(pc, vw, vh) {
+  MicroPhasorVM.prototype.run = function (pc, vw, vh) {
     pc = pc || 0; var cyc = 0; this.uiCmds = []; this.buttons = []; this.texts = [];
     this.rScalar[250] = vw || this.rScalar[250] || 800; this.rScalar[251] = vh || this.rScalar[251] || 600;
     var S = this.rScalar, CR = this.rCompReal, CI = this.rCompImag, IC = this.isComplex, VX = this.rVecX, VY = this.rVecY, VZ = this.rVecZ, IV = this.isVector3, H = this.heapVectors;
@@ -59,7 +59,7 @@
       else if (op === 0x26) S[dst] = S[s1] >= S[s2] ? 1 : 0;
       else if (op === 0x09 || op === 0x28) { var rad = S[s2] * (Math.PI / 180.0); CR[dst] = S[s1] * Math.cos(rad); CI[dst] = S[s1] * Math.sin(rad); IC[dst] = 1; IV[dst] = 0; }
       else if (op === 0x0A || op === 0x30) { var v = dst === 1 ? (this.strings[s1] || '') : S[s1]; this.logs.push('> ' + v + '\n'); }
-                  else if (op === 0x50) this.pushUi(0x50, S[dst]);
+      else if (op === 0x50) this.pushUi(0x50, S[dst]);
       else if (op === 0x51) {
         var rx = S[this.code[pc++]], ry = S[this.code[pc++]], rw = S[this.code[pc++]], rh = S[this.code[pc++]], rc = S[this.code[pc++]];
         this.pushUi(0x51, rx, ry, rw, rh, rc);
@@ -129,15 +129,15 @@
 
   var PhasorRuntime = {
     canvas: null, ctx: null, width: 0, height: 0, vm: null, screenRoutes: {}, actionRoutes: {}, currentScreenPc: 0,
-    hex: function(c) { return '#' + ((c >>> 0) & 0xFFFFFF).toString(16).padStart(6, '0'); },
-    setReg: function(r, v) { if (this.vm && r >= 0 && r < 1024) this.vm.rScalar[r] = v; },
-    resize: function() {
+    hex: function (c) { return '#' + ((c >>> 0) & 0xFFFFFF).toString(16).padStart(6, '0'); },
+    setReg: function (r, v) { if (this.vm && r >= 0 && r < 1024) this.vm.rScalar[r] = v; },
+    resize: function () {
       if (!this.canvas) return;
       var w = window.innerWidth, h = window.innerHeight;
       this.canvas.width = this.width = w; this.canvas.height = this.height = h;
       this.setReg(250, w); this.setReg(251, h);
     },
-    init: function(wasm, canvasId, opts) {
+    init: function (wasm, canvasId, opts) {
       var self = this; opts = opts || {};
       self.canvas = document.getElementById(canvasId || 'phasorCanvas');
       if (!self.canvas) return;
@@ -146,7 +146,7 @@
         self.vm = new MicroPhasorVM(opts.bytecode, opts.constPool, opts.strings || []);
         self.screenRoutes = opts.screenRoutes || {}; self.actionRoutes = opts.actionRoutes || {};
         self.currentScreenPc = opts.firstScreenPc || 0;
-        self.handleAction = function(target) {
+        self.handleAction = function (target) {
           var k = String(Math.round(Number(target)));
           var pc = self.actionRoutes[k] !== undefined ? self.actionRoutes[k] : self.screenRoutes[k];
           if (pc !== undefined && pc !== null) self.vm.run(pc, self.width, self.height);
@@ -155,9 +155,9 @@
         self.vm.run(0, window.innerWidth, window.innerHeight);
       }
       self.resize();
-      window.addEventListener('resize', function() { self.resize(); });
+      window.addEventListener('resize', function () { self.resize(); });
       var leftLatch = 0.0, rightLatch = 0.0, leftHeld = 0.0, rightHeld = 0.0;
-      var updatePtr = function(e, down) {
+      var updatePtr = function (e, down) {
         var r = self.canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
         self.setReg(252, mx); self.setReg(253, my);
         var btnMask = e.buttons !== undefined ? e.buttons : (down ? 1 : 0);
@@ -184,10 +184,10 @@
         self.setReg(249, middleDown);
         return { mx: mx, my: my, left: effLeft, right: effRight, middle: middleDown };
       };
-      self.canvas.addEventListener('contextmenu', function(e) {
+      self.canvas.addEventListener('contextmenu', function (e) {
         e.preventDefault();
       });
-      self.canvas.addEventListener('pointerdown', function(e) {
+      self.canvas.addEventListener('pointerdown', function (e) {
         var p = updatePtr(e, 1.0);
         if (p.left > 0.0 && self.vm && self.vm.buttons) {
           for (var b = self.vm.buttons.length - 1; b >= 0; b--) {
@@ -199,26 +199,26 @@
           }
         }
       });
-      self.canvas.addEventListener('pointermove', function(e) { updatePtr(e); });
-      window.addEventListener('pointermove', function(e) { updatePtr(e); });
-      self.canvas.addEventListener('mousemove', function(e) { updatePtr(e); });
-      window.addEventListener('mousemove', function(e) { updatePtr(e); });
-      window.addEventListener('pointerup', function(e) { updatePtr(e, 0.0); });
-      window.addEventListener('mouseup', function(e) { updatePtr(e, 0.0); });
-      self.canvas.addEventListener('wheel', function(e) {
+      self.canvas.addEventListener('pointermove', function (e) { updatePtr(e); });
+      window.addEventListener('pointermove', function (e) { updatePtr(e); });
+      self.canvas.addEventListener('mousemove', function (e) { updatePtr(e); });
+      window.addEventListener('mousemove', function (e) { updatePtr(e); });
+      window.addEventListener('pointerup', function (e) { updatePtr(e, 0.0); });
+      window.addEventListener('mouseup', function (e) { updatePtr(e, 0.0); });
+      self.canvas.addEventListener('wheel', function (e) {
         self.setReg(255, e.deltaY);
         self.setReg(247, e.deltaX || 0);
       }, { passive: true });
-      window.addEventListener('keydown', function(e) {
+      window.addEventListener('keydown', function (e) {
         self.setReg(230, e.keyCode || e.which || 0);
         self.setReg(231, 1.0);
         var mods = (e.shiftKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.altKey ? 4 : 0) | (e.metaKey ? 8 : 0);
         self.setReg(232, mods);
       });
-      window.addEventListener('keyup', function(e) {
+      window.addEventListener('keyup', function (e) {
         self.setReg(231, 0.0);
       });
-      var pollGamepad = function() {
+      var pollGamepad = function () {
         if (typeof navigator !== 'undefined' && navigator.getGamepads) {
           var gps = navigator.getGamepads();
           var gp = null;
@@ -250,7 +250,7 @@
           }
         }
       };
-      var loop = function() {
+      var loop = function () {
         pollGamepad();
         if (self.ctx && self.vm) {
           self.vm.run(self.currentScreenPc, self.width, self.height);
@@ -278,7 +278,7 @@
       };
       requestAnimationFrame(loop);
     },
-    bootFromElement: function(elementOrId, canvasId, extraOpts) {
+    bootFromElement: function (elementOrId, canvasId, extraOpts) {
       var self = this;
       var el = typeof elementOrId === 'string'
         ? (document.getElementById(elementOrId) || document.querySelector(elementOrId))
@@ -295,10 +295,10 @@
         return null;
       }
     },
-    autoBoot: function() {
+    autoBoot: function () {
       var self = this;
       if (typeof document === 'undefined') return;
-      var runBoot = function() {
+      var runBoot = function () {
         if (self.vm) return;
         var codeEl = document.querySelector('phasorcode, [type="application/phasor-binary"], [type="application/phasor-json"]');
         if (codeEl) {
@@ -311,15 +311,15 @@
         window.addEventListener('DOMContentLoaded', runBoot);
       }
     },
-    initPwa: function() {
+    initPwa: function () {
       if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         try {
           var swBlob = new Blob(["self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));"], { type: 'application/javascript' });
-          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function(){});
-        } catch(e) {}
+          navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(function () { });
+        } catch (e) { }
       }
     },
-    exportStandaloneHtml: function(filename) {
+    exportStandaloneHtml: function (filename) {
       if (typeof document === 'undefined') return;
       var codeEl = document.querySelector('phasorcode');
       if (!codeEl) {
@@ -337,11 +337,11 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     },
-    renderVmUi: function(ctx, vm, w, h) {
+    renderVmUi: function (ctx, vm, w, h) {
       if (!vm || !vm.uiCmds) return;
       var cmds = vm.uiCmds, ti = 0, bi = 0, clipDepth = 0;
       for (var i = 0; i < cmds.length; i += 6) {
-        var op = Math.floor(cmds[i]), p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
+        var op = Math.floor(cmds[i]), p1 = cmds[i + 1], p2 = cmds[i + 2], p3 = cmds[i + 3], p4 = cmds[i + 4], p5 = cmds[i + 5];
         if (op === 0x50) { ctx.fillStyle = this.hex(p1); ctx.fillRect(0, 0, w, h); }
         else if (op === 0x51) { ctx.fillStyle = this.hex(p5); ctx.fillRect(p1, p2, p3, p4); }
         else if (op === 0x52) { ctx.strokeStyle = this.hex(p4); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p1, p2, p3, 0, Math.PI * 2); ctx.stroke(); }

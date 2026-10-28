@@ -61,13 +61,13 @@ ui_status_bar(label_str, orig_x, orig_y, orig_w, nw, nh) = {
 // -------------------------------------------------------------------------------
 // 2. HIT-TESTING Y BOTONES REACTIVOS CON HOVER EN VIVO (UI_BUTTON)
 // -------------------------------------------------------------------------------
-// Retorna 1.0 si el puntero (mx, my) está dentro del rectángulo [orig_x, orig_y, orig_w, orig_h]
-ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my) = {
+// Retorna 1.0 si el puntero (cur_x, cur_y) está dentro del rectángulo [orig_x, orig_y, orig_w, orig_h]
+ui_hit_box(orig_x, orig_y, orig_w, orig_h, cur_x, cur_y) = {
     nx = 1.0
-    if (mx < orig_x) { nx = 0.0 } else { 1.0 }
-    if (mx > (orig_x + orig_w)) { nx = 0.0 } else { 1.0 }
-    if (my < orig_y) { nx = 0.0 } else { 1.0 }
-    if (my > (orig_y + orig_h)) { nx = 0.0 } else { 1.0 }
+    if (cur_x < orig_x) { nx = 0.0 } else { 1.0 }
+    if (cur_x > (orig_x + orig_w)) { nx = 0.0 } else { 1.0 }
+    if (cur_y < orig_y) { nx = 0.0 } else { 1.0 }
+    if (cur_y > (orig_y + orig_h)) { nx = 0.0 } else { 1.0 }
     nx
 }
 
@@ -88,12 +88,11 @@ ui_icon_box(orig_x, orig_y, orig_w, nw) = {
 }
 
 // Botón Reactivo Moderno en 1 sola línea:
-// - Ilumina su fondo y borde automáticamente en Hover cuando (mx, my) pasa por encima
+// - Ilumina su fondo y borde automáticamente en Hover cuando (cur_x, cur_y) pasa por encima
 // - Muestra estado activo si nw == 1.0 (con color nh)
-// - Dibuja `label_str` con color `min_w`
-// - Retorna 1.0 si el puntero está encima (listo para `if (exp_click == 1.0)`), o 0.0 fuera.
-ui_button(label_str, orig_x, orig_y, orig_w, orig_h, nw, nh, min_w, mx, my) = {
-    ny = ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)
+// - Dibuja `label_str` y retorna 1.0 si el puntero está encima, o 0.0 fuera.
+ui_button(label_str, orig_x, orig_y, orig_w, orig_h, nw, nh, cur_x, cur_y) = {
+    ny = ui_hit_box(orig_x, orig_y, orig_w, orig_h, cur_x, cur_y)
     if (nw == 1.0) {
         ui_card(orig_x, orig_y, orig_w, orig_h, nh, 0x79C0FF)
         text(label_str, orig_x + 6.0, orig_y + 5.0, 8, 0xFFFFFF)
@@ -103,7 +102,7 @@ ui_button(label_str, orig_x, orig_y, orig_w, orig_h, nw, nh, min_w, mx, my) = {
             text(label_str, orig_x + 6.0, orig_y + 5.0, 8, 0xFFFFFF)
         } else {
             ui_card(orig_x, orig_y, orig_w, orig_h, 0x161B22, 0x30363D)
-            text(label_str, orig_x + 6.0, orig_y + 5.0, 8, min_w)
+            text(label_str, orig_x + 6.0, orig_y + 5.0, 8, 0x58A6FF)
         }
     }
     ny
@@ -136,14 +135,14 @@ ui_file_icon(orig_x, orig_y, nw, nh, min_h) = {
 
 // Hit-testing aislado de una fila del árbol (alto 18 px):
 // Retorna: 0.0 = fuera, 1.0 = sobre la fila (abrir/expandir), 2.0 = sobre el botón [⋮]
-ui_tree_hit(orig_x, orig_y, orig_w, mx, my) = {
+ui_tree_hit(orig_x, orig_y, orig_w, cur_x, cur_y) = {
     nx = 1.0
-    if (mx < orig_x) { nx = 0.0 } else { 1.0 }
-    if (mx > (orig_x + orig_w)) { nx = 0.0 } else { 1.0 }
-    if (my < (orig_y - 3.0)) { nx = 0.0 } else { 1.0 }
-    if (my >= (orig_y + 15.0)) { nx = 0.0 } else { 1.0 }
+    if (cur_x < orig_x) { nx = 0.0 } else { 1.0 }
+    if (cur_x > (orig_x + orig_w)) { nx = 0.0 } else { 1.0 }
+    if (cur_y < (orig_y - 3.0)) { nx = 0.0 } else { 1.0 }
+    if (cur_y >= (orig_y + 15.0)) { nx = 0.0 } else { 1.0 }
     if (nx == 1.0) {
-        if (mx >= ((orig_x + orig_w) - 24.0)) { nx = 2.0 } else { 1.0 }
+        if (cur_x >= ((orig_x + orig_w) - 24.0)) { nx = 2.0 } else { 1.0 }
     } else { 1.0 }
     nx
 }
@@ -184,8 +183,8 @@ ui_tree_row(orig_x, orig_y, orig_w, nw, nh, orig_h, min_w, min_h) = {
 // - Dibuja guía jerárquica `├─`, chevron `v`/`>`, icono vectorial y texto `label_str`
 // - Dibuja botón `[⋮]` al frente que se ilumina en azul cian cuando `hit == 2.0`
 // - Retorna: 0.0 (fuera), 1.0 (hover/hit en fila), 2.0 (hover/hit en botón [⋮])
-ui_tree_node(label_str, orig_x, orig_y, orig_w, nw, nh, orig_h, min_w, min_h, mx, my) = {
-    dir = ui_tree_hit(orig_x, orig_y, orig_w, mx, my)
+ui_tree_node(label_str, orig_x, orig_y, orig_w, nw, nh, orig_h, min_w, min_h, cur_x, cur_y) = {
+    dir = ui_tree_hit(orig_x, orig_y, orig_w, cur_x, cur_y)
     nx = orig_x + (nw * 16.0)
 
     // 1. Fondo de Selección o Hover Reactivo en Tiempo Real
@@ -269,23 +268,22 @@ ui_context_box(orig_x, orig_y, orig_w, orig_h) = {
 }
 
 // Contenedor de menú emergente con título incluido
-ui_context_menu(label_str, orig_x, orig_y, orig_w, orig_h, nh) = {
+ui_context_menu(label_str, orig_x, orig_y, orig_w, orig_h) = {
     ui_context_box(orig_x, orig_y, orig_w, orig_h)
-    text(label_str, orig_x + 8.0, orig_y + 5.0, 8, nh)
+    text(label_str, orig_x + 8.0, orig_y + 5.0, 8, 0xF2CC60)
     1.0
 }
 
-// Opción interactiva dentro de un menú emergente (fila `nw` = 0, 1, 2, 3, 4):
+// Opción interactiva dentro de un menú emergente en (orig_x, orig_y):
 // - Ilumina toda la fila en azul brillante (0x1F6FEB) cuando el mouse pasa por encima
 // - Dibuja el texto `label_str` y retorna 1.0 si el cursor está sobre esta opción
-ui_menu_item(label_str, orig_x, orig_y, orig_w, nw, nh, mx, my) = {
-    ny = orig_y + 22.0 + (nw * 18.0)
-    nx = ui_hit_box(orig_x + 2.0, ny, orig_w - 4.0, 17.0, mx, my)
+ui_menu_item(label_str, orig_x, orig_y, orig_w, nh, cur_x, cur_y) = {
+    nx = ui_hit_box(orig_x + 2.0, orig_y, orig_w - 4.0, 17.0, cur_x, cur_y)
     if (nx == 1.0) {
-        rect(orig_x + 3.0, ny, orig_w - 6.0, 17.0, 0x1F6FEB)
-        text(label_str, orig_x + 10.0, ny + 3.0, 8, 0xFFFFFF)
+        rect(orig_x + 3.0, orig_y, orig_w - 6.0, 17.0, 0x1F6FEB)
+        text(label_str, orig_x + 10.0, orig_y + 3.0, 8, 0xFFFFFF)
     } else {
-        text(label_str, orig_x + 10.0, ny + 3.0, 8, nh)
+        text(label_str, orig_x + 10.0, orig_y + 3.0, 8, nh)
     }
     nx
 }

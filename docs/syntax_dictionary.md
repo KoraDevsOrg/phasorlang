@@ -584,41 +584,37 @@ render_screen_1_content(hx, hy, w, h, is_min, dx, dy, act) = {
 
 ---
 
-## 14. Catálogo de Componentes Genéricos Reutilizables (`lib/ui_components.ph`)
+## 14. Catálogo de Componentes Reactivos Gen-2 (`lib/ui_components.ph`)
 
-Para mantener una sintaxis reconocible en cualquier lenguaje o framework moderno y facilitar la creación de paneles del IDE y aplicaciones de usuario sin colisionar con los registros de coordenadas del marco de ventana (`hx, hy, w, h, tx, ty`), la biblioteca estándar ofrece `lib/ui_components.ph` con parámetros aislados `(orig_x, orig_y, orig_w, orig_h)`:
+PhasorLang soporta paso nativo de parámetros de texto (`label_str` con propagación de tipo `TOK_STR` / `isString = 2` en `BytecodeEmitter` y `PhasorVM`) e **Immediate-Mode UI (IMGUI) de 1 sola línea**: cada componente renderiza la geometría retro-cyberpunk, el texto nítido, el **Hover en tiempo real a 120 FPS** y evalúa la colisión del cursor (`mx, my`) en una única llamada, sin duplicar código entre renderizado e interacción.
 
-> **Ley de Literales de Texto Directos en PVM (`TOK_STR`)**: En PhasorVM, el opcode `text("...", x, y, sz, col)` requiere que el primer argumento sea directamente un literal de cadena entre comillas (`"..."`). Por ello, los componentes de `lib/ui_components.ph` dibujan la geometría vectorial, estados de selección, iconos y retornan la coordenada `nx` exacta donde se invoca `text("...", nx, y, sz, col)` directamente.
-
-| Función / Componente | Firma de Parámetros | Propósito y Uso |
+| Función / Componente | Firma de Parámetros | Propósito y Retorno Reactivo |
 | :--- | :--- | :--- |
-| **`ui_card`** | `ui_card(orig_x, orig_y, orig_w, orig_h, bg_col, border_col)` | Dibuja una tarjeta contenedora rectangular con fondo relleno y borde perimetral de 1 px sin alterar `hx, hy, w, h`. |
-| **`ui_divider`** | `ui_divider(orig_x, orig_y, orig_w, col)` | Dibuja una línea separadora horizontal limpia para dividir secciones dentro de tarjetas o paneles. |
-| **`ui_badge_box`** | `ui_badge_box(orig_x, orig_y, orig_w, bg_col)` | Dibuja la píldora/etiqueta (*badge*) de `16 px` de alto y retorna `orig_x + 5.0` para acompañar con `text("...", ...)`. |
-| **`ui_button_box`** | `ui_button_box(orig_x, orig_y, orig_w, orig_h, act, active_bg)` | Caja de botón interactivo universal con estado normal (`act == 0.0`) y estado activo (`act == 1.0`). |
-| **`ui_icon_box`** | `ui_icon_box(orig_x, orig_y, orig_w, act)` | Botón cuadrado compacto (`orig_w x orig_w`) ideal para barras de herramientas (`v/>`, `+`, `⋮`). |
-| **`ui_hit_box`** | `ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)` | Hit-testing rectangular plano Zero-GC. Retorna `1.0` si `(mx, my)` está dentro de `[orig_x, orig_y, orig_w, orig_h]`, o `0.0` fuera. |
-| **`ui_file_icon`** | `ui_file_icon(orig_x, orig_y, is_folder, is_open, col)` | Icono vectorial procedural de `12x10 px`: dibuja carpeta dorada abierta/cerrada (`is_folder == 1.0`) o documento con marca semántica (`is_folder == 0.0`). |
-| **`ui_tree_row`** | `ui_tree_row(orig_x, orig_y, orig_w, depth, is_folder, act, is_sel, col)` | Fila de árbol jerárquico (*TreeView*) con sangría `depth * 14 px`, guía `├─`, chevron `v`/`>`, icono vectorial procedural, indicador de archivo modificado (`●` si `act == 1.0`), botón de 3 puntos (`[⋮]`) al frente de cada carpeta y archivo, y retorno de la coordenada `nx` para el texto. |
-| **`ui_tree_hit`** | `ui_tree_hit(orig_x, orig_y, orig_w, mx, my)` | Hit-testing para una fila de `ui_tree_row`. Retorna `0.0` (fuera), `1.0` (clic en el nodo para abrir/expandir) o `2.0` (clic en el botón de 3 puntos `[⋮]`). |
-| **`ui_context_box`** | `ui_context_box(orig_x, orig_y, orig_w, orig_h)` | Contenedor flotante (*Popover / Context Menu*) con sombra proyectada, cabecera y borde neón. |
+| **`ui_button`** | `ui_button(label_str, orig_x, orig_y, orig_w, orig_h, act, nw, mx, my)` | Botón reactivo universal de 1 línea con texto `"..."`, estado activo (`act == 1.0`) y **Hover automático**. Retorna `1.0` cuando el cursor está sobre el botón, o `0.0` fuera. |
+| **`ui_tree_node`** | `ui_tree_node(label_str, orig_x, orig_y, orig_w, depth, is_dir, dir, act, nw, mx, my)` | Nodo declarativo de árbol (*TreeView*) de 1 línea con sangría `depth * 14 px`, guía `├─`, chevron `v`/`>`, icono vectorial procedural, indicador de edición (`●`), botón `[⋮]` con hover propio y texto `"..."`. Retorna `0.0` (fuera), `1.0` (sobre la fila) o `2.0` (sobre el botón `[⋮]`). |
+| **`ui_context_menu`** | `ui_context_menu(label_str, orig_x, orig_y, orig_w, orig_h)` | Menú emergente (*Popover / Context Menu*) con sombra proyectada multicapa, marco neón y barra de título con texto `"..."`. |
+| **`ui_menu_item`** | `ui_menu_item(label_str, orig_x, orig_y, orig_w, nw, mx, my)` | Opción interactiva de menú emergente con barra de resaltado **Hover** e indicador lateral cian. Retorna `1.0` si el cursor está sobre la opción, o `0.0` fuera. |
+| **`ui_badge`** | `ui_badge(label_str, orig_x, orig_y, orig_w, nw, nh)` | Píldora/insignia (*Badge*) de 1 línea con fondo `nw`, borde luminoso y etiqueta `"..."` en color `nh`. |
+| **`ui_status_bar`** | `ui_status_bar(label_str, orig_x, orig_y, orig_w, nw, nh)` | Barra de estado / cabecera compacta de 1 línea con fondo `nw` y texto `"..."` en color `nh`. |
+| **`ui_card`** | `ui_card(orig_x, orig_y, orig_w, orig_h, nw, nh)` | Tarjeta contenedora rectangular con fondo `nw` y borde perimetral de 1 px `nh` sin alterar `hx, hy, w, h`. |
+| **`ui_divider`** | `ui_divider(orig_x, orig_y, orig_w, nw)` | Línea separadora horizontal limpia para dividir secciones dentro de tarjetas o paneles. |
+| **`ui_hit_box`** | `ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)` | Hit-testing rectangular plano Zero-GC. Retorna `1.0` si `(mx, my)` está dentro del área, o `0.0` fuera. |
 
-### Ejemplo de Uso Combinado (Contenedor + Árbol + Menú de 3 Puntos en `lib/ui_screen_explorer.ph`):
+### Comparativa de Ergonomía ("Antes vs. Después" en PhasorLang):
 ```phasor
 import "lib/ui_components.ph"
 
-// 1. Contenedor interior dentro del área recortada del Screen 2
-ui_card(hx + 6.0 - dx, hy + 58.0 - dy, clw + 12.0, ch - 12.0, 0x0D1117, 0x21262D)
+// ANTES (3 pasos manuales + funciones separadas de clic y render):
+// ui_button_box(tx + 8.0, ty + 42.0, 56.0, 18.0, 0.0, 0x1F6FEB)
+// text("Abrir", tx + 18.0, ty + 46.0, 8, 0x58A6FF)
+// hit = ui_hit_box(tx + 8.0, ty + 42.0, 56.0, 18.0, mx, my)
 
-// 2. Dibujar nodo de carpeta (depth=0.0, is_folder=1.0) y nodo de archivo hijo (depth=1.0, is_folder=0.0)
-nx = ui_tree_row(tx, ty, clw, 0.0, 1.0, exp_d1, is_sel, 0xF2CC60)
-text("samples/", nx, ty + 4.0, 9, 0xF2CC60)
+// AHORA (1 sola línea declarativa con Hover en vivo + Texto + Hit-Test):
+if (ui_button("Abrir", tx + 8.0, ty + 42.0, 48.0, 18.0, 0.0, 0x1F6FEB, mx, my) == 1.0) {
+    if (exp_click_pending == 1.0) { exp_open_selected_in_editor() } else { 1.0 }
+} else { 1.0 }
 
-nx = ui_tree_row(tx, ty + 20.0, clw, 1.0, 0.0, 0.0, is_sel_file, 0x58A6FF)
-text("main.ph  [Plantilla]", nx, ty + 24.0, 9, 0x58A6FF)
-
-// 3. Detectar clic sobre el nodo o su botón contextual (⋮)
-hit = ui_tree_hit(tx, ty + 20.0, clw, mx, my)
-if (hit == 1.0) { /* Seleccionar / Abrir archivo */ } else { 1.0 }
-if (hit == 2.0) { /* Abrir menú contextual de 3 puntos */ } else { 1.0 }
+// Árbol jerárquico completo con Hover, Clic Simple y Menú Emergente [⋮] en 1 línea por nodo:
+exp_node("samples/ (Aplicativos)", 0.0, 1.0, exp_d1, 1.0, -1.0, 0xF2CC60, tmx, bmy)
+exp_node("main.ph (Plantilla Base)", 1.0, 0.0, 0.0, 11.0, 1.0, 0x58A6FF, tmx, bmy)
 ```

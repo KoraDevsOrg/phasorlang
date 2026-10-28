@@ -374,6 +374,14 @@ render_screen_explorer_content(hx, hy, w, h, is_min, dx, dy, act) = {
         render_explorer_toolbar(hx, hy, w, bmx, bmy)
         ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
 
+        // Si hubo clic secundario en espacio vacío dentro de Screen 2, abrir menú [⋮]
+        if (exp_rclick_pending == 1.0) {
+            exp_menu_open = 1.0
+            exp_create_open = 0.0
+            exp_menu_y = my - hy
+            exp_rclick_pending = 0.0
+        } else { 1.0 }
+
         // 4. MENÚ EMERGENTE 1: POPOVER "+ NUEVO ▾" DESDE LA BARRA DE HERRAMIENTAS
         if (exp_create_open == 1.0) {
             clip(hx + 1.0, hy + 28.0, w - 2.0, h - 29.0)

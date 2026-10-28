@@ -365,33 +365,33 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
         } else { 1.0 }
 
         if (exp_ed_file == 2.0) {
-            text("// LIB/UI_COMPONENTS.PH — COMPONENTES GENERICOS", tx, ty, 9, 0x6E7681)
+            text("// LIB/UI_COMPONENTS.PH — UI REACTIVA GEN-2 (1 LINEA)", tx, ty, 9, 0x6E7681)
             text("ui_card(orig_x, orig_y, orig_w, orig_h, bg, border)", tx, ty + 18.0, 9, 0x3FB950)
-            text("ui_divider(orig_x, orig_y, orig_w, col)", tx, ty + 36.0, 9, 0x3FB950)
-            text("ui_badge_box(orig_x, orig_y, orig_w, bg_col)", tx, ty + 54.0, 9, 0x58A6FF)
-            text("ui_button_box(orig_x, orig_y, orig_w, orig_h, act, bg)", tx, ty + 72.0, 9, 0x58A6FF)
-            text("ui_icon_box(orig_x, orig_y, orig_w, act)", tx, ty + 90.0, 9, 0x58A6FF)
-            text("ui_file_icon(orig_x, orig_y, is_folder, is_open, col)", tx, ty + 108.0, 9, 0xF2CC60)
-            text("ui_tree_row(orig_x, orig_y, orig_w, depth, ...)", tx, ty + 126.0, 9, 0x79C0FF)
-            text("ui_tree_hit(orig_x, orig_y, orig_w, mx, my)", tx, ty + 144.0, 9, 0x79C0FF)
-            text("ui_context_box(orig_x, orig_y, orig_w, orig_h)", tx, ty + 162.0, 9, 0x3FB950)
-            text("ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)", tx, ty + 180.0, 9, 0x3FB950)
-            text("// Registros aislados Zero-GC sin colision con hx/hy", tx, ty + 198.0, 9, 0x58A6FF)
+            text("ui_badge(label_str, orig_x, orig_y, orig_w, bg, fg)", tx, ty + 36.0, 9, 0x3FB950)
+            text("ui_button(label_str, orig_x, orig_y, w, h, act, bg, mx, my)", tx, ty + 54.0, 9, 0x58A6FF)
+            text("ui_tree_node(label_str, x, y, w, depth, dir, open, act, c, mx, my)", tx, ty + 72.0, 9, 0x58A6FF)
+            text("ui_context_menu(label_str, orig_x, orig_y, orig_w, orig_h)", tx, ty + 90.0, 9, 0xF2CC60)
+            text("ui_menu_item(label_str, orig_x, orig_y, orig_w, fg, mx, my)", tx, ty + 108.0, 9, 0xF2CC60)
+            text("ui_status_bar(label_str, orig_x, orig_y, orig_w, bg, fg)", tx, ty + 126.0, 9, 0x79C0FF)
+            text("ui_divider(orig_x, orig_y, orig_w, col)", tx, ty + 144.0, 9, 0x79C0FF)
+            text("ui_hit_box(orig_x, orig_y, orig_w, orig_h, mx, my)", tx, ty + 162.0, 9, 0x3FB950)
+            text("// Render + Hover en Vivo + Clic Simple en 1 sola llamada!", tx, ty + 180.0, 9, 0x58A6FF)
+            text("// Invariante Zero-GC a 120 FPS (Cero objetos en Heap)", tx, ty + 198.0, 9, 0x3FB950)
         } else { 1.0 }
 
         if (exp_ed_file == 3.0) {
-            text("// LIB/UI_SCREEN_EXPLORER.PH — EXPLORADOR IDE", tx, ty, 9, 0x6E7681)
+            text("// LIB/UI_SCREEN_EXPLORER.PH — PASO UNICO REACTIVO", tx, ty, 9, 0x6E7681)
             text("import \"lib/ui_components.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
-            text("signal exp_sel = 12.0; signal exp_d1 = 1.0", tx, ty + 36.0, 9, 0xF2CC60)
-            text("render_explorer_toolbar(hx, hy, w) = { ... }", tx, ty + 54.0, 9, 0x58A6FF)
-            text("handle_explorer_click(hx, hy, w, h, ...) = {", tx, ty + 72.0, 9, 0x58A6FF)
-            text("    handle_explorer_menu_click(hx, hy, h, mx, my)", tx, ty + 90.0, 9, 0x3FB950)
-            text("    handle_explorer_toolbar_click(hx, hy, mx, my)", tx, ty + 108.0, 9, 0x3FB950)
-            text("    handle_explorer_tree_click(hx, hy, w, ...)", tx, ty + 126.0, 9, 0x3FB950)
-            text("}", tx, ty + 144.0, 9, 0x58A6FF)
-            text("render_screen_explorer_content(...) = {", tx, ty + 162.0, 9, 0x58A6FF)
-            text("    ui_card(hx + 6.0 - dx, hy + 58.0 - dy, ...)", tx, ty + 180.0, 9, 0xF2CC60)
-            text("}", tx, ty + 198.0, 9, 0x58A6FF)
+            text("exp_node(label_str, depth, is_dir, dir, id, val, nw, mx, my)", tx, ty + 36.0, 9, 0xF2CC60)
+            text("render_screen_explorer_content(hx, hy, w, h, ...) = {", tx, ty + 54.0, 9, 0x58A6FF)
+            text("    ui_badge(\"PROYECTO\", tx, ty - 2.0, 56.0, 0x1F6FEB, 0xFFFFFF)", tx, ty + 72.0, 9, 0x3FB950)
+            text("    exp_node(\"samples/\", 0.0, 1.0, exp_d1, 1.0, -1.0, 0xF2CC60, ...)", tx, ty + 90.0, 9, 0x3FB950)
+            text("    exp_node(\"main.ph\", 1.0, 0.0, 0.0, 11.0, 1.0, 0x58A6FF, ...)", tx, ty + 108.0, 9, 0x3FB950)
+            text("    if (ui_button(\"Abrir\", tx + 8.0, ty + 42.0, ...) == 1.0) { ... }", tx, ty + 126.0, 9, 0x79C0FF)
+            text("    ui_context_menu(\"ACCIONES DE ARCHIVO (⋮)\", gx, tl, 180.0, 114.0)", tx, ty + 144.0, 9, 0xF2CC60)
+            text("    ui_menu_item(\"⚡ Abrir en Editor\", gx, tl + 22.0, 180.0, ...)", tx, ty + 162.0, 9, 0xF2CC60)
+            text("}", tx, ty + 180.0, 9, 0x58A6FF)
+            text("// 100% PhasorLang Declarativo con Hover y Menus Emergentes", tx, ty + 198.0, 9, 0x3FB950)
         } else { 1.0 }
 
         if (exp_ed_file == 4.0) {
@@ -399,14 +399,14 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
             text("import \"lib/ui_components.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
             text("import \"lib/ui_scrollbar.ph\"", tx, ty + 36.0, 9, 0x79C0FF)
             text("signal mod_state = 1.0", tx, ty + 54.0, 9, 0xF2CC60)
-            text("render_custom_module(hx, hy, w, h) = {", tx, ty + 72.0, 9, 0x58A6FF)
+            text("render_custom_module(hx, hy, w, h, mx, my) = {", tx, ty + 72.0, 9, 0x58A6FF)
             text("    ui_card(hx + 12.0, hy + 12.0, w - 24.0, 80.0, 0x0D1117, 0x58A6FF)", tx, ty + 90.0, 9, 0x3FB950)
-            text("    ui_badge_box(hx + 20.0, hy + 20.0, 96.0, 0x238636)", tx, ty + 108.0, 9, 0x3FB950)
-            text("    ui_button_box(hx + 20.0, hy + 46.0, 84.0, 22.0, 1.0, 0x1F6FEB)", tx, ty + 126.0, 9, 0x58A6FF)
+            text("    ui_badge(\"MODULO\", hx + 20.0, hy + 20.0, 64.0, 0x238636, 0xFFFFFF)", tx, ty + 108.0, 9, 0x3FB950)
+            text("    ui_button(\"Ejecutar\", hx + 20.0, hy + 46.0, 72.0, 20.0, 1.0, 0x1F6FEB, mx, my)", tx, ty + 126.0, 9, 0x58A6FF)
             text("    1.0", tx, ty + 144.0, 9, 0xF2CC60)
             text("}", tx, ty + 162.0, 9, 0x58A6FF)
             text("// Listo para importar con: import \"samples/nuevo_modulo.ph\"", tx, ty + 180.0, 9, 0x6E7681)
-            text("screen main { render_custom_module(20.0, 20.0, 400.0, 240.0) }", tx, ty + 198.0, 9, 0xF2CC60)
+            text("screen main { render_custom_module(20.0, 20.0, 400.0, 240.0, R252, R253) }", tx, ty + 198.0, 9, 0xF2CC60)
         } else { 1.0 }
 
         if (exp_ed_file == 0.0) {
@@ -964,12 +964,7 @@ screen main {
         id = top_win_at(mx, my, sw, sh)
         if (id == 2.0) {
             if (s2_min == 0.0) {
-                hx = spatial_world_to_screen_x(s2_x, s2_w, sw)
-                hy = spatial_world_to_screen_y(s2_y, s2_h, sh)
-                handle_explorer_tree_click(hx, hy, s2_w, s2_h, s2_sc_x, s2_sc_y, mx, my)
-                exp_menu_open = 1.0
-                exp_menu_x = 18.0
-                exp_menu_y = clamp_val(my - hy, 56.0, s2_h - 140.0)
+                handle_explorer_tree_click(s2_sc_x, s2_sc_y, mx, my)
             } else { 1.0 }
         } else { 1.0 }
     } else { 1.0 }
