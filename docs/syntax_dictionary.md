@@ -1,4 +1,5 @@
 # Diccionario Maestro de Sintaxis PhasorLang v1.0
+# Diccionario Maestro de Sintaxis PhasorLang v1.0
 ## Ecosistema Autónomo KoraDevs & Chronos IDE
 
 > **Directriz de Arquitectura**: PhasorLang es un Lenguaje de Dominio Específico (DSL) vectorial, cuántico, procedimental y de ultra-alto rendimiento. Su invariante fundamental es la ejecución **Zero-GC** (0 bytes asignados en el Heap en rutas críticas) a 90-120 FPS, respaldado por memoria plana en Estructura de Arreglos (SoA) y registros de hardware virtual `R0..R255`.
@@ -209,6 +210,19 @@ btn(etiqueta, x, y, ancho, alto, accion_id, color_hex)
 btn("⚙ Compilar HTML", 650.0, 8.0, 140.0, 32.0, act_self_compile, 0x8957E5)
 ```
 
+### 7. Recorte de Hardware Scissor Clipping (`clip` / `unclip`)
+Permite confinar el dibujado de cualquier sub-ventana o panel estrictamente a un rectángulo `[x, y, ancho, alto]` para que el contenido desbordado se oculte suavemente píxel a píxel detrás del marco sin afectar otras ventanas ni el fondo espacial:
+```phasor
+clip(x, y, ancho, alto)
+// Todo comando rect(), circle(), line(), text() posterior se recorta al rectángulo
+text("Contenido con scroll suave", x - scroll_x, y - scroll_y, 9.0, 0x58A6FF)
+unclip()
+// O mediante los encapsuladores de lib/ui_scrollbar.ph:
+sb_begin_clip(hx, hy, w, h, top, cw, ch)
+// ... dibujar contenido ...
+sb_end_clip()
+```
+
 ---
 
 ## 6. Primitivas Matemáticas, Vectoriales y Fasoriales
@@ -393,6 +407,64 @@ import "lib/ui_ide_menu.ph"
 
 ---
 
+### Catálogo de Componentes Oficiales de UI (KoraDevs)
+
+#### Componente: `lib/ui_scrollbar.ph` (Barras de Desplazamiento 2D Neón)
+Referencia directa del componente fuente: [`lib/ui_scrollbar.ph`](file:///d:/Documents/SketchWarePro/lib/ui_scrollbar.ph)
+
+Diseñado con el estándar visual de **Chronos IDE / Phasor IDE**:
+- **Estética Neón**: Pista oscura (`0x161B22`) con bordes perimetrales (`0x21262D`), thumb azul cian neón (`0x58A6FF`) y reactivo en arrastre (`0x79C0FF`).
+- **Grosor Ergonómico**: Pista de `8.0` px y pulgar de `6.0` px con radio visual.
+- **Reserva de Esquina**: Margen de `16.0` px en la esquina inferior-derecha para convivir con los tiradores de redimensión 8D (`SE`).
+- **Zona de Captura Amplia**: Hit-testing con tolerancia de `14.0` px para que el agarre táctil o con cursor sea infalible.
+- **Escudo de Oclusión Perimetral (Viewport Shield)**: Sella automáticamente cualquier desborde de contenido detrás de las columnas del scrollbar y los bordes de la ventana, permitiendo que elementos grandes (texto, círculos fasoriales, diagramas) se deslicen y oculten suavemente detrás del marco sin desapariciones mágicas ni manchas en el fondo exterior.
+- **Invariante Zero-GC**: Cero asignaciones en memoria Heap a 120 FPS, optimizado para el límite canónico de registros locales PVM (`R0..R229`).
+
+##### 1. Uso Declarativo Rápido para Plantillas y Sub-pantallas (Opción B)
+Para desarrolladores de aplicaciones o plantillas que solo desean activar el scroll con un flag estándar (`scroll: true` / `1.0`):
+
+```phasor
+import "lib/ui_scrollbar.ph"
+
+screen mi_pantalla {
+    // Coordenadas y dimensiones de la ventana
+    hx = 50.0; hy = 80.0; w = 480.0; h = 360.0; top = 28.0
+    cw = 800.0; ch = 1200.0 // Contenido lógico más grande que la ventana
+    
+    // Contenido desplazado con sc_x y sc_y ...
+    
+    // Inserción automática del componente de scrollbars 2D (último argumento = 1.0 / true)
+    ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, sc_x, sc_y, active_axis, 1.0)
+}
+```
+
+##### 2. Uso Procedural de Bajo Nivel para Desarrolladores Avanzados (Opción A)
+Para desarrolladores que construyen sus propios controles o desean personalizar dimensiones, agarres o colores:
+
+```phasor
+import "lib/ui_scrollbar.ph"
+
+// Métricas de viewport
+clw = sb_client_w(w)
+clh = sb_client_h(h, top)
+limit_x = sb_max_scroll_x(cw, clw)
+limit_y = sb_max_scroll_y(ch, clh)
+
+// Detección de hit en barra vertical (0=nada, 1=thumb, 2=pista)
+hit_v = sb_hit_test_v(hx, hy, w, h, top, cw, ch, sc_y, mx, my)
+
+// Cálculo de offset al agarrar el thumb
+grab_y = sb_calc_grab_v(hx, hy, w, h, top, cw, ch, sc_y, hit_v, my)
+
+// Desplazamiento continuo al arrastrar el ratón
+nuevo_sc_y = sb_apply_drag_v(hx, hy, w, h, top, cw, ch, grab_y, my)
+
+// Renderizado directo
+render_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, sc_x, sc_y, active_axis)
+```
+
+---
+
 ## 11. Tabla de Opcodes de la PhasorVM (PVM 3-Operand ISA)
 
 | Opcode Hex | Mnemónico | Operandos | Descripción |
@@ -425,6 +497,8 @@ import "lib/ui_ide_menu.ph"
 | `0x53` | `OP_UI_LINE` | `x1, y1, x2, y2, col`| Dibujado de segmento de línea. |
 | `0x54` | `OP_UI_TEXT` | `str_id, x, y, col`| Dibujado de texto desde tabla de cadenas. |
 | `0x56` | `OP_UI_BTN` | `label, x, y, w, h, act, col`| Botón con hit-testing de clic automático. |
+| `0x5A` | `OP_UI_CLIP` | `x, y, w, h` | Activa Scissor Clipping rectangular de hardware (`ctx.clip()`). |
+| `0x5B` | `OP_UI_UNCLIP` | Ninguno | Restaura el estado de recorte anterior (`ctx.restore()`). |
 | `0x60` | `OP_VEC3_LOAD` | `dst, x, y, z` | Carga de vector SIMD o fasor polar. |
 | `0x61` | `OP_VEC3_ADD` | `dst, s1, s2` | Suma SIMD de 3 canales. |
 | `0x64` | `OP_VEC3_DOT` | `dst, s1, s2` | Producto punto escalar de vectores. |

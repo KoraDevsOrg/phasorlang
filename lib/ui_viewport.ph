@@ -100,10 +100,10 @@ vp_text_w(text_len, font_sz) = {
     text_len * (font_sz * 0.6)
 }
 
-// Dibuja texto solo si cabe por completo dentro del viewport (Zero-GC)
+// Dibuja texto si intersecta el viewport; el recorte fino lo ejecuta clip() (Zero-GC)
 vp_text(text_str, text_len, font_sz, text_x, text_y, x_min, y_min, x_max, y_max, text_col) = {
     fits = 0.0
-    if (text_x >= (x_min - 10.0)) { if (text_y >= y_min) { if ((text_y + font_sz) <= y_max) {
+    if (text_x <= x_max) { if ((text_y + font_sz) >= y_min) { if (text_y <= y_max) {
         fits = 1.0
     } } }
     if (fits == 1.0) {
@@ -112,10 +112,11 @@ vp_text(text_str, text_len, font_sz, text_x, text_y, x_min, y_min, x_max, y_max,
     1.0
 }
 
-// 1.0 si una fila en 'y' con altura ~11px cabe verticalmente en [ct, cb]
+// 1.0 si una fila en 'y' con altura ~14px intersecta verticalmente [ct, cb]
+// Permite que el contenido se oculte suavemente píxel a píxel detrás del marco con clip()
 vp_line_visible(y, ct, cb) = {
     fits = 0.0
-    if (y >= ct) { if ((y + 11.0) <= cb) {
+    if ((y + 14.0) >= ct) { if (y <= cb) {
         fits = 1.0
     } }
     fits
@@ -186,11 +187,11 @@ vp_hit_v(hx, hy, w, h, top, cw, ch, sc, mx, my) = {
         tx = vp_track_v_x(hx, w)
         ty = vp_track_v_y(hy, top)
         tl = vp_track_v_len(cw, ch, clw, clh)
-        if (tl >= 16.0) { if (mx >= (tx - 3.0)) { if (mx <= (tx + 6.0)) {
+        if (tl >= 16.0) { if (mx >= (tx - 4.0)) { if (mx <= (tx + 7.0)) {
             if (my >= ty) { if (my <= (ty + tl)) {
-                res = vp_visible_h(cw, ch, clw, clh)
+                vh = vp_visible_h(cw, ch, clw, clh)
                 max_sc = vp_max_y(cw, ch, clw, clh)
-                sz = vp_thumb_size(tl, res, ch)
+                sz = vp_thumb_size(tl, vh, ch)
                 off = vp_thumb_offset(tl, sz, sc, max_sc)
                 delta = ty + off
                 hit = 2.0
@@ -210,11 +211,11 @@ vp_hit_h(hx, hy, w, h, top, cw, ch, sc, mx, my) = {
         tx = vp_track_h_x(hx)
         ty = vp_track_h_y(hy, h)
         tl = vp_track_h_len(cw, ch, clw, clh)
-        if (tl >= 16.0) { if (my >= (ty - 3.0)) { if (my <= (ty + 6.0)) {
+        if (tl >= 16.0) { if (my >= (ty - 4.0)) { if (my <= (ty + 7.0)) {
             if (mx >= tx) { if (mx <= (tx + tl)) {
-                res = vp_visible_w(cw, ch, clw, clh)
+                vw = vp_visible_w(cw, ch, clw, clh)
                 max_sc = vp_max_x(cw, ch, clw, clh)
-                sz = vp_thumb_size(tl, res, cw)
+                sz = vp_thumb_size(tl, vw, cw)
                 off = vp_thumb_offset(tl, sz, sc, max_sc)
                 delta = tx + off
                 hit = 2.0
@@ -232,9 +233,9 @@ vp_grab_v(hx, hy, w, h, top, cw, ch, sc, hit, my) = {
     clw = vp_client_w(w)
     clh = vp_client_h(h, top)
     tl = vp_track_v_len(cw, ch, clw, clh)
-    res = vp_visible_h(cw, ch, clw, clh)
+    vh = vp_visible_h(cw, ch, clw, clh)
     max_sc = vp_max_y(cw, ch, clw, clh)
-    sz = vp_thumb_size(tl, res, ch)
+    sz = vp_thumb_size(tl, vh, ch)
     val = sz * 0.5
     if (hit == 1.0) {
         ty = vp_track_v_y(hy, top)
@@ -249,9 +250,9 @@ vp_grab_h(hx, hy, w, h, top, cw, ch, sc, hit, mx) = {
     clw = vp_client_w(w)
     clh = vp_client_h(h, top)
     tl = vp_track_h_len(cw, ch, clw, clh)
-    res = vp_visible_w(cw, ch, clw, clh)
+    vw = vp_visible_w(cw, ch, clw, clh)
     max_sc = vp_max_x(cw, ch, clw, clh)
-    sz = vp_thumb_size(tl, res, cw)
+    sz = vp_thumb_size(tl, vw, cw)
     val = sz * 0.5
     if (hit == 1.0) {
         tx = vp_track_h_x(hx)
@@ -266,26 +267,26 @@ vp_drag_scroll_v(hx, hy, w, h, top, cw, ch, grab, my) = {
     clw = vp_client_w(w)
     clh = vp_client_h(h, top)
     tl = vp_track_v_len(cw, ch, clw, clh)
-    res = vp_visible_h(cw, ch, clw, clh)
+    vh = vp_visible_h(cw, ch, clw, clh)
     max_sc = vp_max_y(cw, ch, clw, clh)
     ty = vp_track_v_y(hy, top)
-    sz = vp_thumb_size(tl, res, ch)
+    sz = vp_thumb_size(tl, vh, ch)
     val = my - grab
-    res = vp_scroll_from_thumb(val, ty, tl, sz, max_sc)
-    res
+    sc_val = vp_scroll_from_thumb(val, ty, tl, sz, max_sc)
+    sc_val
 }
 
 vp_drag_scroll_h(hx, hy, w, h, top, cw, ch, grab, mx) = {
     clw = vp_client_w(w)
     clh = vp_client_h(h, top)
     tl = vp_track_h_len(cw, ch, clw, clh)
-    res = vp_visible_w(cw, ch, clw, clh)
+    vw = vp_visible_w(cw, ch, clw, clh)
     max_sc = vp_max_x(cw, ch, clw, clh)
     tx = vp_track_h_x(hx)
-    sz = vp_thumb_size(tl, res, cw)
+    sz = vp_thumb_size(tl, vw, cw)
     val = mx - grab
-    res = vp_scroll_from_thumb(val, tx, tl, sz, max_sc)
-    res
+    sc_val = vp_scroll_from_thumb(val, tx, tl, sz, max_sc)
+    sc_val
 }
 
 // -------------------------------------------------------------------------------
@@ -305,10 +306,14 @@ render_viewport_scrollbars(hx, hy, w, h, top, cw, ch, sc, val, active_axis) = {
             max_sc = vp_max_y(cw, ch, clw, clh)
             sz = vp_thumb_size(tl, res, ch)
             off = vp_thumb_offset(tl, sz, val, max_sc)
-            col = 0x484F58
-            if (active_axis == 1.0) { col = 0x8B949E } else { 1.0 }
-            rect(tx, ty, 6.0, tl, 0x161B22)
-            rect(tx + 1.0, ty + off, 4.0, sz, col)
+            rect(tx, ty, 8.0, tl, 0x161B22)
+            line(tx, ty, tx, ty + tl, 0x21262D)
+            line(tx + 8.0, ty, tx + 8.0, ty + tl, 0x21262D)
+            if (active_axis == 1.0) {
+                rect(tx + 1.0, ty + off, 6.0, sz, 0x79C0FF)
+            } else {
+                rect(tx + 1.0, ty + off, 6.0, sz, 0x58A6FF)
+            }
         } else { 1.0 }
     } else { 1.0 }
 
@@ -322,10 +327,14 @@ render_viewport_scrollbars(hx, hy, w, h, top, cw, ch, sc, val, active_axis) = {
             max_sc = vp_max_x(cw, ch, clw, clh)
             sz = vp_thumb_size(tl, res, cw)
             off = vp_thumb_offset(tl, sz, sc, max_sc)
-            col = 0x484F58
-            if (active_axis == 2.0) { col = 0x8B949E } else { 1.0 }
-            rect(tx, ty, tl, 6.0, 0x161B22)
-            rect(tx + off, ty + 1.0, sz, 4.0, col)
+            rect(tx, ty, tl, 8.0, 0x161B22)
+            line(tx, ty, tx + tl, ty, 0x21262D)
+            line(tx, ty + 8.0, tx + tl, ty + 8.0, 0x21262D)
+            if (active_axis == 2.0) {
+                rect(tx + off, ty + 1.0, sz, 6.0, 0x79C0FF)
+            } else {
+                rect(tx + off, ty + 1.0, sz, 6.0, 0x58A6FF)
+            }
         } else { 1.0 }
     } else { 1.0 }
     1.0

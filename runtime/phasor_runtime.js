@@ -97,7 +97,14 @@
         var extra = this.code[pc++];
         if (typeof this.handleAction === 'function') this.handleAction(extra);
       }
-else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]; VY[dst] = S[s2]; VZ[dst] = S[rz]; IV[dst] = 1; IC[dst] = 0; }
+      else if (op === 0x5A) {
+        var rxC = S[this.code[pc++]], ryC = S[this.code[pc++]], rwC = S[this.code[pc++]], rhC = S[this.code[pc++]];
+        this.pushUi(0x5A, rxC, ryC, rwC, rhC, 0);
+      }
+      else if (op === 0x5B) {
+        this.pushUi(0x5B, 0, 0, 0, 0, 0);
+      }
+      else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]; VY[dst] = S[s2]; VZ[dst] = S[rz]; IV[dst] = 1; IC[dst] = 0; }
       else if (op === 0x61) { VX[dst] = VX[s1] + VX[s2]; VY[dst] = VY[s1] + VY[s2]; VZ[dst] = VZ[s1] + VZ[s2]; IV[dst] = 1; }
       else if (op === 0x62) { VX[dst] = VX[s1] - VX[s2]; VY[dst] = VY[s1] - VY[s2]; VZ[dst] = VZ[s1] - VZ[s2]; IV[dst] = 1; }
       else if (op === 0x63) { VX[dst] = VX[s1] * S[s2]; VY[dst] = VY[s1] * S[s2]; VZ[dst] = VZ[s1] * S[s2]; IV[dst] = 1; }
@@ -317,7 +324,7 @@ else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]
     },
     renderVmUi: function(ctx, vm, w, h) {
       if (!vm || !vm.uiCmds) return;
-      var cmds = vm.uiCmds, ti = 0, bi = 0;
+      var cmds = vm.uiCmds, ti = 0, bi = 0, clipDepth = 0;
       for (var i = 0; i < cmds.length; i += 6) {
         var op = Math.floor(cmds[i]), p1 = cmds[i+1], p2 = cmds[i+2], p3 = cmds[i+3], p4 = cmds[i+4], p5 = cmds[i+5];
         if (op === 0x50) { ctx.fillStyle = this.hex(p1); ctx.fillRect(0, 0, w, h); }
@@ -336,7 +343,14 @@ else if (op === 0x60) { var rz = (this.code[pc++] >>> 8) & 0xFF; VX[dst] = S[s1]
           ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold ' + fs + 'px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(txt, p1 + (p3 / 2), p2 + (p4 / 2));
         }
+        else if (op === 0x5A) {
+          ctx.save(); clipDepth++; ctx.beginPath(); ctx.rect(p1, p2, Math.max(0, p3), Math.max(0, p4)); ctx.clip();
+        }
+        else if (op === 0x5B) {
+          if (clipDepth > 0) { ctx.restore(); clipDepth--; }
+        }
       }
+      while (clipDepth > 0) { ctx.restore(); clipDepth--; }
     }
   };
 

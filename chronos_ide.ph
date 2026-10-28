@@ -2,7 +2,7 @@
 // CHRONOS IDE — APLICATIVO PRINCIPAL (chronos_ide.ph)
 // PhasorLang v1.0 [KoraDevs Autonomous Ecosystem]
 // Arquitectura Soberana: 100% Código PhasorLang Puro & Modular
-// Hito 4: Viewport Aislado, Clipping Estricto y Scroll Inteligente (Thumb Dragging)
+// Hito 4: Viewport Aislado, Scissor Clipping Suave PVM y Scroll Inteligente (Thumb Dragging)
 // Captura Nativa de Periféricos (Mouse Clicks, Gamepad USB & Teclado R229..R255)
 // Invariante Estricto: Zero-GC a 120 FPS Nativos
 // ===============================================================================
@@ -13,6 +13,7 @@
 import "lib/ui_spatial_main.ph"
 import "lib/ui_window_frame.ph"
 import "lib/ui_viewport.ph"
+import "lib/ui_scrollbar.ph"
 
 // -------------------------------------------------------------------------------
 // 2. ESTADO GLOBAL REACTIVO (MEMORIA CONTIGUA SOA)
@@ -135,25 +136,29 @@ win_top(id) = {
 }
 
 win_cw(id) = {
-    res = 520.0
-    if (id == 2.0) { res = 260.0 } else { 1.0 }
-    if (id == 3.0) { res = 280.0 } else { 1.0 }
+    res = 640.0
+    if (id == 2.0) { res = 360.0 } else { 1.0 }
+    if (id == 3.0) { res = 380.0 } else { 1.0 }
     res
 }
 
 win_ch(id) = {
-    res = 380.0
-    if (id == 2.0) { res = 260.0 } else { 1.0 }
-    if (id == 3.0) { res = 260.0 } else { 1.0 }
+    res = 560.0
+    if (id == 2.0) { res = 380.0 } else { 1.0 }
+    if (id == 3.0) { res = 340.0 } else { 1.0 }
     res
 }
 
 win_hx(id, sw) = {
-    spatial_world_to_screen_x(win_x(id), win_w(id), sw)
+    wx = win_x(id)
+    ww = win_w(id)
+    spatial_world_to_screen_x(wx, ww, sw)
 }
 
 win_hy(id, sh) = {
-    spatial_world_to_screen_y(win_y(id), win_h(id), sh)
+    wy = win_y(id)
+    wh = win_h(id)
+    spatial_world_to_screen_y(wy, wh, sh)
 }
 
 set_win_sc(id, dx, dy) = {
@@ -164,8 +169,10 @@ set_win_sc(id, dx, dy) = {
 }
 
 add_win_sc(id, dx, dy) = {
-    sc_new_x = win_sc_x(id) + dx
-    sc_new_y = win_sc_y(id) + dy
+    cur_x = win_sc_x(id)
+    cur_y = win_sc_y(id)
+    sc_new_x = cur_x + dx
+    sc_new_y = cur_y + dy
     set_win_sc(id, sc_new_x, sc_new_y)
 }
 
@@ -175,12 +182,14 @@ clamp_win_scroll(id) = {
     top = win_top(id)
     cw = win_cw(id)
     ch = win_ch(id)
-    clw = vp_client_w(w)
-    clh = vp_client_h(h, top)
-    limit_x = vp_max_x(cw, ch, clw, clh)
-    limit_y = vp_max_y(cw, ch, clw, clh)
-    dx = vp_clamp_scroll(win_sc_x(id), limit_x)
-    dy = vp_clamp_scroll(win_sc_y(id), limit_y)
+    clw = sb_client_w(w)
+    clh = sb_client_h(h, top)
+    limit_x = sb_max_scroll_x(cw, clw)
+    limit_y = sb_max_scroll_y(ch, clh)
+    cur_x = win_sc_x(id)
+    cur_y = win_sc_y(id)
+    dx = sb_clamp(cur_x, limit_x)
+    dy = sb_clamp(cur_y, limit_y)
     set_win_sc(id, dx, dy)
 }
 
@@ -208,7 +217,7 @@ sb_axis_for(id) = {
 }
 
 // -------------------------------------------------------------------------------
-// 4. INTERACCIÓN DE SCROLLBARS: ESCANEO Y ARRASTRE DE THUMB (HITO 4)
+// 4. INTERACCIÓN DE SCROLLBARS: ESCANEO Y ARRASTRE DE THUMB (UI_SCROLLBAR.PH)
 // -------------------------------------------------------------------------------
 sb_scan_one(id, mx, my, sw, sh) = {
     if (sb_scan_blocked == 0.0) {
@@ -220,27 +229,26 @@ sb_scan_one(id, mx, my, sw, sh) = {
         if (window_hit_body(wx, wy, w, h, sw, sh, is_min, mx, my) == 1.0) {
             sb_scan_blocked = 1.0
             if (is_min == 0.0) {
-                // Si el puntero está en el borde 8D, la prioridad es el redimensionamiento
-                if (window_hit_edge_8d(wx, wy, w, h, sw, sh, is_min, mx, my) == 0.0) {
-                    hx = win_hx(id, sw)
-                    hy = win_hy(id, sh)
-                    top = win_top(id)
-                    cw = win_cw(id)
-                    ch = win_ch(id)
-                    hit = vp_hit_v(hx, hy, w, h, top, cw, ch, win_sc_y(id), mx, my)
+                hx = win_hx(id, sw)
+                hy = win_hy(id, sh)
+                top = win_top(id)
+                cw = win_cw(id)
+                ch = win_ch(id)
+                sc_y = win_sc_y(id)
+                hit = sb_hit_test_v(hx, hy, w, h, top, cw, ch, sc_y, mx, my)
+                if (hit > 0.0) {
+                    sb_scan_win = id
+                    sb_scan_axis = 1.0
+                    sb_scan_hit = hit
+                } else {
+                    sc_x = win_sc_x(id)
+                    hit = sb_hit_test_h(hx, hy, w, h, top, cw, ch, sc_x, mx, my)
                     if (hit > 0.0) {
                         sb_scan_win = id
-                        sb_scan_axis = 1.0
+                        sb_scan_axis = 2.0
                         sb_scan_hit = hit
-                    } else {
-                        hit = vp_hit_h(hx, hy, w, h, top, cw, ch, win_sc_x(id), mx, my)
-                        if (hit > 0.0) {
-                            sb_scan_win = id
-                            sb_scan_axis = 2.0
-                            sb_scan_hit = hit
-                        } else { 1.0 }
-                    }
-                } else { 1.0 }
+                    } else { 1.0 }
+                }
             } else { 1.0 }
         } else { 1.0 }
     } else { 1.0 }
@@ -268,11 +276,13 @@ sb_apply_drag(mx, my, sw, sh) = {
     cw = win_cw(id)
     ch = win_ch(id)
     if (sb_axis == 1.0) {
-        val = vp_drag_scroll_v(hx, hy, w, h, top, cw, ch, sb_grab, my)
-        set_win_sc(id, win_sc_x(id), val)
+        cur_x = win_sc_x(id)
+        val = sb_apply_drag_v(hx, hy, w, h, top, cw, ch, sb_grab, my)
+        set_win_sc(id, cur_x, val)
     } else {
-        val = vp_drag_scroll_h(hx, hy, w, h, top, cw, ch, sb_grab, mx)
-        set_win_sc(id, val, win_sc_y(id))
+        cur_y = win_sc_y(id)
+        val = sb_apply_drag_h(hx, hy, w, h, top, cw, ch, sb_grab, mx)
+        set_win_sc(id, val, cur_y)
     }
     1.0
 }
@@ -289,10 +299,13 @@ sb_try_start(mx, my, sw, sh) = {
         top = win_top(id)
         cw = win_cw(id)
         ch = win_ch(id)
+        hit_type = sb_scan_hit
         if (sb_scan_axis == 1.0) {
-            sb_grab = vp_grab_v(hx, hy, w, h, top, cw, ch, win_sc_y(id), sb_scan_hit, my)
+            sc_y = win_sc_y(id)
+            sb_grab = sb_calc_grab_v(hx, hy, w, h, top, cw, ch, sc_y, hit_type, my)
         } else {
-            sb_grab = vp_grab_h(hx, hy, w, h, top, cw, ch, win_sc_x(id), sb_scan_hit, mx)
+            sc_x = win_sc_x(id)
+            sb_grab = sb_calc_grab_h(hx, hy, w, h, top, cw, ch, sc_x, hit_type, mx)
         }
         sb_win = id
         sb_axis = sb_scan_axis
@@ -303,11 +316,11 @@ sb_try_start(mx, my, sw, sh) = {
 }
 
 // -------------------------------------------------------------------------------
-// 5. MÓDULO SCREEN 1: EDITOR DE CÓDIGO (VIEWPORT CON CLIPPING ESTRICTO)
+// 5. MÓDULO SCREEN 1: EDITOR DE CÓDIGO (VIEWPORT CON SCISSOR CLIPPING SUAVE)
 // -------------------------------------------------------------------------------
 render_editor_toolbar(hx, hy, w) = {
-    rect(hx + 1.0, hy + 28.0, w, 26.0, 0x161B22)
-    line(hx + 1.0, hy + 54.0, hx + w + 1.0, hy + 54.0, 0x30363D)
+    rect(hx + 1.0, hy + 28.0, w - 2.0, 26.0, 0x161B22)
+    line(hx + 1.0, hy + 54.0, hx + w - 1.0, hy + 54.0, 0x30363D)
     text("Archivo", hx + 12.0, hy + 35.0, 9, 0x8B949E)
     text("Editar", hx + 65.0, hy + 35.0, 9, 0x8B949E)
     text("Ver", hx + 110.0, hy + 35.0, 9, 0x8B949E)
@@ -321,60 +334,63 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
         cw = win_cw(1.0)
         ch = win_ch(1.0)
 
-        // Fondo del viewport
+        // Fondo del viewport del editor
         rect(hx + 1.0, hy + 54.0, w - 2.0, h - 55.0, 0x090D13)
 
-        // Límites estrictos del área cliente
+        // Límites del área cliente del editor
         ct = hy + 54.0
-        cb = (hy + h) - 10.0
+        cb = (hy + h) - 12.0
         cl = hx + 38.0
-        cr = (hx + w) - 8.0
+        cr = (hx + w) - 12.0
         ty = hy + 66.0 - dy
         tx = hx + 42.0 - dx
         gx = hx + 12.0
 
-        // 1. DIBUJAR CÓDIGO CON CLIPPING BIDIRECCIONAL (X e Y)
+        // 1. DIBUJAR CÓDIGO CON SCISSOR CLIPPING SUAVE (PÍXEL A PÍXEL DETRÁS DEL GUTTER Y MARCO)
+        clip(hx + 38.0, hy + 54.0, w - 50.0, h - 66.0)
         if (vp_line_visible(ty, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("// CHRONOS IDE — HITO 4 AUTONOMO 100% PHASORLANG", tx, ty, 9, 0x6E7681) } else { 1.0 } } else { 1.0 }
+            text("// CHRONOS IDE — HITO 4 AUTONOMO 100% PHASORLANG", tx, ty, 9, 0x6E7681)
         } else { 1.0 }
         if (vp_line_visible(ty + 18.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("import \"lib/ui_spatial_main.ph\"", tx, ty + 18.0, 9, 0x79C0FF) } else { 1.0 } } else { 1.0 }
+            text("import \"lib/ui_spatial_main.ph\"", tx, ty + 18.0, 9, 0x79C0FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 36.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("import \"lib/ui_window_frame.ph\"", tx, ty + 36.0, 9, 0x79C0FF) } else { 1.0 } } else { 1.0 }
+            text("import \"lib/ui_window_frame.ph\"", tx, ty + 36.0, 9, 0x79C0FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 54.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("import \"lib/ui_viewport.ph\"", tx, ty + 54.0, 9, 0x79C0FF) } else { 1.0 } } else { 1.0 }
+            text("import \"lib/ui_viewport.ph\"", tx, ty + 54.0, 9, 0x79C0FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 72.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("signal t = 0.0", tx, ty + 72.0, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("signal t = 0.0", tx, ty + 72.0, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 90.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("screen main {", tx, ty + 90.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("screen main {", tx, ty + 90.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 108.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("    sw = R250; sh = R251; pd = R254", tx, ty + 108.0, 9, 0x3FB950) } else { 1.0 } } else { 1.0 }
+            text("    sw = R250; sh = R251; pd = R254", tx, ty + 108.0, 9, 0x3FB950)
         } else { 1.0 }
         if (vp_line_visible(ty + 126.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("    left = R254; right = R248; mid = R249", tx, ty + 126.0, 9, 0x3FB950) } else { 1.0 } } else { 1.0 }
+            text("    left = R254; right = R248; mid = R249", tx, ty + 126.0, 9, 0x3FB950)
         } else { 1.0 }
         if (vp_line_visible(ty + 144.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("    if (R240 > 0.0) { motor_x = R241 }", tx, ty + 144.0, 9, 0x79C0FF) } else { 1.0 } } else { 1.0 }
+            text("    if (R240 > 0.0) { motor_x = R241 }", tx, ty + 144.0, 9, 0x79C0FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 162.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("    spatial_main_render(sw, sh)", tx, ty + 162.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("    spatial_main_render(sw, sh)", tx, ty + 162.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 180.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("    render_viewport_scrollbars(...)", tx, ty + 180.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("    render_viewport_scrollbars(...)", tx, ty + 180.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 198.0, ct, cb) == 1.0) {
-            if (tx >= (hx - 10.0)) { if (tx < cr) { text("}", tx, ty + 198.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("}", tx, ty + 198.0, 9, 0x58A6FF)
         } else { 1.0 }
+        unclip()
 
-        // 2. GUTTER OPACO Y NÚMEROS DE LÍNEA (DIBUJADOS DESPUÉS PARA OCULTAR TEXTO AL HACER SCROLL IZQUIERDO)
+        // 2. GUTTER OPACO Y NÚMEROS DE LÍNEA CON CLIPPING VERTICAL SUAVE
         rect(hx + 1.0, hy + 54.0, 36.0, h - 55.0, 0x0C1017)
         line(hx + 37.0, hy + 54.0, hx + 37.0, hy + h - 1.0, 0x21262D)
 
+        clip(hx + 1.0, hy + 54.0, 36.0, h - 66.0)
         if (vp_line_visible(ty, ct, cb) == 1.0) { text("1", gx, ty, 9, 0x484F58) } else { 1.0 }
         if (vp_line_visible(ty + 18.0, ct, cb) == 1.0) { text("2", gx, ty + 18.0, 9, 0x484F58) } else { 1.0 }
         if (vp_line_visible(ty + 36.0, ct, cb) == 1.0) { text("3", gx, ty + 36.0, 9, 0x484F58) } else { 1.0 }
@@ -387,9 +403,10 @@ render_screen_editor_content(hx, hy, w, h, is_min, dx, dy, act) = {
         if (vp_line_visible(ty + 162.0, ct, cb) == 1.0) { text("10", gx - 5.0, ty + 162.0, 9, 0x58A6FF) } else { 1.0 }
         if (vp_line_visible(ty + 180.0, ct, cb) == 1.0) { text("11", gx - 5.0, ty + 180.0, 9, 0x58A6FF) } else { 1.0 }
         if (vp_line_visible(ty + 198.0, ct, cb) == 1.0) { text("12", gx - 5.0, ty + 198.0, 9, 0x58A6FF) } else { 1.0 }
+        unclip()
 
-        render_editor_toolbar(hx, hy, w - 2.0)
-        render_viewport_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act)
+        render_editor_toolbar(hx, hy, w)
+        ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
         1.0
     }
 }
@@ -405,7 +422,7 @@ render_screen_1(sw, sh) = {
 }
 
 // -------------------------------------------------------------------------------
-// 6. MÓDULO SCREEN 2: EXPLORADOR DE ARCHIVOS (VIEWPORT CON CLIPPING ESTRICTO)
+// 6. MÓDULO SCREEN 2: EXPLORADOR DE ARCHIVOS (VIEWPORT CON SCISSOR CLIPPING)
 // -------------------------------------------------------------------------------
 render_screen_explorer_content(hx, hy, w, h, is_min, dx, dy, act) = {
     if (is_min == 1.0) { 0.0 } else {
@@ -414,48 +431,49 @@ render_screen_explorer_content(hx, hy, w, h, is_min, dx, dy, act) = {
         ch = win_ch(2.0)
         rect(hx + 1.0, hy + 28.0, w - 2.0, h - 29.0, 0x090D13)
 
+        sb_begin_clip(hx, hy, w, h, top, cw, ch)
         ct = hy + 28.0
-        cb = (hy + h) - 10.0
+        cb = (hy + h) - 12.0
         cl = hx + 4.0
-        cr = (hx + w) - 8.0
+        cr = (hx + w) - 12.0
         ty = hy + 40.0 - dy
         tx = hx + 12.0 - dx
-
         if (vp_line_visible(ty, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("📁 PROYECTO: SketchWarePro", tx, ty, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("📁 PROYECTO: SketchWarePro", tx, ty, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 20.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("v 📁 samples/", tx + 10.0, ty + 20.0, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("v 📁 samples/", tx + 10.0, ty + 20.0, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 38.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    ⚡ chronos_ide.ph (Hito 4)", tx + 10.0, ty + 38.0, 9, 0x3FB950) } else { 1.0 } } else { 1.0 }
+            text("    ⚡ chronos_ide.ph (Hito 4)", tx + 10.0, ty + 38.0, 9, 0x3FB950)
         } else { 1.0 }
         if (vp_line_visible(ty + 56.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    ⚡ fractal_ui.ph", tx + 10.0, ty + 56.0, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("    ⚡ fractal_ui.ph", tx + 10.0, ty + 56.0, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 74.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("v 📁 lib/", tx + 10.0, ty + 74.0, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("v 📁 lib/", tx + 10.0, ty + 74.0, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 92.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    ⚡ ui_spatial_main.ph", tx + 10.0, ty + 92.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("    ⚡ ui_spatial_main.ph", tx + 10.0, ty + 92.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 110.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    ⚡ ui_window_frame.ph", tx + 10.0, ty + 110.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("    ⚡ ui_window_frame.ph", tx + 10.0, ty + 110.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 128.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    ⚡ ui_viewport.ph", tx + 10.0, ty + 128.0, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("    ⚡ ui_viewport.ph", tx + 10.0, ty + 128.0, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 146.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("v 📁 docs/", tx + 10.0, ty + 146.0, 9, 0xF2CC60) } else { 1.0 } } else { 1.0 }
+            text("v 📁 docs/", tx + 10.0, ty + 146.0, 9, 0xF2CC60)
         } else { 1.0 }
         if (vp_line_visible(ty + 164.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    📚 syntax_dictionary.md", tx + 10.0, ty + 164.0, 9, 0xFA7970) } else { 1.0 } } else { 1.0 }
+            text("    📚 syntax_dictionary.md", tx + 10.0, ty + 164.0, 9, 0xFA7970)
         } else { 1.0 }
         if (vp_line_visible(ty + 182.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("    🌐 chronos_ide.html", tx + 10.0, ty + 182.0, 9, 0x79C0FF) } else { 1.0 } } else { 1.0 }
+            text("    🌐 chronos_ide.html", tx + 10.0, ty + 182.0, 9, 0x79C0FF)
         } else { 1.0 }
+        sb_end_clip()
 
-        render_viewport_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act)
+        ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
         1.0
     }
 }
@@ -471,7 +489,7 @@ render_screen_2(sw, sh) = {
 }
 
 // -------------------------------------------------------------------------------
-// 7. MÓDULO SCREEN 3: LIVE PREVIEW PVM (VIEWPORT CON CLIPPING ESTRICTO)
+// 7. MÓDULO SCREEN 3: LIVE PREVIEW PVM (VIEWPORT CON SCISSOR CLIPPING)
 // -------------------------------------------------------------------------------
 render_screen_preview_content(hx, hy, w, h, is_min, dx, dy, act, t_frame, gp_conn, right_click) = {
     if (is_min == 1.0) { 0.0 } else {
@@ -481,59 +499,57 @@ render_screen_preview_content(hx, hy, w, h, is_min, dx, dy, act, t_frame, gp_con
         rect(hx + 1.0, hy + 28.0, w - 2.0, h - 29.0, 0x070A0E)
 
         ct = hy + 28.0
-        cb = (hy + h) - 10.0
+        cb = (hy + h) - 12.0
         cl = hx + 4.0
-        cr = (hx + w) - 8.0
+        cr = (hx + w) - 12.0
 
-        // Fasor Circular Reactivo
+        sb_begin_clip(hx, hy, w, h, top, cw, ch)
+
+        // Fasor Circular Reactivo (recorte suave píxel a píxel detrás del marco)
         tx = hx + 125.0 - dx
         ty = hy + 80.0 - dy
-        if (vp_line_visible(ty - 32.0, ct, cb) == 1.0) {
-            if (vp_line_visible(ty + 32.0, ct, cb) == 1.0) {
-                if ((tx - 32.0) >= cl) { if ((tx + 32.0) <= cr) {
-                    circle(tx, ty, 32.0, 0x1F6FEB)
-                    circle(tx, ty, 24.0, 0x238636)
-                    ang = t_frame * 0.05
-                    fx = tx + (cos(ang) * 24.0)
-                    fy = ty + (sin(ang) * 24.0)
-                    line(tx, ty, fx, fy, 0x58A6FF)
-                    circle(fx, fy, 3.5, 0x3FB950)
-                } else { 1.0 } } else { 1.0 }
+        if ((ty + 36.0) >= ct) {
+            if ((ty - 36.0) <= cb) {
+                circle(tx, ty, 32.0, 0x1F6FEB)
+                circle(tx, ty, 24.0, 0x238636)
+                ang = t_frame * 0.05
+                fx = tx + (cos(ang) * 24.0)
+                fy = ty + (sin(ang) * 24.0)
+                line(tx, ty, fx, fy, 0x58A6FF)
+                circle(fx, fy, 3.5, 0x3FB950)
             } else { 1.0 }
         } else { 1.0 }
 
-        // Telemetría Directa PVM (sin dependencias externas)
+        // Telemetría Directa PVM (aislada estrictamente dentro de Screen 3)
         tx = hx + 16.0 - dx
         ty = hy + 138.0 - dy
         if (vp_line_visible(ty, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("MONITOR HARDWARE DIRECTO (PVM)", tx, ty, 9, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("MONITOR HARDWARE DIRECTO (PVM)", tx, ty, 9, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 18.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) {
-                if (gp_conn > 0.0) {
-                    text("Gamepad USB: CONECTADO [R240=1.0]", tx, ty + 18.0, 8, 0x3FB950)
-                } else {
-                    text("Gamepad USB: Desconectado [R240=0.0]", tx, ty + 18.0, 8, 0x8B949E)
-                }
-            } else { 1.0 } } else { 1.0 }
+            if (gp_conn > 0.0) {
+                text("Gamepad USB: CONECTADO [R240=1.0]", tx, ty + 18.0, 8, 0x3FB950)
+            } else {
+                text("Gamepad USB: Desconectado [R240=0.0]", tx, ty + 18.0, 8, 0x8B949E)
+            }
         } else { 1.0 }
         if (vp_line_visible(ty + 36.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) {
-                if (right_click > 0.0) {
-                    text("Clic Secundario (Der): ACTIVO [R248]", tx, ty + 36.0, 8, 0xF2CC60)
-                } else {
-                    text("Mouse: Izq=R254 | Der=R248 | Med=R249", tx, ty + 36.0, 8, 0x8B949E)
-                }
-            } else { 1.0 } } else { 1.0 }
+            if (right_click > 0.0) {
+                text("Clic Secundario (Der): ACTIVO [R248]", tx, ty + 36.0, 8, 0xF2CC60)
+            } else {
+                text("Mouse: Izq=R254 | Der=R248 | Med=R249", tx, ty + 36.0, 8, 0x8B949E)
+            }
         } else { 1.0 }
         if (vp_line_visible(ty + 54.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("Rueda Scroll 2D: R255 (Y) / R247 (X)", tx, ty + 54.0, 8, 0x58A6FF) } else { 1.0 } } else { 1.0 }
+            text("Rueda Scroll 2D: R255 (Y) / R247 (X)", tx, ty + 54.0, 8, 0x58A6FF)
         } else { 1.0 }
         if (vp_line_visible(ty + 72.0, ct, cb) == 1.0) {
-            if (tx >= (cl - 10.0)) { if (tx < cr) { text("Zero-GC: 0 pausas | 120 FPS Nativos", tx, ty + 72.0, 8, 0x3FB950) } else { 1.0 } } else { 1.0 }
+            text("Zero-GC: 0 pausas | 120 FPS Nativos", tx, ty + 72.0, 8, 0x3FB950)
         } else { 1.0 }
 
-        render_viewport_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act)
+        sb_end_clip()
+
+        ui_subscreen_scrollbars(hx, hy, w, h, top, cw, ch, dx, dy, act, 1.0)
         1.0
     }
 }
@@ -562,7 +578,7 @@ render_system_bars(sw, sh) = {
     ty = sh - 24.0
     rect(0.0, ty, sw, 24.0, 0x090D13)
     line(0.0, ty, sw, ty, 0x21262D)
-    text("Hito 4 Listo | Scroll 2D: Rueda y Arrastre de Scrollbar | Resize 8D | Clipping Estricto Zero-GC", 16.0, ty + 6.0, 8, 0x3FB950)
+    text("Hito 4 Listo | Scroll 2D: Rueda y Arrastre de Scrollbar | Resize 8D | Scissor Clipping Zero-GC", 16.0, ty + 6.0, 8, 0x3FB950)
     1.0
 }
 
@@ -748,17 +764,17 @@ handle_workspace_interactions(mx, my, sw, sh, pd, pan_x, pan_y) = {
                     handled = check_minimize_buttons(mx, my, sw, sh)
                 } else { 1.0 }
 
+                // Hit testing de scrollbar (thumb o pista) tiene prioridad sobre el borde
+                if (handled == 0.0) {
+                    handled = sb_try_start(mx, my, sw, sh)
+                } else { 1.0 }
+
                 if (handled == 0.0) {
                     handled = check_resize_start(mx, my, sw, sh)
                 } else { 1.0 }
 
                 if (handled == 0.0) {
                     handled = check_drag_start(mx, my, sw, sh)
-                } else { 1.0 }
-
-                // Hit testing de scrollbar (thumb o pista)
-                if (handled == 0.0) {
-                    handled = sb_try_start(mx, my, sw, sh)
                 } else { 1.0 }
 
                 // Arrastre del fondo espacial si no tocó ventana
@@ -795,56 +811,62 @@ resolve_window_cursor(wx, wy, ww, wh, sw, sh, is_min, mx, my, id) = {
     if (window_hit_min_btn(wx, wy, ww, wh, sw, sh, mx, my) == 1.0) {
         shape = 1.0 // pointer
     } else {
-        // 2. Bordes y esquinas de redimensionamiento 8D (MÁXIMA PRIORIDAD PERIMETRAL HITO 3)
-        dir = window_hit_edge_8d(wx, wy, ww, wh, sw, sh, is_min, mx, my)
-        if (dir > 0.0) {
-            shape = window_cursor_from_dir(dir)
-        } else {
-            // 3. Barra de título para arrastre
-            if (window_hit_title(wx, wy, ww, wh, sw, sh, mx, my) == 1.0) {
-                shape = 3.0 // move
+        hx = spatial_world_to_screen_x(wx, ww, sw)
+        hy = spatial_world_to_screen_y(wy, wh, sh)
+        top = win_top(id)
+        cw = win_cw(id)
+        ch = win_ch(id)
+
+        // 2. Scrollbars tienen prioridad visual y de cursor (pointer)
+        if (is_min == 0.0) {
+            hit_v = sb_hit_test_v(hx, hy, ww, wh, top, cw, ch, win_sc_y(id), mx, my)
+            if (hit_v > 0.0) {
+                shape = 1.0 // pointer sobre scrollbar vertical
             } else {
-                // 4. Cuerpo de la ventana
-                if (window_hit_body(wx, wy, ww, wh, sw, sh, is_min, mx, my) == 1.0) {
-                    if (is_min == 0.0) {
-                        hx = spatial_world_to_screen_x(wx, ww, sw)
-                        hy = spatial_world_to_screen_y(wy, wh, sh)
-                        top = win_top(id)
-                        cw = win_cw(id)
-                        ch = win_ch(id)
-                        hit_v = vp_hit_v(hx, hy, ww, wh, top, cw, ch, win_sc_y(id), mx, my)
-                        if (hit_v > 0.0) {
-                            shape = 1.0 // pointer sobre scrollbar vertical
-                        } else {
-                            hit_h = vp_hit_h(hx, hy, ww, wh, top, cw, ch, win_sc_x(id), mx, my)
-                            if (hit_h > 0.0) {
-                                shape = 1.0 // pointer sobre scrollbar horizontal
-                            } else {
-                                if (id == 1.0) {
-                                    if (my >= (hy + 28.0)) {
-                                        if (my < (hy + 54.0)) {
-                                            shape = 1.0 // pointer en menú toolbar
-                                        } else {
-                                            shape = 2.0 // text I-Beam en editor
-                                        }
-                                    } else {
-                                        shape = 0.0
-                                    }
-                                } else {
-                                    if (id == 2.0) {
-                                        shape = 1.0 // pointer en explorador
-                                    } else {
-                                        shape = 0.0 // default en preview
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        shape = 0.0
-                    }
+                hit_h = sb_hit_test_h(hx, hy, ww, wh, top, cw, ch, win_sc_x(id), mx, my)
+                if (hit_h > 0.0) {
+                    shape = 1.0 // pointer sobre scrollbar horizontal
                 } else { 1.0 }
             }
-        }
+        } else { 1.0 }
+
+        if (shape < 0.0) {
+            // 3. Bordes y esquinas de redimensionamiento 8D
+            dir = window_hit_edge_8d(wx, wy, ww, wh, sw, sh, is_min, mx, my)
+            if (dir > 0.0) {
+                shape = window_cursor_from_dir(dir)
+            } else {
+                // 4. Barra de título para arrastre
+                if (window_hit_title(wx, wy, ww, wh, sw, sh, mx, my) == 1.0) {
+                    shape = 3.0 // move
+                } else {
+                    // 5. Cuerpo de la ventana
+                    if (window_hit_body(wx, wy, ww, wh, sw, sh, is_min, mx, my) == 1.0) {
+                        if (is_min == 0.0) {
+                            if (id == 1.0) {
+                                if (my >= (hy + 28.0)) {
+                                    if (my < (hy + 54.0)) {
+                                        shape = 1.0 // pointer en menú toolbar
+                                    } else {
+                                        shape = 2.0 // text I-Beam en editor
+                                    }
+                                } else {
+                                    shape = 0.0
+                                }
+                            } else {
+                                if (id == 2.0) {
+                                    shape = 1.0 // pointer en explorador
+                                } else {
+                                    shape = 0.0 // default en preview
+                                }
+                            }
+                        } else {
+                            shape = 0.0
+                        }
+                    } else { 1.0 }
+                }
+            }
+        } else { 1.0 }
     }
     shape
 }
