@@ -1,1 +1,141 @@
-const fs = require('fs');const path = require('path');class PhasorBundler {    constructor() {        this.compiledModules = {};        this.stringTable = [];        this.stringMap = new Map();        this.opcodes = {            OP_UI_CLS: 0x50,            OP_UI_RECT: 0x51,            OP_UI_CIRCLE: 0x52,            OP_UI_LINE: 0x53,            OP_UI_TEXT: 0x54,            OP_LOAD_K: 0x01,            OP_MOV: 0x02,            OP_ADD: 0x03,            OP_CMP_EQ: 0x21,            OP_JMP_IF_ZERO: 0x41,            OP_HALT: 0xFF        };        this.registerMap = {            R0: 0, R1: 1, R2: 2, R3: 3, R4: 4, R5: 5, R6: 6, R7: 7, R8: 8, R9: 9,            R247: 247, R248: 248, R249: 249,            R250: 250, R251: 251, R252: 252, R253: 253, R254: 254, R255: 255        };    }    addString(str) {        if (!this.stringMap.has(str)) {            this.stringMap.set(str, this.stringTable.length);            this.stringTable.push(str);        }        return this.stringMap.get(str);    }    parseValue(val) {        if (val.startsWith('0x')) {            return parseInt(val.substring(2), 16);        }        if (val.match(/^[Rr]([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/)) {            return this.registerMap[val];        }        if (!isNaN(parseFloat(val))) {            return parseFloat(val);        }        return val; // This might be a string ID later    }    mockCompile(phasorCode, filePath) {        const bytecode = [];        let screenName = 'main'; // Default screen name        const lines = phasorCode.split('\n');        let inScreenBlock = false;        for (const line of lines) {            const trimmedLine = line.trim();            if (trimmedLine.startsWith('screen ')) {                const match = trimmedLine.match(/^screen\s+(\w+)\s*{/);                if (match) {                    screenName = match[1];                    inScreenBlock = true;                }            } else if (trimmedLine === '}') {                inScreenBlock = false;            }            if (!inScreenBlock && !trimmedLine.startsWith('screen ') && !trimmedLine.startsWith('import ') && !trimmedLine.startsWith('signal ')) {                continue; // Only process within screens for now, or relevant globals            }            // Mock specific UI commands (simplified for demo)            if (trimmedLine.startsWith('cls(')) {                const match = trimmedLine.match(/cls\((0x[0-9a-fA-F]+)\)/);                if (match) {                    bytecode.push(this.opcodes.OP_UI_CLS, this.parseValue(match[1]));                }            } else if (trimmedLine.startsWith('rect(')) {                const match = trimmedLine.match(/rect\((\S+),\s*(\S+),\s*(\S+),\s*(\S+),\s*(0x[0-9a-fA-F]+)\)/);                if (match) {                    bytecode.push(this.opcodes.OP_UI_RECT, this.parseValue(match[1]), this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                }            } else if (trimmedLine.startsWith('circle(')) {                const match = trimmedLine.match(/circle\((\S+),\s*(\S+),\s*(\S+),\s*(0x[0-9a-fA-F]+)\)/);                if (match) {                    bytecode.push(this.opcodes.OP_UI_CIRCLE, this.parseValue(match[1]), this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]));                }            } else if (trimmedLine.startsWith('line(')) {                const match = trimmedLine.match(/line\((\S+),\s*(\S+),\s*(\S+),\s*(\S+),\s*(0x[0-9a-fA-F]+)\)/);                if (match) {                    bytecode.push(this.opcodes.OP_UI_LINE, this.parseValue(match[1]), this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                }            } else if (trimmedLine.startsWith('text(')) {                const match = trimmedLine.match(/text\((["'][^"']*["']|\S+),\s*(\S+),\s*(\S+),\s*(\S+),\s*(0x[0-9a-fA-F]+)\)/);                if (match) {                    let textContent = match[1];                    if (textContent.startsWith('"') || textContent.startsWith('\'')) {                        textContent = textContent.substring(1, textContent.length - 1);                        const strId = this.addString(textContent);                        bytecode.push(this.opcodes.OP_UI_TEXT, strId, this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                    } else if (this.registerMap.hasOwnProperty(textContent)) {                        // If it's a register name, treat it as a string that displays the register value                        // This is a simplification for demo purposes: the VM would read the register and convert to string.                        // For now, we'll store a placeholder string ID and runtime will handle R_VAL if it's special.                        const strId = this.addString(`R_VAL_${textContent}`);                        bytecode.push(this.opcodes.OP_UI_TEXT, strId, this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                    } else if (textContent.includes('+')) {                        // Handle simple string concatenation like 'X: ' + R252.                        // This is a very primitive mock. Real compiler would build string dynamically.                        const parts = textContent.split('+').map(p => p.trim());                        let fullString = '';                        for (const part of parts) {                            if (part.startsWith('"') || part.startsWith('\'')) {                                fullString += part.substring(1, part.length - 1);                            } else if (this.registerMap.hasOwnProperty(part)) {                                fullString += `[${part}]`; // Placeholder for register value at runtime                            } else {                                fullString += part; // Fallback for other variables/signals                            }                        }                        const strId = this.addString(fullString);                        bytecode.push(this.opcodes.OP_UI_TEXT, strId, this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                    } else {                        // Assume it's a variable or signal name, add to string table for display as-is                        const strId = this.addString(textContent);                        bytecode.push(this.opcodes.OP_UI_TEXT, strId, this.parseValue(match[2]), this.parseValue(match[3]), this.parseValue(match[4]), this.parseValue(match[5]));                    }                }            } else if (trimmedLine.includes('=')) {                const match = trimmedLine.match(/^(\w+)\s*=\s*(\S+)$/);                if (match) {                    // Simple assignment to a register if it matches R-notation                    const varName = match[1].trim();                    const val = this.parseValue(match[2].trim());                    if (this.registerMap.hasOwnProperty(varName)) {                        bytecode.push(this.opcodes.OP_LOAD_K, this.registerMap[varName], val);                    }                }            } else if (trimmedLine.startsWith('if (')) {                const match = trimmedLine.match(/^if\s*\((\S+)\s*>\s*(\S+)\)\s*{/);                if (match) {                    const reg1 = this.parseValue(match[1]);                    const reg2 = this.parseValue(match[2]);                    const jumpTargetPlaceholder = bytecode.length + 3; // +3 for OP_CMP_EQ, dst, s1, s2                    bytecode.push(this.opcodes.OP_CMP_EQ, 255, reg1, reg2); // Use R255 as temp comparison register                    bytecode.push(this.opcodes.OP_JMP_IF_ZERO, 255, 0); // Placeholder for actual jump target                }            }        }        bytecode.push(this.opcodes.OP_HALT);        return { bytecode, screenName };    }    async loadPhasorFile(filePath, baseDir, visited) {        const absolutePath = path.resolve(baseDir, filePath);        if (visited.has(absolutePath)) {            return;        }        visited.add(absolutePath);        if (this.compiledModules[absolutePath]) {            return;        }        const content = fs.readFileSync(absolutePath, 'utf8');        // Process imports first        const importMatches = content.match(/import\s+"([^"]+)"/g) || [];        for (const importStatement of importMatches) {            const importPath = importStatement.match(/"([^"]+)"/)[1];            await this.loadPhasorFile(importPath, path.dirname(absolutePath), visited);        }        // Simulate compilation        const { bytecode, screenName } = this.mockCompile(content, absolutePath);        this.compiledModules[absolutePath] = { bytecode, screenName };    }    async bundle(mainPhasorFilePath, outputHtmlPath, title = "PhasorLang Application") {        const baseDir = process.cwd();        const mainAbsolutePath = path.resolve(baseDir, mainPhasorFilePath);        this.compiledModules = {};        this.stringTable = [];        this.stringMap = new Map();        const visited = new Set();        await this.loadPhasorFile(mainPhasorFilePath, baseDir, visited);        const mainModule = this.compiledModules[mainAbsolutePath];        if (!mainModule) {            throw new Error(`Main Phasor file not found or failed to compile: ${mainPhasorFilePath}`);        }        const runtimeJsContent = fs.readFileSync(path.resolve(__dirname, '../runtime/phasor_runtime.js'), 'utf8');        let htmlTemplate = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><style>body { margin: 0; overflow: hidden; background-color: #000; } canvas { display: block; }</style></head><body><canvas id="phasorCanvas"></canvas><script>var BYTECODE_MAIN = ${JSON.stringify(mainModule.bytecode)};var BYTECODE_IMPORTS = {};`;        for (const modulePath in this.compiledModules) {            if (modulePath !== mainAbsolutePath) {                htmlTemplate += `BYTECODE_IMPORTS["${this.compiledModules[modulePath].screenName}"] = ${JSON.stringify(this.compiledModules[modulePath].bytecode)};`;            }        }        htmlTemplate += `var STRING_TABLE = ${JSON.stringify(this.stringTable)};var ENTRY_POINT_SCREEN = "${mainModule.screenName}";${runtimeJsContent}</script></body></html>`;        fs.writeFileSync(outputHtmlPath, htmlTemplate, 'utf8');        console.log(`Successfully bundled ${mainPhasorFilePath} to ${outputHtmlPath}`);    }};}const bundler = new PhasorBundler();module.exports = bundler;
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+// Function to simulate compilation: reads file content and identifies imports.
+// In a real scenario, this would invoke `phasor.jar` to get actual bytecode.
+function compilePhasorFile(filePath) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const imports = [];
+    const importRegex = /import\s+["'](.+?)["']/g;
+    let match;
+    while ((match = importRegex.exec(content)) !== null) {
+        imports.push(match[1]);
+    }
+    return { content: content, imports: imports };
+}
+
+// Recursively resolves and "compiles" all .ph files
+function resolveAndCompile(mainPhPath, initialBaseDir) {
+    const compiledModules = new Map(); // Stores { absolutePath -> { name, content } }
+    const queue = [];
+
+    const mainAbsolutePath = path.resolve(initialBaseDir, mainPhPath);
+    const mainRelativeName = path.relative(initialBaseDir, mainAbsolutePath).replace(/\\/g, '/');
+    queue.push({ absolutePath: mainAbsolutePath, relativeName: mainRelativeName });
+    
+    // Add main module as a placeholder first to handle self-referencing or cycles involving main
+    compiledModules.set(mainAbsolutePath, { name: mainRelativeName, content: '' }); 
+
+    while (queue.length > 0) {
+        const { absolutePath: currentAbsolutePath, relativeName: currentRelativeName } = queue.shift();
+
+        // If module is already fully processed (content present), skip.
+        if (compiledModules.get(currentAbsolutePath) && compiledModules.get(currentAbsolutePath).content !== '') {
+            continue;
+        }
+        
+        console.log(`Processing: ${currentAbsolutePath}`);
+        const { content, imports } = compilePhasorFile(currentAbsolutePath);
+        
+        // Escape backticks, backslashes, and dollar signs for embedding in JS template literal
+        const escapedContent = content.replace(/`/g, '\`').replace(/\\(?!`)/g, '\\\\').replace(/\$/g, '\$'); 
+        
+        // Update the module with its actual content
+        compiledModules.set(currentAbsolutePath, { name: currentRelativeName, content: escapedContent });
+
+        for (const importPath of imports) {
+            const resolvedImportPath = path.resolve(path.dirname(currentAbsolutePath), importPath);
+            const importRelativeName = path.relative(initialBaseDir, resolvedImportPath).replace(/\\/g, '/');
+
+            // Only add to queue if it's not already completely processed or added for processing (as a placeholder)
+            if (!compiledModules.has(resolvedImportPath) || compiledModules.get(resolvedImportPath).content === '') {
+                 queue.push({ absolutePath: resolvedImportPath, relativeName: importRelativeName });
+                 // Add a placeholder to prevent re-adding if found again before processing
+                 if (!compiledModules.has(resolvedImportPath)) {
+                    compiledModules.set(resolvedImportPath, { name: importRelativeName, content: '' });
+                 }
+            }
+        }
+    }
+
+    let mainModuleSource = '';
+    const childrenModules = [];
+
+    const finalMainEntry = compiledModules.get(mainAbsolutePath);
+
+    if (finalMainEntry) {
+        mainModuleSource = finalMainEntry.content;
+        compiledModules.delete(mainAbsolutePath); // Remove main from the map
+    }
+
+    for (const [absPath, moduleData] of compiledModules.entries()) {
+        childrenModules.push({ name: moduleData.name, content: moduleData.content });
+    }
+
+    return { main: mainModuleSource, children: childrenModules };
+}
+
+async function bundle(inputPhFile, outputHtmlFile, options = {}) {
+    const title = options.title || path.basename(inputPhFile, '.ph');
+    const initialBaseDir = path.dirname(path.resolve(inputPhFile)); // Use input file's directory as base for resolving imports
+
+    // 1. Read phasor_runtime.js
+    const runtimeJsPath = path.join(__dirname, '../runtime/phasor_runtime.js'); // Adjust path as needed relative to tools/
+    const phasorRuntimeJs = fs.readFileSync(runtimeJsPath, 'utf8');
+
+    // 2. Resolve and "compile" all .ph files
+    const { main, children } = resolveAndCompile(inputPhFile, initialBaseDir);
+
+    // 3. Prepare children data for embedding
+    const childrenJsArray = children.map(child => `{ name: '${child.name}', content: \`${child.content}\` }`).join(',\n        ');
+
+    // 4. Construct the HTML
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0B0E14; font-family: 'Space Mono', monospace; }
+        canvas { display: block; background-color: #0B0E14; }
+    </style>
+</head>
+<body>
+    <canvas id="phasorCanvas"></canvas>
+    <script>
+        // Phasor Runtime Engine
+        ${phasorRuntimeJs}
+
+        // Main PhasorLang Module Source (simulated, would be bytecode/WASM)
+        var PHASOR_MAIN_MODULE_SOURCE = \`${main}\`;
+
+        // Imported PhasorLang Modules Source (simulated, would be bytecode/WASM)
+        var PHASOR_CHILD_MODULES = [
+        ${childrenJsArray}
+        ];
+
+        // Initialize and run Phasor Runtime
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('phasorCanvas');
+            const runtime = new PhasorRuntime(canvas, PHASOR_MAIN_MODULE_SOURCE, PHASOR_CHILD_MODULES);
+            runtime.start();
+        });
+    </script>
+</body>
+</html>
+`;
+
+    // 5. Write to output HTML file
+    fs.writeFileSync(outputHtmlFile, htmlContent.trim(), 'utf8');
+    console.log(`Successfully bundled ${inputPhFile} to ${outputHtmlFile}`);
+}
+
+// CLI Entry Point
+if (require.main === module) {
+    const args = process.argv.slice(2); // Remove 'node' and 'phasor_bundler.js'
+
+    if (args.length < 2 || args.length % 2 !== 0 || args.length > 4) { // Allow 2 args (input, output) or 4 args (input, output, --title, 
