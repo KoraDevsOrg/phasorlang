@@ -557,8 +557,8 @@ handle_responsive_layout(sw, sh) = {
 
         s1_x = 6.0;                 s1_y = 36.0;                 s1_w = cw; s1_h = ch; s1_min = 0.0
         s3_x = sw + 6.0;            s3_y = 36.0;                 s3_w = cw; s3_h = ch; s3_min = 0.0
-        s2_x = 6.0;                 s2_y = (sh - 56.0) + 36.0;   s2_w = cw; s2_h = ch; s2_min = 0.0
-        s4_x = sw + 6.0;            s4_y = (sh - 56.0) + 36.0;   s4_w = cw; s4_h = ch; s4_min = 0.0
+        s2_x = 6.0;                 s2_y = sh + 36.0;            s2_w = cw; s2_h = ch; s2_min = 0.0
+        s4_x = sw + 6.0;            s4_y = sh + 36.0;            s4_w = cw; s4_h = ch; s4_min = 0.0
         clamp_all_scrolls()
     } else {
         // Modo Escritorio: Subpantallas planas a escala natural flotando simultáneamente
@@ -746,7 +746,13 @@ handle_workspace_interactions(mx, my, sw, sh, pd, pan_x, pan_y) = {
         // 0. Clics en HUD (Barra superior y D-Pad flotante) con edge-trigger
         if (prev_click_down == 0.0) {
             handled = check_hud_clicks(mx, my, sw, sh)
-        } else { 1.0 }
+        } else {
+            if (spatial_is_panning == 0.0) {
+                if ((my <= 32.0) || ((mx >= (sw - 125.0)) && (my >= (sh - 150.0)))) {
+                    handled = 1.0
+                } else { 1.0 }
+            } else { 1.0 }
+        }
 
         // 1. Arrastre activo de scrollbar thumb
         if (handled == 0.0) {

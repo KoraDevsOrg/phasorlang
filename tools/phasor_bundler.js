@@ -608,26 +608,13 @@ function bundlePhasor(inputPath, outputPath) {
     ? fs.readFileSync(runtimePath, 'utf8')
     : '';
 
-  if (runtimeCode.indexOf('touchstart') === -1) {
-    runtimeCode = runtimeCode.replace(
-      "self.canvas.addEventListener('pointerdown', function (e) {",
-      `var updateTouch = function (e, down) {
-        if (!e.touches && !e.changedTouches) return;
-        var t = (e.touches && e.touches.length > 0) ? e.touches[0] : e.changedTouches[0];
-        if (!t) return;
-        var r = self.canvas.getBoundingClientRect();
-        self.setReg(252, t.clientX - r.left);
-        self.setReg(253, t.clientY - r.top);
-        self.setReg(254, down);
-        if (down === 1.0) leftHeld = leftLatch = 1.0;
-        else leftHeld = 0.0;
-      };
-      self.canvas.addEventListener('touchstart', function (e) { e.preventDefault(); updateTouch(e, 1.0); }, { passive: false });
-      self.canvas.addEventListener('touchmove', function (e) { e.preventDefault(); updateTouch(e, 1.0); }, { passive: false });
-      self.canvas.addEventListener('touchend', function (e) { e.preventDefault(); updateTouch(e, 0.0); }, { passive: false });
-      self.canvas.addEventListener('pointerdown', function (e) {`
-    );
-  }
+  runtimeCode = runtimeCode.replace(
+    "self.canvas.addEventListener('pointerdown', function (e) {",
+    `self.canvas.addEventListener('pointerdown', function (e) {
+        if (self.canvas.setPointerCapture && e.pointerId !== undefined) {
+          try { self.canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        }`
+  );
 
   const payloadJson = JSON.stringify(compiled);
 

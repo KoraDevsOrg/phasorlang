@@ -86,8 +86,7 @@ spatial_sync_topology(sw, sh) = {
     mob = spatial_is_mobile_view(sw)
     if (mob == 1.0) {
         cw = sw
-        ch = sh - 56.0
-        if (ch < 220.0) { ch = 220.0 } else { 1.0 }
+        ch = sh
         uw = cw * 2.0
         uh = ch * 2.0
         if (abs(spatial_univ_w - uw) > 1.0) {
