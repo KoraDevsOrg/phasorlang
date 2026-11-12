@@ -1,4 +1,4 @@
-// Grado 2: Controlador Toroidal con Deadzone (14px) y Axis-Lock Ortogonal
+// Grado 2: Controlador Toroidal 2x2 — Prioriza botones internos; swipe desde bordes (22px) o D-Pad
 import "lib/core/primitives.ph"
 
 signal tor_col = 0.0
@@ -41,10 +41,15 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
         ch = (sh - 34.0) * 0.5
     } else { 1.0 }
 
-    // 1. Máquina de estados de gesto táctil con Axis-Lock (0=libre, 1=Horizontal, 2=Vertical)
     if (pd == 1.0) {
         if (gest_prev_pd == 0.0) {
-            if ((hud_consumed == 0.0) && (my > 34.0)) {
+            // En móvil: solo iniciar swipe toroidal si el dedo toca el margen lateral (<=24px o >=sw-24px)
+            // Dejando todo el centro libre para botones, carpetas y menús del IDE
+            edge_ok = 0.0
+            if (mob == 0.0) { edge_ok = 1.0 } else { 1.0 }
+            if ((mx <= 24.0) || (mx >= (sw - 24.0))) { edge_ok = 1.0 } else { 1.0 }
+
+            if ((hud_consumed == 0.0) && (my > 34.0) && (edge_ok == 1.0)) {
                 gest_active = 1.0
                 gest_start_x = mx
                 gest_start_y = my
@@ -59,7 +64,6 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
                 adx = prim_abs(dx)
                 ady = prim_abs(dy)
 
-                // Bloquear eje dominante al superar umbral de 14px (evita diagonal y parpadeo)
                 if ((gest_axis == 0.0) && ((adx > 14.0) || (ady > 14.0))) {
                     if (adx >= ady) {
                         gest_axis = 1.0
@@ -80,15 +84,14 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
             } else { 1.0 }
         }
     } else {
-        // Al soltar el dedo: snap magnético al cuadrante si superó 45px
         if (gest_active == 1.0) {
             dx_end = mx - gest_start_x
             dy_end = my - gest_start_y
             if (gest_axis == 1.0) {
-                if (dx_end < -45.0) {
+                if (dx_end < -40.0) {
                     torus_goto(tor_col + 1.0, tor_row, cw, ch)
                 } else {
-                    if (dx_end > 45.0) {
+                    if (dx_end > 40.0) {
                         torus_goto(tor_col - 1.0, tor_row, cw, ch)
                     } else {
                         torus_goto(tor_col, tor_row, cw, ch)
@@ -96,10 +99,10 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
                 }
             } else {
                 if (gest_axis == 2.0) {
-                    if (dy_end < -45.0) {
+                    if (dy_end < -40.0) {
                         torus_goto(tor_col, tor_row + 1.0, cw, ch)
                     } else {
-                        if (dy_end > 45.0) {
+                        if (dy_end > 40.0) {
                             torus_goto(tor_col, tor_row - 1.0, cw, ch)
                         } else {
                             torus_goto(tor_col, tor_row, cw, ch)
@@ -112,7 +115,6 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
             gest_active = 0.0
             gest_axis = 0.0
         } else {
-            // Interpolación suave hacia el objetivo (amortiguación crítica sin rebote)
             tor_target_x = 0.0 - (tor_col * cw)
             tor_target_y = 0.0 - (tor_row * ch)
             err_x = tor_target_x - tor_pan_x
@@ -120,12 +122,12 @@ torus_step(mx, my, pd, sw, sh, hud_consumed) = {
             if (prim_abs(err_x) < 1.0) {
                 tor_pan_x = tor_target_x
             } else {
-                tor_pan_x = tor_pan_x + (err_x * 0.28)
+                tor_pan_x = tor_pan_x + (err_x * 0.32)
             }
             if (prim_abs(err_y) < 1.0) {
                 tor_pan_y = tor_target_y
             } else {
-                tor_pan_y = tor_pan_y + (err_y * 0.28)
+                tor_pan_y = tor_pan_y + (err_y * 0.32)
             }
         }
     }

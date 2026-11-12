@@ -1,61 +1,70 @@
-// Grado 2: Menú flotante contextual por archivo con clamping de bordes
+// Grado 2: Menú flotante contextual de alto contraste y filas táctiles de 28px
 import "lib/core/primitives.ph"
 import "lib/ui/label.ph"
 import "lib/ui/button.ph"
 
 // Retorna: 0=Sin acción, 1=Editar en S1, 2=Copiar import, 3=Renombrar, 4=Eliminar, 9=Cerrar
-ui_popup_menu(title_id, px, py, max_w, max_h, mx, my, click) = {
-    mw = 154.0
-    mh = 114.0
+ui_popup_menu(title_id, px, py, min_x, min_y, max_w, max_h, mx, my, click) = {
+    mw = 186.0
+    mh = 148.0
     dx = px
     dy = py
-    if ((dx + mw) > (max_w - 6.0)) { dx = max_w - mw - 6.0 } else { 1.0 }
-    if ((dy + mh) > (max_h - 6.0)) { dy = max_h - mh - 6.0 } else { 1.0 }
-    if (dx < 6.0) { dx = 6.0 } else { 1.0 }
+    if ((dx + mw) > (max_w - 8.0)) { dx = max_w - mw - 8.0 } else { 1.0 }
+    if ((dy + mh) > (max_h - 8.0)) { dy = max_h - mh - 8.0 } else { 1.0 }
+    if (dx < (min_x + 8.0)) { dx = min_x + 8.0 } else { 1.0 }
+    if (dy < (min_y + 8.0)) { dy = min_y + 8.0 } else { 1.0 }
 
-    prim_box(dx + 3.0, dy + 3.0, mw, mh, 0x05070A)
-    prim_box(dx, dy, mw, mh, 0x161B22)
+    // Sombra elevada y marco luminoso
+    prim_box(dx + 4.0, dy + 4.0, mw, mh, 0x010409)
+    prim_box(dx, dy, mw, mh, 0x1C2331)
     prim_stroke(dx, dy, mw, mh, 0x58A6FF)
+    prim_stroke(dx + 1.0, dy + 1.0, mw - 2.0, mh - 2.0, 0x1F6FEB)
 
-    prim_box(dx + 1.0, dy + 1.0, mw - 2.0, 20.0, 0x1F2937)
-    ui_label(title_id, dx + 8.0, dy + 14.0, 8.0, 0x79C0FF)
+    // Cabecera del menú
+    prim_box(dx + 2.0, dy + 2.0, mw - 4.0, 24.0, 0x0D1117)
+    ui_label(title_id, dx + 10.0, dy + 17.0, 9.5, 0x79C0FF)
+    ui_label("✕", (dx + mw) - 20.0, dy + 17.0, 10.0, 0xF85149)
 
     res = 0.0
-    iy = dy + 23.0
-    ih = 21.0
+    if ((click == 1.0) && (ui_hit_test(mx, my, (dx + mw) - 28.0, dy, 28.0, 26.0) == 1.0)) {
+        res = 9.0
+    } else { 1.0 }
 
-    // 1. Editar en Editor (S1)
-    if (ui_hit_test(mx, my, dx + 2.0, iy, mw - 4.0, ih) == 1.0) {
-        prim_box(dx + 2.0, iy, mw - 4.0, ih, 0x1F6FEB)
+    iy = dy + 28.0
+    ih = 28.0
+
+    // 1. Editar en S1
+    if (ui_hit_test(mx, my, dx + 3.0, iy, mw - 6.0, ih) == 1.0) {
+        prim_box(dx + 3.0, iy, mw - 6.0, ih, 0x1F6FEB)
         if (click == 1.0) { res = 1.0 } else { 1.0 }
     } else { 1.0 }
-    ui_label("⚡ Editar en S1", dx + 10.0, iy + 14.0, 9.0, 0xFFFFFF)
+    ui_label("⚡ Editar en S1", dx + 12.0, iy + 18.0, 10.0, 0xFFFFFF)
     iy = iy + ih
 
     // 2. Copiar directiva import
-    if (ui_hit_test(mx, my, dx + 2.0, iy, mw - 4.0, ih) == 1.0) {
-        prim_box(dx + 2.0, iy, mw - 4.0, ih, 0x1F6FEB)
+    if (ui_hit_test(mx, my, dx + 3.0, iy, mw - 6.0, ih) == 1.0) {
+        prim_box(dx + 3.0, iy, mw - 6.0, ih, 0x1F6FEB)
         if (click == 1.0) { res = 2.0 } else { 1.0 }
     } else { 1.0 }
-    ui_label("📥 Copiar import", dx + 10.0, iy + 14.0, 9.0, 0x3FB950)
+    ui_label("📥 Copiar import", dx + 12.0, iy + 18.0, 10.0, 0x3FB950)
     iy = iy + ih
 
     // 3. Renombrar
-    if (ui_hit_test(mx, my, dx + 2.0, iy, mw - 4.0, ih) == 1.0) {
-        prim_box(dx + 2.0, iy, mw - 4.0, ih, 0x1F6FEB)
+    if (ui_hit_test(mx, my, dx + 3.0, iy, mw - 6.0, ih) == 1.0) {
+        prim_box(dx + 3.0, iy, mw - 6.0, ih, 0x1F6FEB)
         if (click == 1.0) { res = 3.0 } else { 1.0 }
     } else { 1.0 }
-    ui_label("✏ Renombrar", dx + 10.0, iy + 14.0, 9.0, 0xD29922)
+    ui_label("✏ Renombrar", dx + 12.0, iy + 18.0, 10.0, 0xD29922)
     iy = iy + ih
 
     // 4. Eliminar
-    if (ui_hit_test(mx, my, dx + 2.0, iy, mw - 4.0, ih) == 1.0) {
-        prim_box(dx + 2.0, iy, mw - 4.0, ih, 0xDA3633)
+    if (ui_hit_test(mx, my, dx + 3.0, iy, mw - 6.0, ih) == 1.0) {
+        prim_box(dx + 3.0, iy, mw - 6.0, ih, 0xDA3633)
         if (click == 1.0) { res = 4.0 } else { 1.0 }
     } else { 1.0 }
-    ui_label("🗑 Eliminar", dx + 10.0, iy + 14.0, 9.0, 0xF85149)
+    ui_label("🗑 Eliminar", dx + 12.0, iy + 18.0, 10.0, 0xF85149)
 
-    // Clic fuera cierra el menú
+    // Clic fuera del menú lo cierra
     if ((click == 1.0) && (res == 0.0) && (ui_hit_test(mx, my, dx, dy, mw, mh) == 0.0)) {
         res = 9.0
     } else { 1.0 }
