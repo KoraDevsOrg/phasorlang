@@ -509,38 +509,25 @@ render_toroidal_dpad(sw, sh) = {
     cy = sh - 92.0
 
     if (dpad_collapsed == 1.0) {
-        // Botón compacto para expandir el D-Pad
-        rect(sw - 44.0, sh - 66.0, 34.0, 34.0, 0x161B22)
-        rect_outline(sw - 44.0, sh - 66.0, 34.0, 34.0, 0x58A6FF)
-        text("🧭", sw - 34.0, sh - 55.0, 11, 0xFFFFFF)
+        ui_card(sw - 44.0, sh - 66.0, 34.0, 34.0, 0x161B22, 0x58A6FF)
+        text("+", sw - 31.0, sh - 54.0, 12, 0x58A6FF)
     } else {
-        // Halo circular translúcido estilo Stark HUD
-        circle(cx, cy, 52.0, 0x111822)
-        circle_outline(cx, cy, 52.0, 0x30363D)
+        circle(cx, cy, 52.0, 0x30363D)
+        circle(cx, cy, 48.0, 0x1F6FEB)
 
-        // Botón ARRIBA (▲)
-        rect(cx - 16.0, cy - 48.0, 32.0, 26.0, 0x1F2937)
-        rect_outline(cx - 16.0, cy - 48.0, 32.0, 26.0, 0x58A6FF)
-        text("▲", cx - 5.0, cy - 41.0, 9, 0x79C0FF)
+        ui_card(cx - 16.0, cy - 48.0, 32.0, 26.0, 0x1F2937, 0x58A6FF)
+        text("^", cx - 4.0, cy - 41.0, 10, 0x79C0FF)
 
-        // Botón ABAJO (▼)
-        rect(cx - 16.0, cy + 22.0, 32.0, 26.0, 0x1F2937)
-        rect_outline(cx - 16.0, cy + 22.0, 32.0, 26.0, 0x58A6FF)
-        text("▼", cx - 5.0, cy + 29.0, 9, 0x79C0FF)
+        ui_card(cx - 16.0, cy + 22.0, 32.0, 26.0, 0x1F2937, 0x58A6FF)
+        text("v", cx - 4.0, cy + 29.0, 10, 0x79C0FF)
 
-        // Botón IZQUIERDA (◀)
-        rect(cx - 50.0, cy - 13.0, 28.0, 26.0, 0x1F2937)
-        rect_outline(cx - 50.0, cy - 13.0, 28.0, 26.0, 0x58A6FF)
-        text("◀", cx - 41.0, cy - 6.0, 9, 0x79C0FF)
+        ui_card(cx - 50.0, cy - 13.0, 28.0, 26.0, 0x1F2937, 0x58A6FF)
+        text("<", cx - 40.0, cy - 6.0, 10, 0x79C0FF)
 
-        // Botón DERECHA (▶)
-        rect(cx + 22.0, cy - 13.0, 28.0, 26.0, 0x1F2937)
-        rect_outline(cx + 22.0, cy - 13.0, 28.0, 26.0, 0x58A6FF)
-        text("▶", cx + 31.0, cy - 6.0, 9, 0x79C0FF)
+        ui_card(cx + 22.0, cy - 13.0, 28.0, 26.0, 0x1F2937, 0x58A6FF)
+        text(">", cx + 32.0, cy - 6.0, 10, 0x79C0FF)
 
-        // Minimapa Toroidal Central 2x2 (muestra en qué celda está la cámara)
-        rect(cx - 14.0, cy - 13.0, 28.0, 26.0, 0x090D13)
-        rect_outline(cx - 14.0, cy - 13.0, 28.0, 26.0, 0x3FB950)
+        ui_card(cx - 14.0, cy - 13.0, 28.0, 26.0, 0x090D13, 0x3FB950)
 
         m00 = 0x30363D; if ((spatial_sector_col == 0.0) && (spatial_sector_row == 0.0)) { m00 = 0x3FB950 } else { 1.0 }
         m10 = 0x30363D; if ((spatial_sector_col == 1.0) && (spatial_sector_row == 0.0)) { m10 = 0x3FB950 } else { 1.0 }
