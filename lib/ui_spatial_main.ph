@@ -139,15 +139,14 @@ spatial_main_wrap_pbc(val, max_size) = {
     m
 }
 
-// Proyección World -> Screen con Wraparound Toroidal sin cortes en bordes
+// Proyección World -> Screen con Wraparound Toroidal continuo (sin solapamientos)
 spatial_world_to_screen_x(world_x, obj_w, viewport_w) = {
     uw = spatial_univ_w
     if (uw < 300.0) { uw = 1600.0 } else { 1.0 }
     raw_x = world_x + spatial_pan_x
     m = raw_x % uw
     if (m < 0.0) { m = m + uw } else { 1.0 }
-    // Si la ventana cruza el borde derecho del toroide, envolver hacia la izquierda
-    if (m > (uw - (obj_w * 0.5))) {
+    if (m >= (uw - 12.0)) {
         m = m - uw
     } else { 1.0 }
     m
@@ -159,7 +158,7 @@ spatial_world_to_screen_y(world_y, obj_h, viewport_h) = {
     raw_y = world_y + spatial_pan_y
     m = raw_y % uh
     if (m < 0.0) { m = m + uh } else { 1.0 }
-    if (m > (uh - (obj_h * 0.5))) {
+    if (m >= (uh - 12.0)) {
         m = m - uh
     } else { 1.0 }
     m

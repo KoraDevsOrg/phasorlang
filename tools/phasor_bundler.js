@@ -110,6 +110,10 @@ function compilePhasorToBytecode(source) {
     return idx;
   }
 
+  // Registros:
+  // R0..R119: señales/variables globales
+  // R120..R228: pila de temporales y marcos locales (sin colisiones entre llamadas)
+  // R229..R255: registros hardware PVM (R250=sw, R251=sh, R252=mx, R253=my, R254=pd, R255=whY)
   const varRegs = new Map();
   let nextVarReg = 0;
   function getVarReg(name) {
@@ -117,15 +121,15 @@ function compilePhasorToBytecode(source) {
     if (m) return parseInt(m[1], 10);
     if (varRegs.has(name)) return varRegs.get(name);
     const r = nextVarReg++;
-    if (nextVarReg >= 170) nextVarReg = 0;
+    if (nextVarReg >= 120) nextVarReg = 0;
     varRegs.set(name, r);
     return r;
   }
 
-  let tempBase = 170;
+  let tempPtr = 120;
   function allocTemp() {
-    const r = tempBase++;
-    if (tempBase >= 225) tempBase = 170;
+    const r = tempPtr++;
+    if (tempPtr > 228) tempPtr = 120;
     return r;
   }
 
@@ -477,13 +481,19 @@ function compilePhasorToBytecode(source) {
       if (functions.has(fnName) && callDepth < 12) {
         const fnDef = functions.get(fnName);
         const childScope = new Map();
+        const savedTempPtr = tempPtr;
         for (let k = 0; k < fnDef.params.length; k++) {
           const argReg = compileExprTokens(rawArgs[k]);
           const pReg = allocTemp();
           emit(0x02, pReg, argReg, 0);
           childScope.set(fnDef.params[k], pReg);
         }
-        return compileStream(fnDef.body, childScope, callDepth + 1);
+        const retReg = compileStream(fnDef.body, childScope, callDepth + 1);
+        const outReg = savedTempPtr;
+        if (retReg !== outReg) emit(0x02, outReg, retReg, 0);
+        tempPtr = savedTempPtr + 1;
+        if (tempPtr > 228) tempPtr = 120;
+        return outReg;
       }
 
       return allocTemp();
@@ -510,7 +520,7 @@ function compilePhasorToBytecode(source) {
 
       if (tk.type === 'ID' && tk.val === 'if') {
         nx();
-        const condReg = parsePrimary();
+        const condReg = parseOr();
         const jzPos = emit(0x08, condReg, 0, 0);
         const thenBlk = extractBlock();
         lastReg = compileStream(thenBlk, localScope, callDepth);
@@ -530,7 +540,7 @@ function compilePhasorToBytecode(source) {
       if (tk.type === 'ID' && tk.val === 'while') {
         nx();
         const loopStart = code.length;
-        const condReg = parsePrimary();
+        const condReg = parseOr();
         const jzPos = emit(0x08, condReg, 0, 0);
         const loopBlk = extractBlock();
         compileStream(loopBlk, localScope, callDepth);
