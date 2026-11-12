@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhasorLang Runner</title>
+  <style>
+    body { margin: 0; background: #0f111a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    canvas { background: #000; border: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+    #log { margin-top: 10px; font-family: monospace; font-size: 13px; color: #88c0d0; }
+  </style>
+</head>
+<body>
+  <canvas id="phasorCanvas" width="640" height="480"></canvas>
+  <div id="log">PhasorLang activo</div>
+  <script>
+// runtime/phasor_runtime.js (minimal mock for bundler demonstration)
+class PhasorRuntime {
+    constructor(canvas, mainModuleSource, childModules) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.mainModuleSource = mainModuleSource;
+        this.childModules = childModules;
+        this.frameCounter = 0;
+
+        console.log('--- PhasorRuntime Initialized (MOCK) ---');
+        console.log('Main module source length:', mainModuleSource.length);
+        console.log('Number of child modules:', childModules.length);
+        childModules.forEach(mod => console.log(`  - Child: ${mod.name}, length: ${mod.content.length}`));
+        
+        this.resizeCanvas();
+        window.addEventListener('resize', this.resizeCanvas.bind(this));
+    }
+
+    resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.ctx.fillStyle = '#0D1117'; // KoraDevs dark background
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.font = '16px "Space Mono", monospace';
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.fillText('PhasorLang App Running (MOCK)', 20, 40);
+        this.ctx.fillText(`Main module (partial): ${this.mainModuleSource.substring(0, Math.min(50, this.mainModuleSource.length))}...`, 20, 70);
+        this.childModules.forEach((mod, i) => {
+            this.ctx.fillText(`Child ${i+1}: ${mod.name}`, 20, 100 + i * 20);
+        });
+    }
+
+    start() {
+        console.log('PhasorRuntime Started. Rendering mock content.');
+        // In a real runtime, this would start the PVM loop.
+        // For this mock, a single draw is sufficient to show the loaded state.
+        this.resizeCanvas(); // Initial draw with updated dimensions
+    }
+
+    stop() {
+        console.log('PhasorRuntime Stopped.');
+    }
+}
+
+  </script>
+  <script type="text/phasor" id="source">
+// samples/ejemplo.ph
+import "lib/ui_components.ph"
+import "lib/ui_scrollbar.ph"
+
+signal anim_x = 50.0
+
+screen main {
+    cls(0x0D1117) // Dark background
+    
+    // Animate a circle based on R0 (PVM register simulated by runtime)
+    current_x = R0 // Simulated animation register from runtime JS
+    circle(current_x, 150.0, 20.0, 0xF85149) // Red circle
+
+    // Draw a rectangle at mouse position if left click is down
+    if (R254 > 0.0) {
+        rect(R252, R253, 30.0, 30.0, 0x58A6FF) // Blue square at cursor
+    }
+
+    text("PhasorLang Bundler Demo", 50.0, 50.0, 16.0, 0x3FB950)
+    text("Mouse X: " + R252, 50.0, 70.0, 12.0, 0x8B949E)
+    text("Mouse Y: " + R253, 50.0, 85.0, 12.0, 0x8B949E)
+    text("Click L: " + R254, 50.0, 100.0, 12.0, 0x8B949E)
+    text("Key Code: " + R230, 50.0, 115.0, 12.0, 0x8B949E)
+    text("Key Down: " + R231, 50.0, 130.0, 12.0, 0x8B949E)
+    text("Scroll Y: " + R255, 50.0, 145.0, 12.0, 0x8B949E)
+    text("Viewport W: " + R250, 50.0, 160.0, 12.0, 0x8B949E)
+
+    // Simulate usage of imported components (will be mocked bytecode)
+    // ui_button("Test Button", 200.0, 250.0, 120.0, 40.0, 0.0, 0x8957E5, R252, R253)
+    // The above is a function call. For simplicity in mock bytecode, I will only process literal UI calls.
+}
+
+screen imported_screen {
+    cls(0x161B22)
+    rect(100.0, 100.0, 200.0, 100.0, 0x238636)
+    text("Imported Screen Content", 110.0, 120.0, 14.0, 0xFFFFFF)
+}
+
+  </script>
+  <script>
+    console.log("PhasorLang fuente cargado con éxito.");
+  </script>
+</body>
+</html>
