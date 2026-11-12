@@ -3,6 +3,7 @@ import "lib/core/primitives.ph"
 import "lib/ui/hud_topbar.ph"
 import "lib/ui/hud_dpad.ph"
 import "lib/screens/ide_screens.ph"
+import "lib/screens/screen_explorer.ph"
 
 signal phase_t = 0.0
 signal prev_pd_root = 0.0
@@ -16,8 +17,10 @@ screen main {
     phase_t = phase_t + 0.04
 
     // 1. Detección de clics en HUD por flanco único (Edge-Trigger)
+    click_edge = 0.0
+    if ((pd == 1.0) && (prev_pd_root == 0.0)) { click_edge = 1.0 } else { 1.0 }
     hud_hit = 0.0
-    if ((pd == 1.0) && (prev_pd_root == 0.0)) {
+    if (click_edge == 1.0) {
         h1 = topbar_handle_click(mx, my, sw, sh)
         h2 = dpad_handle_click(mx, my, sw, sh)
         if ((h1 == 1.0) || (h2 == 1.0)) { hud_hit = 1.0 } else { 1.0 }
@@ -68,7 +71,7 @@ screen main {
 
     // 4. Renderizar las 4 pantallas modulares
     screen_editor_view(x1, y1, win_w, win_h)
-    screen_explorer_view(x2, y2, win_w, win_h)
+    screen_explorer_full(x2, y2, win_w, win_h, mx, my, click_edge)
     screen_preview_view(x3, y3, win_w, win_h, phase_t)
     screen_terminal_view(x4, y4, win_w, win_h)
 
