@@ -1,62 +1,115 @@
 const fs = require('fs');
 const path = require('path');
 
+function resolveImports(entryFile, visited = new Set()) {
+  const absPath = path.resolve(entryFile);
+  if (visited.has(absPath)) return '';
+  visited.add(absPath);
+
+  if (!fs.existsSync(absPath)) {
+    console.warn(`⚠️ Import no encontrado: ${entryFile}`);
+    return `// Import no encontrado: ${entryFile}\n`;
+  }
+
+  const baseDir = path.dirname(absPath);
+  const raw = fs.readFileSync(absPath, 'utf8');
+  const lines = raw.split(/\r?\n/);
+  const out = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^import\s+["']([^"']+)["']/);
+    if (match) {
+      const relImport = match[1];
+      const candidateA = path.resolve(baseDir, relImport);
+      const candidateB = path.resolve(process.cwd(), relImport);
+      const target = fs.existsSync(candidateA) ? candidateA : candidateB;
+      out.push(`// >>> BEGIN IMPORT: ${relImport}`);
+      out.push(resolveImports(target, visited));
+      out.push(`// <<< END IMPORT: ${relImport}`);
+    } else {
+      out.push(line);
+    }
+  }
+  return out.join('\n');
+}
+
 function bundlePhasor(inputPath, outputPath) {
   if (!fs.existsSync(inputPath)) {
     console.error(`Error: Archivo de entrada no encontrado: ${inputPath}`);
     process.exit(1);
   }
 
-  const phasorCode = fs.readFileSync(inputPath, 'utf8');
+  const combinedSource = resolveImports(inputPath);
   const runtimePath = path.join(__dirname, '../runtime/phasor_runtime.js');
-  
-  let runtimeCode = '';
-  if (fs.existsSync(runtimePath)) {
-    runtimeCode = fs.readFileSync(runtimePath, 'utf8');
-  } else {
-    runtimeCode = `console.log("PhasorRuntime: inicializado en modo fallback");`;
-  }
+  const runtimeCode = fs.existsSync(runtimePath)
+    ? fs.readFileSync(runtimePath, 'utf8')
+    : '';
 
   const htmlContent = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PhasorLang Runner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chronos IDE — PhasorLang Standalone</title>
   <style>
-    body { margin: 0; background: #0f111a; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-    canvas { background: #000; border: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-    #log { margin-top: 10px; font-family: monospace; font-size: 13px; color: #88c0d0; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #090D13; touch-action: none;
+    }
+    canvas {
+      display: block; width: 100vw; height: 100vh; touch-action: none;
+    }
   </style>
 </head>
 <body>
-  <canvas id="phasorCanvas" width="640" height="480"></canvas>
-  <div id="log">PhasorLang activo</div>
+  <canvas id="phasorCanvas"></canvas>
+  <script type="text/phasor" id="source">
+${combinedSource}
+  </script>
   <script>
 ${runtimeCode}
   </script>
-  <script type="text/phasor" id="source">
-${phasorCode}
-  </script>
   <script>
-    console.log("PhasorLang fuente cargado con éxito.");
+    (function bootPhasorStandalone() {
+      var canvas = document.getElementById('phasorCanvas');
+      var srcEl = document.getElementById('source');
+      var src = srcEl ? srcEl.textContent : '';
+
+      function syncSize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      syncSize();
+      window.addEventListener('resize', syncSize);
+
+      if (typeof PhasorRuntime === 'function') {
+        var rt = new PhasorRuntime(canvas, src, []);
+        if (typeof rt.start === 'function') rt.start();
+      } else if (window.PhasorWebRuntime && typeof window.PhasorWebRuntime.boot === 'function') {
+        window.PhasorWebRuntime.boot(canvas, src);
+      }
+    })();
   </script>
 </body>
 </html>`;
 
-  const outputDir = path.dirname(outputPath);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  const outDir = path.dirname(outputPath);
+  if (outDir && !fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
   }
-
   fs.writeFileSync(outputPath, htmlContent, 'utf8');
-  console.log(`✔ Generado con éxito: ${outputPath}`);
+  console.log(`✔ Generado con éxito: ${outputPath} (${(Buffer.byteLength(htmlContent) / 1024).toFixed(1)} KB)`);
 }
 
-const args = process.argv.slice(2);
-if (args.length < 2) {
-  console.log("Uso: node tools/phasor_bundler.js <archivo.ph> <salida.html>");
-  process.exit(1);
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  if (args.length < 2) {
+    console.log('Uso: node tools/phasor_bundler.js <entrada.ph> <salida.html>');
+    process.exit(1);
+  }
+  bundlePhasor(args[0], args[1]);
 }
 
-bundlePhasor(args[0], args[1]);
+module.exports = { bundlePhasor, resolveImports };
