@@ -646,7 +646,7 @@ ${runtimeCode}
   setInterval(function() {
     if (!window.PhasorRuntime || !PhasorRuntime.vm || !PhasorRuntime.vm.rScalar) return;
     var S = PhasorRuntime.vm.rScalar;
-    for (var i = 0; i < 64; i++) {
+    for (var i = 0; i < 120; i++) {
       var v = S[i];
       if (v === 101 || v === 102 || v === 103 || v === 104 || v === 105 || v === 106 || v === 107 || v === 108) {
         S[i] = 0;
