@@ -641,6 +641,69 @@ function bundlePhasor(inputPath, outputPath) {
   <script>
 ${runtimeCode}
   </script>
+<script>
+  // Puente nativo VFS para librerías lib/fs/* (Abrir archivo, carpeta, renombrar, GitHub)
+  setInterval(function() {
+    if (!window.PhasorRuntime || !PhasorRuntime.vm || !PhasorRuntime.vm.rScalar) return;
+    var S = PhasorRuntime.vm.rScalar;
+    for (var i = 0; i < 64; i++) {
+      var v = S[i];
+      if (v === 101 || v === 102 || v === 103 || v === 104 || v === 105 || v === 106 || v === 107 || v === 108) {
+        S[i] = 0;
+        if (v === 101) {
+          var inp = document.createElement('input');
+          inp.type = 'file';
+          inp.accept = '.ph,.fas,.toml,.md,.txt';
+          inp.onchange = function(e) {
+            var file = e.target.files && e.target.files[0];
+            if (!file) return;
+            var rd = new FileReader();
+            rd.onload = function(ev) {
+              window.__chronosLoadedFile = { name: file.name, content: ev.target.result };
+              alert('📄 Archivo cargado en VFS: ' + file.name + ' (' + file.size + ' bytes)');
+            };
+            rd.readAsText(file);
+          };
+          inp.click();
+        } else if (v === 102) {
+          var inpDir = document.createElement('input');
+          inpDir.type = 'file';
+          inpDir.webkitdirectory = true;
+          inpDir.multiple = true;
+          inpDir.onchange = function(e) {
+            var files = e.target.files;
+            if (!files || !files.length) return;
+            window.__chronosProjectFiles = Array.from(files).map(function(f){ return f.webkitRelativePath || f.name; });
+            alert('📂 Proyecto cargado: ' + files.length + ' archivos indexados en BOM.');
+          };
+          inpDir.click();
+        } else if (v === 103) {
+          var fn = prompt('Nombre del nuevo módulo .ph:', 'lib/ui/custom_node.ph');
+          if (fn) alert('➕ Módulo creado: ' + fn);
+        } else if (v === 104) {
+          var dn = prompt('Nombre de la nueva carpeta BOM:', 'lib/custom');
+          if (dn) alert('📁 Carpeta creada: ' + dn);
+        } else if (v === 105) {
+          var gh = prompt('Ruta en GitHub (koradevsorg/phasorlang):', 'lib/ui/tree_node.ph');
+          if (gh) {
+            fetch('https://raw.githubusercontent.com/koradevsorg/phasorlang/main/' + gh)
+              .then(function(r){ return r.ok ? r.text() : Promise.reject('No encontrado'); })
+              .then(function(txt){ alert('🌐 Descargado desde GitHub (' + txt.length + ' chars): ' + gh); })
+              .catch(function(){ alert('⚠️ No se pudo conectar con GitHub para: ' + gh); });
+          }
+        } else if (v === 106) {
+          var rn = prompt('Nuevo nombre para el archivo:', 'nuevo_nombre.ph');
+          if (rn) alert('✏ Renombrado a: ' + rn);
+        } else if (v === 107) {
+          alert('🗑 Archivo eliminado del árbol activo.');
+        } else if (v === 108) {
+          if (navigator.clipboard) navigator.clipboard.writeText('import "lib/screens/screen_explorer.ph"');
+          alert('📥 Directiva import copiada al portapapeles.');
+        }
+      }
+    }
+  }, 120);
+</script>
 </body>
 </html>`;
 

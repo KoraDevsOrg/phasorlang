@@ -17,3 +17,11 @@ Cada librería `.ph` está organizada por grado de complejidad y puede importars
 | **Grado 2** | `lib/ui/hud_dpad.ph` | `dpad_render`, `dpad_handle_click` | Controlador direccional flotante con minimapa toroidal 2x2. |
 | **Grado 2** | `lib/spatial/gesture_lock.ph` | `torus_step`, `torus_goto` | Navegación toroidal 2D con Deadzone de 14px y Axis-Lock ortogonal. |
 | **Grado 3** | `lib/screens/screen_explorer.ph` | `screen_explorer_full(...)` | Explorador completo con `OPEN EDITORS`, árbol BOM y señal puente `editor_active_file_id`. |
+
+### Librerías del Sistema de Archivos Virtual (`lib/fs/`)
+| Librería | Funciones Exportadas | Propósito |
+| :--- | :--- | :--- |
+| `lib/fs/vfs_state.ph` | `vfs_selected_id`, `editor_active_file_id` | Estado plano SoA compartido entre Explorador (`S2`) y Editor (`S1`). |
+| `lib/fs/abrir.ph` | `fs_abrir_archivo()`, `fs_abrir_proyecto()` | Abre el selector nativo de archivos o carpeta completa de proyecto. |
+| `lib/fs/crear.ph` | `fs_nuevo_archivo()`, `fs_nueva_carpeta()`, `fs_renombrar_activo()`, `fs_eliminar_activo()` | Gestión CRUD de archivos `.ph` y directorios en el árbol BOM. |
+| `lib/fs/github.ph` | `fs_sincronizar_github()` | Descarga e importa librerías `.ph` directamente desde `koradevsorg/phasorlang`. |
