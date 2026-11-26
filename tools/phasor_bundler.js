@@ -270,7 +270,7 @@ function compilePhasorToBytecode(source) {
   function compileStream(tokList, localScope = null, callDepth = 0) {
     if (!Array.isArray(tokList) || tokList.length === 0) return allocTemp();
     let p = 0;
-    let lastReg = allocTemp();
+    let lastReg = 0;
     const pk = (o = 0) => (tokList && (p + o) < tokList.length) ? tokList[p + o] : null;
     const nx = () => (tokList && p < tokList.length) ? tokList[p++] : null;
 
@@ -636,6 +636,7 @@ function compilePhasorToBytecode(source) {
   }
 
   for (const st of topStatements) {
+    tempPtr = 120;
     compileStream([
       { type: 'ID', val: st.name },
       { type: 'OP', val: '=' },
