@@ -122,7 +122,7 @@
       else if (op === 0x72) {
         var exS = this.code[pc++], rIS = (exS >>> 16) & 0xFFFF, rCS = (exS >>> 8) & 0xFF;
         var offS = Math.floor(S[dst]) + Math.floor(S[s2]) * Math.floor(S[rCS]) + Math.floor(S[rIS]);
-        var valS = Math.floor(S[s1]); if (offS >= 0 && offS < H.length) H[offS] = (valS >= 0 && valS < S.length && S[valS] !== undefined) ? S[valS] : S[s1];
+        if (offS >= 0 && offS < H.length) H[offS] = S[s1];
       }
     }
   };
