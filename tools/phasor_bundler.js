@@ -469,6 +469,16 @@ function compilePhasorToBytecode(source) {
         code.push(sRef, rx, ry, rSz, rCol);
         return rx;
       }
+      if (fnName === 'text_num') {
+        const sRef = compileExprTokens(rawArgs[0]);
+        const rx = compileExprTokens(rawArgs[1]);
+        const ry = compileExprTokens(rawArgs[2]);
+        const rSz = compileExprTokens(rawArgs[3]);
+        const rCol = compileExprTokens(rawArgs[4]);
+        emit(0x54, 0, 0, 0);
+        code.push(sRef, rx, ry, rSz, rCol);
+        return rx;
+      }
       if (fnName === 'clip') {
         const r0 = compileExprTokens(rawArgs[0]);
         const r1 = compileExprTokens(rawArgs[1]);
