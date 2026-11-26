@@ -2,9 +2,21 @@ const fs = require('fs');
 const path = require('path');
 
 // =============================================================================
-// 1. RESOLUCIÓN RECURSIVA DE IMPORTS (.ph)
+// 1. RESOLUCIÓN RECURSIVA DE IMPORTS (.ph) CON SOPORTE -nuevo / -reutilizar
 // =============================================================================
-function resolveImports(entryFile, visited = new Set()) {
+const STORE_ROOT = path.resolve(__dirname, '../lib');
+const STORE_CACHE = path.resolve(process.cwd(), '.phasor_store');
+
+function resolveStoreTarget(relImport) {
+  const cleanRel = relImport.replace(/^@store\//, '');
+  const localStore = path.resolve(STORE_ROOT, cleanRel);
+  if (fs.existsSync(localStore)) return localStore;
+  const cachedStore = path.resolve(STORE_CACHE, cleanRel);
+  if (fs.existsSync(cachedStore)) return cachedStore;
+  return localStore;
+}
+
+function resolveImports(entryFile, visited = new Set(), instanceState = { count: 0 }) {
   const absPath = path.resolve(entryFile);
   if (visited.has(absPath)) return '';
   visited.add(absPath);
@@ -21,13 +33,31 @@ function resolveImports(entryFile, visited = new Set()) {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    const match = trimmed.match(/^import\s+["']([^"']+)["']/);
+    const match = trimmed.match(/^import\s+["']([^"']+)["'](?:\s+-(nuevo|reutilizar))?/i);
     if (match) {
       const relImport = match[1];
-      const candidateA = path.resolve(baseDir, relImport);
+      const mode = (match[2] || 'reutilizar').toLowerCase();
+      const candidateA = relImport.startsWith('@store/') ? resolveStoreTarget(relImport) : path.resolve(baseDir, relImport);
       const candidateB = path.resolve(process.cwd(), relImport);
       const target = fs.existsSync(candidateA) ? candidateA : candidateB;
-      out.push(resolveImports(target, visited));
+
+      if (mode === 'nuevo') {
+        instanceState.count++;
+        const tag = '_v' + instanceState.count;
+        let cloned = resolveImports(target, new Set(), instanceState);
+        const sigNames = [];
+        cloned = cloned.replace(/\bsignal\s+([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, sName) => {
+          sigNames.push(sName);
+          return 'signal ' + sName + tag;
+        });
+        for (const sName of sigNames) {
+          const rx = new RegExp('\\b' + sName + '\\b', 'g');
+          cloned = cloned.replace(rx, sName + tag);
+        }
+        out.push(cloned);
+      } else {
+        out.push(resolveImports(target, visited, instanceState));
+      }
     } else {
       out.push(line);
     }
@@ -36,7 +66,7 @@ function resolveImports(entryFile, visited = new Set()) {
 }
 
 // =============================================================================
-// 2. COMPILADOR PHASORLANG (.ph) -> BYTECODE PVM 3-OPERAND ISA (32-BIT)
+// 2. COMPILADOR PHASORLANG (.ph) -> BYTECODE PVM 3-OPERAND ISA (32-BIT ZERO-GC)
 // =============================================================================
 function compilePhasorToBytecode(source) {
   let clean = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
@@ -110,27 +140,32 @@ function compilePhasorToBytecode(source) {
     return idx;
   }
 
-  // Registros:
-  // R0..R119: señales/variables globales
-  // R120..R228: pila de temporales y marcos locales (sin colisiones entre llamadas)
-  // R229..R255: registros hardware PVM (R250=sw, R251=sh, R252=mx, R253=my, R254=pd, R255=whY)
+  // Mapa estricto de registros (Zero-Collision):
+  // R0..R119   -> Señales y variables globales del programa
+  // R120..R225 -> Pila de marcos locales por función (se libera al salir de cada función)
+  // R226..R255 -> Blindado para Hardware I/O (R250=sw, R251=sh, R252=mx, R253=my, R254=pd, R255=whY)
   const varRegs = new Map();
+  const globalSignals = new Set();
   let nextVarReg = 0;
+
   function getVarReg(name) {
     const m = name.match(/^R(\d+)$/);
     if (m) return parseInt(m[1], 10);
     if (varRegs.has(name)) return varRegs.get(name);
     const r = nextVarReg++;
-    if (nextVarReg >= 120) nextVarReg = 0;
+    if (nextVarReg >= 120) {
+      throw new Error(`Límite de 120 señales globales excedido al registrar '${name}'.`);
+    }
     varRegs.set(name, r);
     return r;
   }
 
   let tempPtr = 120;
   function allocTemp() {
-    const r = tempPtr++;
-    if (tempPtr > 228) tempPtr = 120;
-    return r;
+    if (tempPtr > 225) {
+      throw new Error(`Desbordamiento de marco temporal (> R225) en pila de llamadas.`);
+    }
+    return tempPtr++;
   }
 
   function emit(op, dst = 0, s1 = 0, s2 = 0) {
@@ -184,6 +219,8 @@ function compilePhasorToBytecode(source) {
     if (t.type === 'ID' && t.val === 'signal') {
       next();
       const name = next().val;
+      globalSignals.add(name);
+      getVarReg(name);
       if (peek() && peek().val === '=') {
         next();
         const exprTokens = [];
@@ -217,6 +254,8 @@ function compilePhasorToBytecode(source) {
     }
     if (t.type === 'ID' && peek(1) && peek(1).val === '=') {
       const name = next().val;
+      globalSignals.add(name);
+      getVarReg(name);
       next(); // '='
       const exprTokens = [];
       while (pos < tokens.length && peek().val !== ';' && !(peek().type === 'ID' && ['signal', 'screen'].includes(peek().val)) && !(peek().type === 'ID' && peek(1) && peek(1).val === '(' && isFuncDef(pos))) {
@@ -478,10 +517,10 @@ function compilePhasorToBytecode(source) {
         return dst;
       }
 
-      if (functions.has(fnName) && callDepth < 12) {
+      if (functions.has(fnName) && callDepth < 16) {
         const fnDef = functions.get(fnName);
         const childScope = new Map();
-        const savedTempPtr = tempPtr;
+        const frameBase = tempPtr;
         for (let k = 0; k < fnDef.params.length; k++) {
           const argReg = compileExprTokens(rawArgs[k]);
           const pReg = allocTemp();
@@ -489,10 +528,9 @@ function compilePhasorToBytecode(source) {
           childScope.set(fnDef.params[k], pReg);
         }
         const retReg = compileStream(fnDef.body, childScope, callDepth + 1);
-        const outReg = savedTempPtr;
+        const outReg = frameBase;
         if (retReg !== outReg) emit(0x02, outReg, retReg, 0);
-        tempPtr = savedTempPtr + 1;
-        if (tempPtr > 228) tempPtr = 120;
+        tempPtr = frameBase + 1;
         return outReg;
       }
 
@@ -518,6 +556,8 @@ function compilePhasorToBytecode(source) {
       if (!tk) break;
       if (tk.val === ';') { nx(); continue; }
 
+      const stmtTempMark = tempPtr;
+
       if (tk.type === 'ID' && tk.val === 'if') {
         nx();
         const condReg = parseOr();
@@ -534,6 +574,7 @@ function compilePhasorToBytecode(source) {
         } else {
           code[jzPos] = (code[jzPos] & 0xFFFF0000) | (code.length & 0xFFFF);
         }
+        tempPtr = stmtTempMark;
         continue;
       }
 
@@ -547,6 +588,7 @@ function compilePhasorToBytecode(source) {
         emit(0x07, 0, 0, 0);
         code[code.length - 1] = (code[code.length - 1] & 0xFFFF0000) | (loopStart & 0xFFFF);
         code[jzPos] = (code[jzPos] & 0xFFFF0000) | (code.length & 0xFFFF);
+        tempPtr = stmtTempMark;
         continue;
       }
 
@@ -554,13 +596,31 @@ function compilePhasorToBytecode(source) {
         const varName = nx().val;
         nx(); // '='
         const valReg = parseOr();
-        const dstReg = resolveReg(varName);
-        if (dstReg !== valReg) emit(0x02, dstReg, valReg, 0);
-        lastReg = dstReg;
+        const isGlobal = (callDepth === 0) || globalSignals.has(varName) || /^R\d+$/.test(varName);
+        if (!isGlobal && localScope && !localScope.has(varName)) {
+          // Asignación local dentro del marco actual de la función (se libera al salir de la función)
+          const locReg = stmtTempMark;
+          localScope.set(varName, locReg);
+          if (locReg !== valReg) emit(0x02, locReg, valReg, 0);
+          tempPtr = locReg + 1;
+          lastReg = locReg;
+        } else {
+          const dstReg = isGlobal ? getVarReg(varName) : localScope.get(varName);
+          if (dstReg !== valReg) emit(0x02, dstReg, valReg, 0);
+          tempPtr = stmtTempMark;
+          lastReg = dstReg;
+        }
         continue;
       }
 
       lastReg = parseOr();
+      if (p < tokList.length) {
+        tempPtr = stmtTempMark;
+      } else if (lastReg >= stmtTempMark) {
+        if (lastReg !== stmtTempMark) emit(0x02, stmtTempMark, lastReg, 0);
+        tempPtr = stmtTempMark + 1;
+        lastReg = stmtTempMark;
+      }
     }
     return lastReg;
   }
@@ -579,6 +639,8 @@ function compilePhasorToBytecode(source) {
   const mainBody = screens.get('main') || [];
   compileStream(mainBody);
   emit(0xFF, 0, 0, 0);
+
+  console.log(`📊 Mapa de Memoria AOT: ${varRegs.size}/120 señales globales (R0..R${Math.max(0, nextVarReg - 1)}), pico de marcos locales: R${tempPtr} (Límite hardware: R225)`);
 
   return {
     bytecode: code,
@@ -660,7 +722,7 @@ ${runtimeCode}
             var rd = new FileReader();
             rd.onload = function(ev) {
               window.__chronosLoadedFile = { name: file.name, content: ev.target.result };
-              alert('📄 Archivo cargado en VFS: ' + file.name + ' (' + file.size + ' bytes)');
+              console.log('Archivo cargado en VFS: ' + file.name + ' (' + file.size + ' bytes)');
             };
             rd.readAsText(file);
           };
@@ -674,31 +736,37 @@ ${runtimeCode}
             var files = e.target.files;
             if (!files || !files.length) return;
             window.__chronosProjectFiles = Array.from(files).map(function(f){ return f.webkitRelativePath || f.name; });
-            alert('📂 Proyecto cargado: ' + files.length + ' archivos indexados en BOM.');
+            console.log('Proyecto cargado: ' + files.length + ' archivos indexados en BOM.');
           };
           inpDir.click();
         } else if (v === 103) {
-          var fn = prompt('Nombre del nuevo módulo .ph:', 'lib/ui/custom_node.ph');
-          if (fn) alert('➕ Módulo creado: ' + fn);
+          var fn = (function(){ return null; })('Nombre del nuevo módulo .ph:', 'lib/ui/custom_node.ph');
+          if (fn) console.log('Modulo creado: ' + fn);
         } else if (v === 104) {
-          var dn = prompt('Nombre de la nueva carpeta BOM:', 'lib/custom');
-          if (dn) alert('📁 Carpeta creada: ' + dn);
+          var dn = (function(){ return null; })('Nombre de la nueva carpeta BOM:', 'lib/custom');
+          if (dn) console.log('Carpeta creada: ' + dn);
         } else if (v === 105) {
-          var gh = prompt('Ruta en GitHub (koradevsorg/phasorlang):', 'lib/ui/tree_node.ph');
-          if (gh) {
-            fetch('https://raw.githubusercontent.com/koradevsorg/phasorlang/main/' + gh)
-              .then(function(r){ return r.ok ? r.text() : Promise.reject('No encontrado'); })
-              .then(function(txt){ alert('🌐 Descargado desde GitHub (' + txt.length + ' chars): ' + gh); })
-              .catch(function(){ alert('⚠️ No se pudo conectar con GitHub para: ' + gh); });
-          }
+          fetch('https://api.github.com/repos/koradevsorg/phasorlang/git/trees/main?recursive=1')
+            .then(function(r){ return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
+            .then(function(data){
+              var list = (data.tree || [])
+                .filter(function(it){ return it.type === 'blob' && (it.path.endsWith('.ph') || it.path.endsWith('.fas') || it.path.endsWith('.md')); })
+                .map(function(it){ return it.path; });
+              var gh = (function(){ return null; })('🌐 Repositorio koradevsorg/phasorlang:\\n' + list.slice(0, 12).join('\\n') + '\\n\\nEscribe ruta a descargar:', list[0] || 'chronos_ide.ph');
+              if (!gh) return;
+              return fetch('https://raw.githubusercontent.com/koradevsorg/phasorlang/main/' + gh.trim())
+                .then(function(r2){ return r2.ok ? r2.text() : Promise.reject('HTTP ' + r2.status); })
+                .then(function(txt){ console.log('Descargado (' + txt.length + ' bytes): ' + gh.trim()); });
+            })
+            .catch(function(err){ console.warn('Error GitHub: ' + err); });
         } else if (v === 106) {
-          var rn = prompt('Nuevo nombre para el archivo:', 'nuevo_nombre.ph');
-          if (rn) alert('✏ Renombrado a: ' + rn);
+          var rn = (function(){ return null; })('Nuevo nombre para el archivo:', 'nuevo_nombre.ph');
+          if (rn) console.log('Renombrado a: ' + rn);
         } else if (v === 107) {
-          alert('🗑 Archivo eliminado del árbol activo.');
+          console.log('Archivo eliminado del arbol activo.');
         } else if (v === 108) {
           if (navigator.clipboard) navigator.clipboard.writeText('import "lib/screens/screen_explorer.ph"');
-          alert('📥 Directiva import copiada al portapapeles.');
+          console.log('Directiva import copiada al portapapeles.');
         }
       }
     }
