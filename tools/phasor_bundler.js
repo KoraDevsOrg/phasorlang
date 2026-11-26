@@ -670,43 +670,25 @@ function bundlePhasor(inputPath, outputPath) {
     ? fs.readFileSync(runtimePath, 'utf8')
     : '';
 
-  runtimeCode = runtimeCode.replace(
-    "
-      var syncPointerCoords = function(clientX, clientY) {
-        if (!self.canvas) return;
-        var r = self.canvas.getBoundingClientRect();
-        var logW = r.width || window.innerWidth || 360;
-        var logH = r.height || window.innerHeight || 640;
-        var nx = (clientX - r.left) * (logW / (r.width || logW));
-        var ny = (clientY - r.top) * (logH / (r.height || logH));
-        self.setReg(250, logW);
-        self.setReg(251, logH);
-        self.setReg(252, nx);
-        self.setReg(253, ny);
-      };
-
-      self.canvas.addEventListener('pointerdown', function (e) {
-        syncPointerCoords(e.clientX, e.clientY);",
-    `
-      var syncPointerCoords = function(clientX, clientY) {
-        if (!self.canvas) return;
-        var r = self.canvas.getBoundingClientRect();
-        var logW = r.width || window.innerWidth || 360;
-        var logH = r.height || window.innerHeight || 640;
-        var nx = (clientX - r.left) * (logW / (r.width || logW));
-        var ny = (clientY - r.top) * (logH / (r.height || logH));
-        self.setReg(250, logW);
-        self.setReg(251, logH);
-        self.setReg(252, nx);
-        self.setReg(253, ny);
-      };
-
-      self.canvas.addEventListener('pointerdown', function (e) {
-        syncPointerCoords(e.clientX, e.clientY);
-        if (self.canvas.setPointerCapture && e.pointerId !== undefined) {
-          try { self.canvas.setPointerCapture(e.pointerId); } catch (err) {}
-        }`
-  );
+    runtimeCode = runtimeCode.replace(
+      "self.canvas.addEventListener('pointerdown', function (e) {",
+      [
+        "var syncPointerCoords = function(clientX, clientY) {",
+        "  if (!self.canvas) return;",
+        "  var r = self.canvas.getBoundingClientRect();",
+        "  var logW = r.width || window.innerWidth || 360;",
+        "  var logH = r.height || window.innerHeight || 640;",
+        "  var nx = (clientX - r.left) * (logW / (r.width || logW));",
+        "  var ny = (clientY - r.top) * (logH / (r.height || logH));",
+        "  self.setReg(250, logW);",
+        "  self.setReg(251, logH);",
+        "  self.setReg(252, nx);",
+        "  self.setReg(253, ny);",
+        "};",
+        "self.canvas.addEventListener('pointerdown', function (e) {",
+        "  syncPointerCoords(e.clientX, e.clientY);"
+      ].join("\\n")
+    );
 
   const payloadJson = JSON.stringify(compiled);
 
