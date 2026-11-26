@@ -671,8 +671,38 @@ function bundlePhasor(inputPath, outputPath) {
     : '';
 
   runtimeCode = runtimeCode.replace(
-    "self.canvas.addEventListener('pointerdown', function (e) {",
-    `self.canvas.addEventListener('pointerdown', function (e) {
+    "
+      var syncPointerCoords = function(clientX, clientY) {
+        if (!self.canvas) return;
+        var r = self.canvas.getBoundingClientRect();
+        var logW = r.width || window.innerWidth || 360;
+        var logH = r.height || window.innerHeight || 640;
+        var nx = (clientX - r.left) * (logW / (r.width || logW));
+        var ny = (clientY - r.top) * (logH / (r.height || logH));
+        self.setReg(250, logW);
+        self.setReg(251, logH);
+        self.setReg(252, nx);
+        self.setReg(253, ny);
+      };
+
+      self.canvas.addEventListener('pointerdown', function (e) {
+        syncPointerCoords(e.clientX, e.clientY);",
+    `
+      var syncPointerCoords = function(clientX, clientY) {
+        if (!self.canvas) return;
+        var r = self.canvas.getBoundingClientRect();
+        var logW = r.width || window.innerWidth || 360;
+        var logH = r.height || window.innerHeight || 640;
+        var nx = (clientX - r.left) * (logW / (r.width || logW));
+        var ny = (clientY - r.top) * (logH / (r.height || logH));
+        self.setReg(250, logW);
+        self.setReg(251, logH);
+        self.setReg(252, nx);
+        self.setReg(253, ny);
+      };
+
+      self.canvas.addEventListener('pointerdown', function (e) {
+        syncPointerCoords(e.clientX, e.clientY);
         if (self.canvas.setPointerCapture && e.pointerId !== undefined) {
           try { self.canvas.setPointerCapture(e.pointerId); } catch (err) {}
         }`
@@ -726,7 +756,7 @@ ${runtimeCode}
             };
             rd.readAsText(file);
           };
-          inp.click();
+          console.log('[PhasorRuntime] Selector de archivo desactivado en modo app.');
         } else if (v === 102) {
           var inpDir = document.createElement('input');
           inpDir.type = 'file';
@@ -765,7 +795,7 @@ ${runtimeCode}
         } else if (v === 107) {
           console.log('Archivo eliminado del arbol activo.');
         } else if (v === 108) {
-          if (navigator.clipboard) navigator.clipboard.writeText('import "lib/screens/screen_explorer.ph"');
+          if (navigator.clipboard) (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })('import "lib/screens/screen_explorer.ph"');
           console.log('Directiva import copiada al portapapeles.');
         }
       }

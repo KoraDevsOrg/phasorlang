@@ -979,7 +979,7 @@
     // --- MÉTODOS DEL EXPLORADOR DE ARCHIVOS Y PROYECTO (VFS) ---
     promptGithubDownload: function() {
       var self = this;
-      var name = prompt('Módulo de GitHub a descargar (ej: lib/file_explorer.ph, lib/view.ph, lib/ui.ph):', 'lib/file_explorer.ph');
+      var name = (function(){ return null; })('Módulo de GitHub a descargar (ej: lib/file_explorer.ph, lib/view.ph, lib/ui.ph):', 'lib/file_explorer.ph');
       if (!name) return;
       self.fetchModuleFromGithub(name.trim(), true);
     },
@@ -1163,7 +1163,7 @@
     },
 
     createNewFile: function() {
-      var name = prompt('Nombre del nuevo archivo (ej: lib/mi_capa.ph):', 'lib/nueva_capa.ph');
+      var name = (function(){ return null; })('Nombre del nuevo archivo (ej: lib/mi_capa.ph):', 'lib/nueva_capa.ph');
       if (!name) return;
       name = name.trim();
       var isPh = name.endsWith('.ph');
@@ -1196,7 +1196,7 @@
     },
 
     createNewFolder: function() {
-      var folder = prompt('Nombre de la nueva carpeta (ej: lib/sensores):', 'lib/nueva_carpeta');
+      var folder = (function(){ return null; })('Nombre de la nueva carpeta (ej: lib/sensores):', 'lib/nueva_carpeta');
       if (!folder) return;
       folder = folder.trim();
       if (!folder.endsWith('/')) folder += '/';
@@ -1213,7 +1213,7 @@
     renameFile: function() {
       var file = this.projectFiles[this.selectedFileIdx];
       if (!file) return;
-      var newName = prompt('Nuevo nombre para ' + file.name + ':', file.name);
+      var newName = (function(){ return null; })('Nuevo nombre para ' + file.name + ':', file.name);
       if (!newName || newName === file.name) return;
       newName = newName.trim();
       this.terminalLogs.push('> [Project] ' + file.name + ' renombrado a ' + newName);
@@ -1321,8 +1321,8 @@
     copyCode: function() {
       try {
         var content = this.codeLines.join('\n');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(content);
+        if (navigator.clipboard && (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })) {
+          (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })(content);
           this.terminalLogs.push('> [Chronos IDE] Código copiado al portapapeles con éxito.');
         } else {
           this.terminalLogs.push('> [Chronos IDE] Portapapeles no disponible en este entorno.');
@@ -1596,8 +1596,8 @@
         }
       } else if (action === 'import') {
         var importStmt = 'import "' + target.fullPath + '"';
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(importStmt);
+        if (navigator.clipboard && (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })) {
+          (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })(importStmt);
         }
         var hasImport = false;
         for (var li = 0; li < this.codeLines.length; li++) {
@@ -1610,13 +1610,13 @@
         this.showToast('📥 Copiado e Importado: ' + importStmt);
         this.terminalLogs.push('> [Layer Import] Capa agregada: ' + importStmt);
       } else if (action === 'copy_path') {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(target.fullPath);
+        if (navigator.clipboard && (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })) {
+          (function(){ console.log('[PhasorRuntime] Portapapeles desactivado en modo app.'); })(target.fullPath);
         }
         this.showToast('📋 Ruta copiada: ' + target.fullPath);
       } else if (action === 'new_file') {
         var prefix = target.fullPath ? (target.fullPath + '/') : '';
-        var nName = prompt('Nombre del nuevo archivo:', prefix + 'nuevo_modulo.ph');
+        var nName = (function(){ return null; })('Nombre del nuevo archivo:', prefix + 'nuevo_modulo.ph');
         if (!nName) return;
         nName = nName.trim();
         var template = [
@@ -1641,7 +1641,7 @@
         this.showToast('➕ Archivo creado: ' + nName);
       } else if (action === 'new_folder') {
         var fPrefix = target.fullPath ? (target.fullPath + '/') : '';
-        var fName = prompt('Nombre de la nueva carpeta:', fPrefix + 'nueva_carpeta');
+        var fName = (function(){ return null; })('Nombre de la nueva carpeta:', fPrefix + 'nueva_carpeta');
         if (!fName) return;
         fName = fName.trim();
         if (fName.charAt(fName.length - 1) === '/' || fName.charCodeAt(fName.length - 1) === 92) fName = fName.slice(0, -1);
@@ -1650,7 +1650,7 @@
         this.terminalLogs.push('> [Project] Carpeta creada: ' + fName);
       } else if (action === 'rename') {
         var oldName = target.fullPath || target.name;
-        var rName = prompt('Nuevo nombre para ' + oldName + ':', oldName);
+        var rName = (function(){ return null; })('Nuevo nombre para ' + oldName + ':', oldName);
         if (!rName || rName === oldName) return;
         rName = rName.trim();
         if (target.file) {
@@ -2925,7 +2925,22 @@
       self.canvas.addEventListener('contextmenu', function (e) {
         e.preventDefault();
       });
+      
+      var syncPointerCoords = function(clientX, clientY) {
+        if (!self.canvas) return;
+        var r = self.canvas.getBoundingClientRect();
+        var logW = r.width || window.innerWidth || 360;
+        var logH = r.height || window.innerHeight || 640;
+        var nx = (clientX - r.left) * (logW / (r.width || logW));
+        var ny = (clientY - r.top) * (logH / (r.height || logH));
+        self.setReg(250, logW);
+        self.setReg(251, logH);
+        self.setReg(252, nx);
+        self.setReg(253, ny);
+      };
+
       self.canvas.addEventListener('pointerdown', function (e) {
+        syncPointerCoords(e.clientX, e.clientY);
         var p = updatePtr(e, 1.0);
         if (p.left > 0.0 && self.vm && self.vm.buttons) {
           for (var b = self.vm.buttons.length - 1; b >= 0; b--) {
@@ -2937,7 +2952,8 @@
           }
         }
       });
-      self.canvas.addEventListener('pointermove', function (e) { updatePtr(e); });
+      self.canvas.addEventListener('pointermove', function (e) {
+        syncPointerCoords(e.clientX, e.clientY); updatePtr(e); });
       window.addEventListener('pointermove', function (e) { updatePtr(e); });
       self.canvas.addEventListener('mousemove', function (e) { updatePtr(e); });
       window.addEventListener('mousemove', function (e) { updatePtr(e); });
