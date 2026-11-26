@@ -20,7 +20,6 @@ grid_draw(gx, gy, cols, rows, cell, bg_col, line_col, border_col) = {
     bh = rows * cell
     rect(gx, gy, bw, bh, bg_col)
 
-    // Líneas verticales internas
     i = 1.0
     while (i < cols) {
         lx = gx + (i * cell)
@@ -28,7 +27,6 @@ grid_draw(gx, gy, cols, rows, cell, bg_col, line_col, border_col) = {
         i = i + 1.0
     }
 
-    // Líneas horizontales internas
     j = 1.0
     while (j < rows) {
         ly = gy + (j * cell)
@@ -36,11 +34,33 @@ grid_draw(gx, gy, cols, rows, cell, bg_col, line_col, border_col) = {
         j = j + 1.0
     }
 
-    // Marco exterior del tablero
     line(gx, gy, gx + bw, gy, border_col)
     line(gx, gy + bh, gx + bw, gy + bh, border_col)
     line(gx, gy, gx, gy + bh, border_col)
     line(gx + bw, gy, gx + bw, gy + bh, border_col)
+    1.0
+}
+
+// Dibuja divisores reforzados para subcajas rectangulares (ej: 6x6 -> box_c=3, box_r=2)
+grid_draw_subboxes(gx, gy, cols, rows, box_c, box_r, cell, accent_col) = {
+    bw = cols * cell
+    bh = rows * cell
+
+    c = box_c
+    while (c < cols) {
+        lx = gx + (c * cell)
+        line(lx, gy, lx, gy + bh, accent_col)
+        line(lx + 1.0, gy, lx + 1.0, gy + bh, accent_col)
+        c = c + box_c
+    }
+
+    r = box_r
+    while (r < rows) {
+        ly = gy + (r * cell)
+        line(gx, ly, gx + bw, ly, accent_col)
+        line(gx, ly + 1.0, gx + bw, ly + 1.0, accent_col)
+        r = r + box_r
+    }
     1.0
 }
 
