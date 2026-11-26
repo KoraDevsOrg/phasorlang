@@ -2871,9 +2871,13 @@
     setReg: function (r, v) { if (this.vm && r >= 0 && r < 1024) this.vm.rScalar[r] = v; },
     resize: function () {
       if (!this.canvas) return;
-      var w = window.innerWidth, h = window.innerHeight;
-      this.canvas.width = this.width = w; this.canvas.height = this.height = h;
-      this.setReg(250, w); this.setReg(251, h);
+      var r = this.canvas.getBoundingClientRect();
+      var w = Math.round(r.width || window.innerWidth || 360);
+      var h = Math.round(r.height || window.innerHeight || 640);
+      this.canvas.width = this.width = w;
+      this.canvas.height = this.height = h;
+      this.setReg(250, w);
+      this.setReg(251, h);
     },
     init: function (wasm, canvasId, opts) {
       var self = this; opts = opts || {};
@@ -2896,7 +2900,7 @@
       window.addEventListener('resize', function () { self.resize(); });
       var leftLatch = 0.0, rightLatch = 0.0, leftHeld = 0.0, rightHeld = 0.0;
       var updatePtr = function (e, down) {
-        var r = self.canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+        var r = self.canvas.getBoundingClientRect(), scaleX = self.canvas.width / (r.width || self.canvas.width || 1), scaleY = self.canvas.height / (r.height || self.canvas.height || 1), mx = (e.clientX - r.left) * scaleX, my = (e.clientY - r.top) * scaleY;
         self.setReg(252, mx); self.setReg(253, my);
         var btnMask = e.buttons !== undefined ? e.buttons : (down ? 1 : 0);
         var leftDown = (btnMask & 1) !== 0 ? 1.0 : 0.0;
@@ -2926,21 +2930,8 @@
         e.preventDefault();
       });
       
-      var syncPointerCoords = function(clientX, clientY) {
-        if (!self.canvas) return;
-        var r = self.canvas.getBoundingClientRect();
-        var logW = r.width || window.innerWidth || 360;
-        var logH = r.height || window.innerHeight || 640;
-        var nx = (clientX - r.left) * (logW / (r.width || logW));
-        var ny = (clientY - r.top) * (logH / (r.height || logH));
-        self.setReg(250, logW);
-        self.setReg(251, logH);
-        self.setReg(252, nx);
-        self.setReg(253, ny);
-      };
-
-      self.canvas.addEventListener('pointerdown', function (e) {
-        syncPointerCoords(e.clientX, e.clientY);
+self.canvas.addEventListener('pointerdown', function (e) {
+        
         var p = updatePtr(e, 1.0);
         if (p.left > 0.0 && self.vm && self.vm.buttons) {
           for (var b = self.vm.buttons.length - 1; b >= 0; b--) {
@@ -2953,7 +2944,7 @@
         }
       });
       self.canvas.addEventListener('pointermove', function (e) {
-        syncPointerCoords(e.clientX, e.clientY); updatePtr(e); });
+         updatePtr(e); });
       window.addEventListener('pointermove', function (e) { updatePtr(e); });
       self.canvas.addEventListener('mousemove', function (e) { updatePtr(e); });
       window.addEventListener('mousemove', function (e) { updatePtr(e); });

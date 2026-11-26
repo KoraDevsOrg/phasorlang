@@ -670,26 +670,6 @@ function bundlePhasor(inputPath, outputPath) {
     ? fs.readFileSync(runtimePath, 'utf8')
     : '';
 
-    runtimeCode = runtimeCode.replace(
-      "self.canvas.addEventListener('pointerdown', function (e) {",
-      [
-        "var syncPointerCoords = function(clientX, clientY) {",
-        "  if (!self.canvas) return;",
-        "  var r = self.canvas.getBoundingClientRect();",
-        "  var logW = r.width || window.innerWidth || 360;",
-        "  var logH = r.height || window.innerHeight || 640;",
-        "  var nx = (clientX - r.left) * (logW / (r.width || logW));",
-        "  var ny = (clientY - r.top) * (logH / (r.height || logH));",
-        "  self.setReg(250, logW);",
-        "  self.setReg(251, logH);",
-        "  self.setReg(252, nx);",
-        "  self.setReg(253, ny);",
-        "};",
-        "self.canvas.addEventListener('pointerdown', function (e) {",
-        "  syncPointerCoords(e.clientX, e.clientY);"
-      ].join("\\n")
-    );
-
   const payloadJson = JSON.stringify(compiled);
 
   const htmlContent = `<!DOCTYPE html>
@@ -705,7 +685,7 @@ function bundlePhasor(inputPath, outputPath) {
       overflow: hidden; background: #090D13; touch-action: none;
     }
     canvas {
-      display: block; width: 100vw; height: 100vh; touch-action: none;
+      display: block; width: 100%; height: 100%; touch-action: none;
     }
   </style>
 </head>
@@ -750,7 +730,7 @@ ${runtimeCode}
             window.__chronosProjectFiles = Array.from(files).map(function(f){ return f.webkitRelativePath || f.name; });
             console.log('Proyecto cargado: ' + files.length + ' archivos indexados en BOM.');
           };
-          inpDir.click();
+          console.log('[PhasorRuntime] Selector de carpeta desactivado en modo app.');
         } else if (v === 103) {
           var fn = (function(){ return null; })('Nombre del nuevo módulo .ph:', 'lib/ui/custom_node.ph');
           if (fn) console.log('Modulo creado: ' + fn);
